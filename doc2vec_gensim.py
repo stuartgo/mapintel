@@ -1,8 +1,15 @@
 from datetime import datetime, timedelta
 import random
 import collections
+import unicodedata
+import string
 from collections import defaultdict
 from nltk.corpus import stopwords
+from string import punctuation as punct
+from bs4 import BeautifulSoup
+from nltk.corpus import stopwords
+from nltk import word_tokenize
+from nltk.stem import SnowballStemmer, RSLPStemmer
 from newsapi import NewsApiClient
 # import numpy as np
 # from scipy.spatial.distance import pdist, squareform
@@ -11,10 +18,9 @@ from sklearn.utils.validation import check_is_fitted
 from gensim import models
 
 
-# TODO: add features to CorpusPreprocess,
+# TODO: add features/ improve CorpusPreprocess (look at the one from Text Mining),
 #       build mongodb backend to store api requests,
-#       webscrape full content from urls provided by api,
-#       host project on github
+#       webscrape full content from urls provided by api
 
 class CorpusPreprocess(BaseEstimator, TransformerMixin):
     def __init__(self, freq_train_only=False, min_freq=1, stopwords=stopwords.words('english')):
@@ -46,6 +52,15 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         # Check if fit had been called
         check_is_fitted(self)
+
+        # Removes HTML tags
+        texts = [BeautifulSoup(text, features="lxml").get_text() for text in X]
+
+        # # Removes punctuation
+        # texts = [text.translate(str.maketrans('', '', string.punctuation)) for text in texts]
+        #
+        # # Removes accentuation
+        # text = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
 
         # Lowercase each document, split it by white space and filter out self.stopwords
         texts = self.simple_tokenizer(X, self.stopwords)

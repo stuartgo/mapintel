@@ -1,158 +1,16 @@
+from utility import CorpusPreprocess, check_random_doc_similarity, compare_documents, similarity_query
 from datetime import datetime, timedelta
 import random
 import collections
-import unicodedata
-import string
-from collections import defaultdict
-from nltk.corpus import stopwords
-from string import punctuation as punct
-from bs4 import BeautifulSoup
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-from nltk.stem import SnowballStemmer, RSLPStemmer
 from newsapi import NewsApiClient
+from string import punctuation
+from nltk.corpus import stopwords
+from gensim import models
 # import numpy as np
 # from scipy.spatial.distance import pdist, squareform
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.utils.validation import check_is_fitted
-from gensim import models
 
-
-# TODO: add features/ improve CorpusPreprocess (look at the one from Text Mining),
-#       build mongodb backend to store api requests,
+# TODO: add date, price, weekday, ... token to CorpusPreprocess
 #       webscrape full content from urls provided by api
-
-class CorpusPreprocess(BaseEstimator, TransformerMixin):
-    def __init__(self, freq_train_only=False, min_freq=1, stopwords=stopwords.words('english')):
-        """
-        Scikit-learn like Transformer for Corpus preprocessing
-        :param freq_train_only: whether or not to find word frequency only on train or also in test
-        :param min_freq: minimum word frequency to enter in corpus
-        :param stopwords: set of frequent words to exclude from corpus
-        """
-        self.freq_train_only = freq_train_only
-        self.min_freq = min_freq
-        self.stopwords = stopwords
-
-    def fit(self, X, y=None):
-        # Lowercase each document, split it by white space
-        texts = self.simple_tokenizer(X)
-
-        # Count word frequencies
-        self.frequency_ = defaultdict(int)
-        for text in texts:
-            for token in text:
-                self.frequency_[token] += 1
-
-        # Register the training set so we don't double count frequencies by transforming it
-        self.X_ = X
-
-        return self
-
-    def transform(self, X, y=None):
-        # Check if fit had been called
-        check_is_fitted(self)
-
-        # Removes HTML tags
-        texts = [BeautifulSoup(text, features="lxml").get_text() for text in X]
-
-        # # Removes punctuation
-        # texts = [text.translate(str.maketrans('', '', string.punctuation)) for text in texts]
-        #
-        # # Removes accentuation
-        # text = ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
-
-        # Lowercase each document, split it by white space and filter out self.stopwords
-        texts = self.simple_tokenizer(X, self.stopwords)
-
-        if not self.freq_train_only and X != self.X_:
-            # Update word frequencies
-            for text in texts:
-                for token in text:
-                    self.frequency_[token] += 1
-
-        # Only keep words that appear more than self.min_freq
-        texts = [[token for token in text if self.frequency_[token] > self.min_freq] for text in texts]
-
-        return texts
-
-    @staticmethod
-    def simple_tokenizer(X, stopwords=None):
-        """
-        Static method that lowers the case and splits the words (i.e. tokenizes) in each document. Optionally removes
-        stopwords.
-        :param X: list of documents
-        :param stopwords: stopwords to remove from tokenized corpus
-        :return: list of tokenized documents
-        """
-        if stopwords:
-            return [[word for word in document.lower().split() if word not in stopwords] for document in X]
-        else:
-            return [[word for word in document.lower().split()] for document in X]
-
-
-def compare_documents(base_doc, similar, compare_corpus, base_doc_id=None):
-    """
-    Compare a given document with the most similar, second most similar, median and least similar document
-    from a corpus of documents
-    :param base_doc_id: id of the base document
-    :param base_doc: tokenized base document
-    :param similar: similarity list of the base document
-    :param compare_corpus: corpus to compare the base document to
-    :return: None
-    """
-    if base_doc_id is None:
-        base_doc_id = "unknown"
-    if isinstance(compare_corpus[0], models.doc2vec.TaggedDocument):
-        print('Document ({}): «{}»\n'.format(base_doc_id, ' '.join(base_doc)))
-        print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
-        for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2), ('LEAST', len(similar) - 1)]:
-            print(u'%s %s: «%s»\n' % (label, similar[index], ' '.join(compare_corpus[similar[index][0]].words)))
-    else:
-        print('Document ({}): «{}»\n'.format(base_doc_id, ' '.join(base_doc)))
-        print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
-        for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2),
-                             ('LEAST', len(similar) - 1)]:
-            print(u'%s %s: «%s»\n' % (label, similar[index], ' '.join(compare_corpus[similar[index][0]])))
-
-
-def check_random_doc_similarity(doc2vec_model, train_corpus, test_corpus=None):
-    """
-    Function that randomly chooses a document from either the train or test corpus and compares it with the
-    documents from the train corpus. Enables model assessment and testing.
-    :param doc2vec_model: gensim.models.doc2vec.Doc2Vec fitted instance
-    :param train_corpus: list of gensim.models.doc2vec.TaggedDocument formatted documents
-    :param test_corpus: list of preprocessed (same way as train) test documents
-    :return: ID of the random chosen document and list of similarities of documents of train corpus with
-    selected document
-    """
-    if test_corpus:
-        doc_id = random.randint(0, len(test_corpus) - 1)
-        inferred_vector = doc2vec_model.infer_vector(test_corpus[doc_id])
-        sims = doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(doc2vec_model.docvecs))
-        return doc_id, sims
-    else:
-        doc_id = random.randint(0, len(train_corpus) - 1)
-        inferred_vector = doc2vec_model.infer_vector(train_corpus[doc_id].words)
-        sims = doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(doc2vec_model.docvecs))
-        return doc_id, sims
-
-
-def similarity_query(doc2vec_model, unknown_doc):
-    """
-    Performs a similarity query of an unknown document against known documents of the train corpus
-    :param doc2vec_model: gensim.models.doc2vec.Doc2Vec fitted instance
-    :param unknown_doc: preprocessed unknown document
-    :return: list of similarities of documents of train corpus with unknown document
-    """
-    inferred_unknown_vector = doc2vec_model.infer_vector(unknown_doc)
-    sims = doc2vec_model.docvecs.most_similar([inferred_unknown_vector], topn=len(doc2vec_model.docvecs))
-    return sims
-    # inferred_unknown_vectors = np.vstack([doc2vec_model.infer_vector(doc) for doc in unknown_docs])
-    # if against == "known":
-    #     return [doc2vec_model.docvecs.most_similar([vec], topn=len(doc2vec_model.docvecs)) for vec in inferred_unknown_vectors]
-    # elif against == "unknown":
-    #     return squareform(pdist(inferred_unknown_vectors, "cosine"))
 
 
 # Init
@@ -173,7 +31,8 @@ test_corpus = [corpus[i] for i in test_idx]
 train_corpus = list(set(corpus).difference(set(test_corpus)))
 
 # Preprocessing
-prep = CorpusPreprocess()
+prep = CorpusPreprocess(stop_words=stopwords.words('english'), lowercase=True, strip_accents=True,
+                        strip_punctuation=punctuation, stemmer=True, max_df=0.2, min_df=2)
 processed_train_corpus = prep.fit_transform(train_corpus)
 processed_test_corpus = prep.transform(test_corpus)
 
@@ -194,6 +53,7 @@ for doc_id in range(len(tagged_corpus)):
     rank = [docid for docid, sim in sims].index(doc_id)
     ranks.append(rank)
 
+# Optimally we want as much documents to be the most similar with themselves (i.e. rank 0)
 print(collections.OrderedDict(sorted(collections.Counter(ranks).items())))
 
 # Pick a random document from the train corpus, infer its vector and check similarity with other documents
@@ -217,6 +77,6 @@ new_corpus = list(set([c['content'] for c in new_articles['articles'] if c['cont
 new_processed_corpus = prep.transform(new_corpus)
 
 # Similarity query
-unkwnown_doc = new_processed_corpus[2]
+unkwnown_doc = new_processed_corpus[random.randint(0, len(new_processed_corpus))]
 sims = similarity_query(model, unkwnown_doc)
 compare_documents(unkwnown_doc, sims, tagged_corpus)

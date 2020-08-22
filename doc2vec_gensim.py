@@ -12,7 +12,6 @@ from gensim import models
 # TODO: add date, price, weekday, ... token to CorpusPreprocess
 #       webscrape full content from urls provided by api
 
-
 # Init
 newsapi = NewsApiClient(api_key='982796d7dec8411d9ec9d8f09d20666c')
 
@@ -58,11 +57,11 @@ print(collections.OrderedDict(sorted(collections.Counter(ranks).items())))
 
 # Pick a random document from the train corpus, infer its vector and check similarity with other documents
 doc_id, sims = check_random_doc_similarity(model, tagged_corpus)
-compare_documents(tagged_corpus[doc_id].words, sims, tagged_corpus, doc_id)
+compare_documents(doc_id, train_corpus, sims, train_corpus)
 
 # Pick a random document from the test corpus, infer its vector and check similarity with other documents
 doc_id, sims = check_random_doc_similarity(model, tagged_corpus, processed_test_corpus)
-compare_documents(processed_test_corpus[doc_id], sims, tagged_corpus, doc_id)
+compare_documents(doc_id, test_corpus, sims, train_corpus)
 
 # Get new news articles
 new_articles = newsapi.get_everything(language='en',
@@ -77,6 +76,8 @@ new_corpus = list(set([c['content'] for c in new_articles['articles'] if c['cont
 new_processed_corpus = prep.transform(new_corpus)
 
 # Similarity query
-unkwnown_doc = new_processed_corpus[random.randint(0, len(new_processed_corpus))]
+doc_id = random.randint(0, len(test_corpus) - 1)
+unkwnown_doc = new_processed_corpus[doc_id]
 sims = similarity_query(model, unkwnown_doc)
-compare_documents(unkwnown_doc, sims, tagged_corpus)
+compare_documents(doc_id, new_corpus, sims, train_corpus)
+

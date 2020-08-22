@@ -6,7 +6,7 @@ from nltk.stem import PorterStemmer
 from nltk import word_tokenize
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted
-from gensim import models
+from pandas import DataFrame
 
 
 class CorpusPreprocess(BaseEstimator, TransformerMixin):
@@ -183,29 +183,20 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         return corpus
 
 
-def compare_documents(base_doc, similar, compare_corpus, base_doc_id=None):
+def compare_documents(base_doc_id, base_corpus, similar, compare_corpus):
     """
     Compare a given document with the most similar, second most similar, median and least similar document
     from a corpus of documents
     :param base_doc_id: id of the base document
-    :param base_doc: tokenized base document
+    :param base_corpus: corpus to base the comparison (unprocessed). Should contain the base document.
     :param similar: similarity list of the base document
-    :param compare_corpus: corpus to compare the base document to
+    :param compare_corpus: corpus to compare to (unprocessed)
     :return: None
     """
-    if base_doc_id is None:
-        base_doc_id = "unknown"
-    if isinstance(compare_corpus[0], models.doc2vec.TaggedDocument):
-        print('Document ({}): «{}»\n'.format(base_doc_id, ' '.join(base_doc)))
-        print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
-        for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2), ('LEAST', len(similar) - 1)]:
-            print(u'%s %s: «%s»\n' % (label, similar[index], ' '.join(compare_corpus[similar[index][0]].words)))
-    else:
-        print('Document ({}): «{}»\n'.format(base_doc_id, ' '.join(base_doc)))
-        print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
-        for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2),
-                             ('LEAST', len(similar) - 1)]:
-            print(u'%s %s: «%s»\n' % (label, similar[index], ' '.join(compare_corpus[similar[index][0]])))
+    print('Document ({}): «{}»\n'.format(base_doc_id, base_corpus[base_doc_id]))
+    print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
+    for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2), ('LEAST', len(similar) - 1)]:
+        print(u'%s %s: «%s»\n' % (label, similar[index], compare_corpus[similar[index][0]]))
 
 
 def check_random_doc_similarity(doc2vec_model, train_corpus, test_corpus=None):
@@ -218,15 +209,13 @@ def check_random_doc_similarity(doc2vec_model, train_corpus, test_corpus=None):
     :return: ID of the random chosen document and list of similarities of documents of train corpus with
     selected document
     """
-    if test_corpus:
+    if test_corpus is not None:
         doc_id = random.randint(0, len(test_corpus) - 1)
-        inferred_vector = doc2vec_model.infer_vector(test_corpus[doc_id])
-        sims = doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(doc2vec_model.docvecs))
+        sims = similarity_query(doc2vec_model, test_corpus[doc_id])
         return doc_id, sims
     else:
         doc_id = random.randint(0, len(train_corpus) - 1)
-        inferred_vector = doc2vec_model.infer_vector(train_corpus[doc_id].words)
-        sims = doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(doc2vec_model.docvecs))
+        sims = similarity_query(doc2vec_model, train_corpus[doc_id].words)
         return doc_id, sims
 
 
@@ -240,8 +229,37 @@ def similarity_query(doc2vec_model, unknown_doc):
     inferred_unknown_vector = doc2vec_model.infer_vector(unknown_doc)
     sims = doc2vec_model.docvecs.most_similar([inferred_unknown_vector], topn=len(doc2vec_model.docvecs))
     return sims
-    # inferred_unknown_vectors = np.vstack([doc2vec_model.infer_vector(doc) for doc in unknown_docs])
-    # if against == "known":
-    #     return [doc2vec_model.docvecs.most_similar([vec], topn=len(doc2vec_model.docvecs)) for vec in inferred_unknown_vectors]
-    # elif against == "unknown":
-    #     return squareform(pdist(inferred_unknown_vectors, "cosine"))
+
+
+def export_test_results(doc2vec_model, prep_base_corpus, raw_base_corpus, raw_compare_corpus,
+                        out_path='./test_doc2vec.xlsx'):
+    """
+    Exports the similarity query results of every document in prep_base_corpus to an excel notebook
+    :param doc2vec_model: gensim.models.doc2vec.Doc2Vec fitted instance
+    :param prep_base_corpus: corpus to base the comparison (processed)
+    :param raw_base_corpus: corpus to base the comparison (unprocessed)
+    :param raw_compare_corpus: corpus to compare to (unprocessed)
+    :param out_path: path of the exported excel file
+    :return: None
+    """
+    docs_list = []
+    for doc_id in range(len(prep_base_corpus) - 1):
+        # Initialize line_list
+        line_list = [doc_id, raw_base_corpus[doc_id]]
+        # Get similarities to base doc
+        sims = similarity_query(doc2vec_model, prep_base_corpus[doc_id])
+        # Append compare docs
+        for index in [0, 1, len(sims) // 2, len(sims) - 1]:
+            # Append compare doc id
+            line_list.append(sims[index][0])
+            line_list.append(sims[index][1])
+            line_list.append(raw_compare_corpus[sims[index][0]])
+        # Append line_list to docs_list
+        docs_list.append(line_list)
+
+    print('Exporting to test_doc2vec.xlsx...')
+    cols = ['BASE_DOC_ID', 'BASE_DOC', 'MOST_SIMILAR_ID', 'MOST_SIMILAR_DIST', 'MOST_SIMILAR',
+            'SECOND_MOST_SIMILAR_ID', 'SECOND_MOST_SIMILAR_DIST', 'SECOND_MOST_SIMILAR',
+            'MEDIAN_SIMILAR_ID', 'MEDIAN_SIMILAR_DIST', 'MEDIAN_SIMILAR',
+            'LEAST_SIMILAR_ID', 'LEAST_SIMILAR_DIST', 'LEAST_SIMILAR']
+    DataFrame(docs_list, columns=cols).to_excel(out_path, index=False)

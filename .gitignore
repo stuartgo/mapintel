@@ -1,6 +1,6 @@
 # Custom
-images/*
-bbc/*
+data/
+vec4ir/
 
 
 # Byte-compiled / optimized / DLL files

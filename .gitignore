@@ -1,6 +1,7 @@
 # Custom
 data/*
 vec4ir/
+SentEval/
 
 
 # Byte-compiled / optimized / DLL files

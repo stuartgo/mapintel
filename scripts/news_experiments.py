@@ -27,7 +27,7 @@ for file in all_files:
         corpus.append(f.read())
 
 # Saving topics from each article
-topics = [path.split("\\")[1] for path in all_files]
+topics = [path.split("\\")[3] for path in all_files]
 
 # Train/ test split
 train_corpus, test_corpus, train_topics, test_topics = train_test_split(corpus, topics, test_size=0.1, random_state=0)

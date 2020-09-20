@@ -48,7 +48,7 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
 
         return self
 
-    def fit_transform(self, X, y=None):
+    def fit_transform(self, X, y=None, tokenize=True):
         # Preprocess and tokenize corpus
         corpus = self._word_tokenizer(X)
 
@@ -87,11 +87,15 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         self.vocabulary_ = vocab_df
 
         # Remove stop_words from corpus
-        corpus = [[token for token in doc if token not in self.stop_words_] for doc in corpus]
+        corpus = [[token for token in doc if token not in self.stop_words] for doc in corpus]
+
+        # Split vs merged
+        if not tokenize:
+            corpus = [" ".join(doc) for doc in corpus]
 
         return corpus
 
-    def transform(self, X, y=None):
+    def transform(self, X, y=None, tokenize=True):
         # Check if fit had been called
         check_is_fitted(self)
 
@@ -100,6 +104,10 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
 
         # Remove stop_words from corpus
         corpus = [[token for token in doc if token not in self.stop_words_] for doc in corpus]
+
+        # Split vs merged
+        if not tokenize:
+            corpus = [" ".join(doc) for doc in corpus]
 
         return corpus
 
@@ -176,7 +184,6 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         # Word tokenizer
         corpus = [word_tokenize(doc) for doc in corpus]
 
-        # Stemmer
         if self.stemmer:
             stemmer = PorterStemmer()
             corpus = [[stemmer.stem(token) for token in doc] for doc in corpus]

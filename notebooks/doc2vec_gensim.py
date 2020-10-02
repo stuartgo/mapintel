@@ -16,11 +16,13 @@ from gensim import models
 newsapi = NewsApiClient(api_key='982796d7dec8411d9ec9d8f09d20666c')
 
 # Get news articles
-articles = newsapi.get_everything(language='en',
-                                  domains='bbc.co.uk',
-                                  from_param=datetime.today() - timedelta(30),
-                                  to=datetime.today(),
-                                  page_size=100)
+articles = newsapi.get_top_headlines(language='en',
+                                     category='sports',  # 'business','entertainment','general','health','science','sports','technology'
+                                      # domains='bbc.co.uk',
+                                      # from_param=datetime.today() - timedelta(30),
+                                      # to=datetime.today(),
+                                      page_size=100,
+                                      country='us')
 
 corpus = list(set([c['content'] for c in articles['articles'] if c['content']]))
 

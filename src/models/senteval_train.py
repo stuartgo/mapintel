@@ -11,6 +11,8 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from joblib import dump, load
 
 
+# TODO: train in large corpus
+
 # Define preprocessor: takes a doc and transforms it preserving the tokenizing and n-grams generation steps
 def _preprocessor(doc):
     # Removes HTML tags

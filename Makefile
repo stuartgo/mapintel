@@ -38,6 +38,21 @@ clean:
 lint:
 	flake8 src
 
+## Set up AWS lambda function
+setup_aws_lambda:
+	# NOT WORKING CURRENTLY
+	# update a Python function with dependencies
+	cd src/data/newsapi_mongodb
+	pip install --target ./python_package pymongo==3.11.0 newsapi-python==0.2.6 dnspython==1.16.0
+	cd python_package
+	zip -r9 ${OLDPWD}/newsapi_mongodb.zip .
+	cd $OLDPWD
+	zip -g newsapi_mongodb.zip lambda_function.py
+	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip --profile Administrator
+	# configuring environment variables with the Lambda API
+	$(eval ENV := $(shell $(PYTHON_INTERPRETER) src/data/newsapi_mongodb/get_env.py))
+	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(ENV) --profile Administrator
+
 ## Upload Data to S3
 sync_data_to_s3:
 ifeq (default,$(PROFILE))

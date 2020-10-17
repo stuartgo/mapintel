@@ -11,9 +11,11 @@ def main ():
     NEWSAPIKEY = os.environ.get("NEWSAPIKEY")
     MONGOUSERNAME = os.environ.get("MONGOUSERNAME")
     MONGOPASSWORD = os.environ.get("MONGOPASSWORD")
+    MONGODB = os.environ.get("MONGODB")
 
-    return "Variables={{NEWSAPIKEY={},MONGOUSERNAME={},MONGOPASSWORD={},MONGODB={}}}".format(NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD)
+    return "Variables={{NEWSAPIKEY={},MONGOUSERNAME={},MONGOPASSWORD={},MONGODB={}}}".format(NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD, MONGODB)
 
 
 if __name__ == "__main__":
     print(main())
+    

@@ -1,6 +1,6 @@
 # Custom
 vec4ir/
-SentEval/
+senteval/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

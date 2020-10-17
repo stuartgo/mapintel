@@ -1,8 +1,12 @@
 import os
 from datetime import datetime, timedelta
 import newsapi
+from pymongo.errors import BulkWriteError
 from pymongo import MongoClient
 import json
+# import sys
+# from dotenv import load_dotenv, find_dotenv
+# load_dotenv(find_dotenv())
 
 # TODO: - set up a VPC peering connection between your AWS VPC and MongoDB Atlas (we want to deploy a production grade setup.
 #  This means we won’t connect over the open internet);
@@ -55,10 +59,25 @@ def lambda_handler(event, context):
         everything += request["articles"]
     count_sources = len(everything_sources)
 
+
+    # Removing documents without content and description
+    def filter_fun(x):
+        return (x["content"] != None and x["description"] != None) and \
+            (x["content"] != "" and x["description"] != "") and \
+                (x["content"] != "" and x["description"] != None) and \
+                    (x["content"] != None and x["description"] != "")
+    
+
+    top_headlines = list(filter(filter_fun, top_headlines))
+    everything = list(filter(filter_fun, everything))
+
     # Insert documents into top_headlines collection
     init_count = db.top_headlines.count_documents({})
     print("\nCurrent number of documents in top_headlines collection: ", init_count)
-    db.top_headlines.insert_many(top_headlines)
+    try:
+        db.top_headlines.insert_many(top_headlines, ordered=False)
+    except BulkWriteError as e:
+        print("Some documents weren't inserted because of unique index. Error message:\n", str(e))
     final_count = db.top_headlines.count_documents({})
     inserted_count_top_headlines = final_count - init_count
     print("Number of documents in top_headlines collection after insertion: ", final_count)
@@ -71,7 +90,10 @@ def lambda_handler(event, context):
     # Insert documents into everything collection
     init_count = db.everything.count_documents({})
     print("\nCurrent number of documents in everything collection: ", init_count)
-    db.everything.insert_many(everything)
+    try:
+        db.everything.insert_many(everything, ordered=False)
+    except BulkWriteError as e:
+        print("Some documents weren't inserted because of unique index. Error message:\n", str(e))
     final_count = db.everything.count_documents({})
     inserted_count_everything = final_count - init_count
     print("Number of documents in everything collection after insertion: ", final_count)

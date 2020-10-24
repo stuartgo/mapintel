@@ -7,8 +7,9 @@
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
-PROJECT_NAME = Mapintel_project
+PROJECT_NAME = mapintel
 PYTHON_INTERPRETER = python3
+AWS_ENV := $(shell $(PYTHON_INTERPRETER) src/data/newsapi_mongodb/get_env.py)
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -27,7 +28,7 @@ requirements: test_environment
 
 ## Make Dataset
 data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/processed
 
 ## Delete all compiled Python files
 clean:
@@ -38,43 +39,43 @@ clean:
 lint:
 	flake8 src
 
-## Set up AWS lambda function
-setup_aws_lambda:
-	# NOT WORKING CURRENTLY
-	# update a Python function with dependencies
-	cd src/data/newsapi_mongodb
-	pip install --target ./python_package pymongo==3.11.0 newsapi-python==0.2.6 dnspython==1.16.0
-	cd python_package
-	zip -r9 ${OLDPWD}/newsapi_mongodb.zip .
-	cd $OLDPWD
-	zip -g newsapi_mongodb.zip lambda_function.py
-	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip --profile Administrator
-	# configuring environment variables with the Lambda API
-	$(eval ENV := $(shell $(PYTHON_INTERPRETER) src/data/newsapi_mongodb/get_env.py))
-	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(ENV) --profile Administrator
+## Set AWS configuration access keys
+aws_set_accesskeys:
+	aws configure
 
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
+## Set environmental variables in AWS lambda
+aws_set_lambdavars: aws_set_accesskeys
+	cd src/data/newsapi_mongodb; \
+	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(AWS_ENV)
 
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
+## Update AWS lambda function python script
+aws_update_lambda: aws_set_lambdavars
+	cd src/data/newsapi_mongodb; \
+	zip -g newsapi_mongodb.zip lambda_function.py; \
+	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip
+
+# ## Upload Data to S3
+# sync_data_to_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync data/ s3://$(BUCKET)/data/
+# else
+# 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+# endif
+
+# ## Download Data from S3
+# sync_data_from_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync s3://$(BUCKET)/data/ data/
+# else
+# 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+# endif
 
 ## Set up python interpreter environment
 create_environment:
 ifeq (True,$(HAS_CONDA))
 		@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3
+	conda create --name $(PROJECT_NAME) python=3.7
 else
 	conda create --name $(PROJECT_NAME) python=2.7
 endif

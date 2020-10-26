@@ -195,21 +195,6 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         return corpus
 
 
-def compare_documents(base_doc_id, base_doc_rep, similar, compare_corpus):
-    """
-    Compare a given document with the most similar, second most similar, median and least similar document
-    from a corpus of documents
-    :param base_doc_id: id of the base document
-    :param base_corpus: corpus to base the comparison (unprocessed). Should contain the base document.
-    :param similar: similarity list of the base document
-    :param compare_corpus: corpus to compare to (unprocessed)
-    :return: None
-    """
-    print('Document ({}): «{}»\n'.format(base_doc_id, base_doc_rep))
-    print(u'SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
-    for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(similar) // 2), ('LEAST', len(similar) - 1)]:
-        print(u'%s %s: «%s»\n' % (label, similar[index], compare_corpus[similar[index][0]]))
-
 
 def check_random_doc_similarity(doc2vec_model, train_corpus, test_corpus=None):
     """

@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
-from src.data.text_preprocessing import results_cleaner, join_results
-import click
-import sys
-import logging
-from pathlib import Path
-from dotenv import find_dotenv, load_dotenv
-import os
 import json
-from pymongo import MongoClient
-from bson import ObjectId
+import logging
+import os
+import sys
+from pathlib import Path
+
+import click
 import pandas as pd
-
-
-# Finding project_dir
-project_dir = Path(__file__).resolve().parents[2]
+from bson import ObjectId
+from dotenv import find_dotenv, load_dotenv
+from pymongo import MongoClient
+from src.data.text_preprocessing import (join_results, results_cleaner)
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -25,13 +22,12 @@ class JSONEncoder(json.JSONEncoder):
 
 @click.command()
 @click.argument('test_size', type=click.FLOAT, default=0.2)
-@click.argument('out_path', type=click.Path(), default=os.path.join(project_dir, "data", "processed"))
-def main(test_size, out_path):
+def main(test_size):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
-    logger.info(f'Making final data set from raw data. Output path: {out_path}. Test size: {test_size}.')
+    logger.info(f'Making final data set from raw data. Test size: {test_size}.')
 
     collection_list = db.list_collection_names()
     for col in collection_list:
@@ -67,12 +63,12 @@ def main(test_size, out_path):
     logger.info('Joining documents from both collections...')
     output_results_train, output_results_test = join_results(prep_results, test_size)
     
-    logger.info(f'Saving {len(output_results_train) + len(output_results_test)} documents as json...')
+    logger.info(f'Saving {len(output_results_train) + len(output_results_test)} documents as csv...')
     # Saving cleaned results as csv
     df_train = pd.DataFrame(output_results_train); df_train['split'] = 'train'
     df_test = pd.DataFrame(output_results_test); df_test['split'] = 'test'
-    pd.concat([df_train, df_test]).to_csv(os.path.join(out_path, "newsapi_docs.csv"), index=False, header=False)
-    logger.info(f'Files saved in {out_path}')
+    pd.concat([df_train, df_test]).to_csv(out_file, index=False, header=False)
+    logger.info(f'File saved in {out_file}')
 
 
 if __name__ == '__main__':
@@ -82,6 +78,10 @@ if __name__ == '__main__':
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
+
+    # Finding project_dir
+    project_dir = Path(__file__).resolve().parents[2]
+    out_file = os.path.join(project_dir, "data", "interim", "newsapi_docs.csv")
 
     # Loading environmental variables
     MONGOUSERNAME = os.environ.get("MONGOUSERNAME")

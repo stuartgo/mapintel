@@ -1,23 +1,16 @@
-from src.utils import CorpusPreprocess
-import os
-import sys
+import collections
 import logging
 import multiprocessing
+import os
 from pathlib import Path
 from string import punctuation
-from nltk.corpus import stopwords
-import collections
-from gensim import models
+
 import pandas as pd
+from gensim import models
 
 # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
 # https://radimrehurek.com/gensim/models/doc2cvec.html
 # https://radimrehurek.com/gensim/auto_examples/howtos/run_doc2vec_imdb.html
-
-# Finding project_dir
-project_dir = Path(__file__).resolve().parents[2]
-data_file = os.path.join(project_dir, "data", "processed", "newsapi_docs.csv")
-output_dir = os.path.join(project_dir, "models")
 
 
 def main():
@@ -25,25 +18,18 @@ def main():
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=['id', 'col', 'category', 'text', 'split'])
+    df = pd.read_csv(data_file, names=['id', 'col', 'category', 'text', 'split', 'prep_text'])
     logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
-    original_text = df['text'].copy()
-    X_train, X_test = df.loc[df['split'] == 'train', 'text'], df.loc[df['split']=='test', 'text']
 
-    logger.info('Preprocessing data...')
-    # Preprocessing text
-    prep = CorpusPreprocess(stop_words=stopwords.words('english'), lowercase=True, strip_accents=True,
-                            strip_punctuation=punctuation, stemmer=True, max_df=1.0, min_df=1)
-    df.loc[df['split']=='train', 'text'] = prep.fit_transform(X_train, tokenize=False)
-    df.loc[df['split']=='test', 'text'] = prep.transform(X_test, tokenize=False) 
-
+    logger.info('Formatting data...')
     # Formatting data
-    alldocs = [NewsDocument([tag], row['id'], row['col'], row['category'], row['text'].split(' '), row['split'])
-               for tag, (_, row) in enumerate(df.iterrows())]
-    del df, X_train, X_test
-    train_docs = [doc for doc in alldocs if doc.split == 'train']
-    test_docs = [doc for doc in alldocs if doc.split == 'test']
-    logger.info('Percentage of documents from test set: {0:.2f}%'.format((len(test_docs)/len(alldocs)*100)))
+    train_docs = [
+        NewsDocument([tag], row['id'], row['col'], row['category'], row['prep_text'].split())
+        for tag, (_, row) in enumerate(df.iterrows()) 
+        if (row['split'] == 'train') and (row['prep_text'] is not None)
+    ]
+    logger.info('Percentage of documents from train set: {0:.2f}%'.format((len(train_docs)/df.shape[0])*100))
+    del df
 
     # Doc2Vec models
     assert models.doc2vec.FAST_VERSION > -1, "Gensim won't use a C compiler, which will severely increase running time."
@@ -63,12 +49,19 @@ def main():
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
-    
+
+    # Finding project_dir
+    project_dir = Path(__file__).resolve().parents[2]
+    data_file = os.path.join(project_dir, "data", "processed", "newsapi_docs.csv")
+    output_dir = os.path.join(project_dir, "models", "saved_models")
+
+    # Hyperparameter setting
     common_kwargs = dict(
         vector_size=100, epochs=20, min_count=2,
         sample=0, workers=multiprocessing.cpu_count(), negative=5, hs=0,
     )
 
+    # Models to use
     simple_models = [
         # PV-DBOW plain
         models.doc2vec.Doc2Vec(dm=0, **common_kwargs),
@@ -80,6 +73,6 @@ if __name__ == '__main__':
     ]
 
     # Data structure for holding data for each document
-    NewsDocument = collections.namedtuple('NewsDocument', ['tags', 'id', 'col', 'category', 'words', 'split'])
+    NewsDocument = collections.namedtuple('NewsDocument', ['tags', 'id', 'col', 'category', 'words'])
 
     main()

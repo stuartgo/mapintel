@@ -1,3 +1,8 @@
+"""
+Fits a set of Doc2vec models to the preprocessed data in 
+"data/processed/newsapi_docs.csv" and saves the fitted models for 
+posterior use in "models/saved_models"
+"""
 import collections
 import logging
 import multiprocessing
@@ -18,31 +23,38 @@ def main():
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=['id', 'col', 'category', 'text', 'split', 'prep_text'])
+    df = pd.read_csv(data_file, names=[
+                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
     logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
 
     logger.info('Formatting data...')
-    # Formatting data
+    # Formatting data from DataFrame to Named Tuple for doc2vec training
     train_docs = [
-        NewsDocument([tag], row['id'], row['col'], row['category'], row['prep_text'].split())
-        for tag, (_, row) in enumerate(df.iterrows()) 
+        NewsDocument([tag], row['id'], row['col'],
+                     row['category'], row['prep_text'].split())
+        for tag, (_, row) in enumerate(df.iterrows())
         if (row['split'] == 'train') and (row['prep_text'] is not None)
     ]
-    logger.info('Percentage of documents from train set: {0:.2f}%'.format((len(train_docs)/df.shape[0])*100))
+    logger.info('Percentage of documents from train set: {0:.2f}%'.format(
+        (len(train_docs)/df.shape[0])*100))
     del df
 
     # Doc2Vec models
-    assert models.doc2vec.FAST_VERSION > -1, "Gensim won't use a C compiler, which will severely increase running time."
+    assert models.doc2vec.FAST_VERSION > -1,\
+        "Gensim won't use a C compiler, which will severely increase running time."
     for model in simple_models:
+        # get vocabulary of training data as weight matrix has |V| rows
         model.build_vocab(train_docs)
         logger.info("%s vocabulary scanned & state initialized" % model)
 
     # Training and saving the models
     for model in simple_models:
         logger.info("Training %s..." % model)
-        model.train(train_docs, total_examples=len(train_docs), epochs=model.epochs)
+        model.train(train_docs, total_examples=len(
+            train_docs), epochs=model.epochs)
         logger.info("Saving %s..." % model)
-        model_name = str(model).lower().translate(str.maketrans('', '', punctuation))
+        model_name = str(model).lower().translate(
+            str.maketrans('', '', punctuation))
         model.save(os.path.join(output_dir, f"{model_name}.model"))
 
 
@@ -52,7 +64,8 @@ if __name__ == '__main__':
 
     # Finding project_dir
     project_dir = Path(__file__).resolve().parents[2]
-    data_file = os.path.join(project_dir, "data", "processed", "newsapi_docs.csv")
+    data_file = os.path.join(
+        project_dir, "data", "processed", "newsapi_docs.csv")
     output_dir = os.path.join(project_dir, "models", "saved_models")
 
     # Hyperparameter setting
@@ -66,13 +79,15 @@ if __name__ == '__main__':
         # PV-DBOW plain
         models.doc2vec.Doc2Vec(dm=0, **common_kwargs),
         # PV-DM w/ default averaging; a higher starting alpha may improve CBOW/PV-DM modes
-        models.doc2vec.Doc2Vec(dm=1, window=10, alpha=0.05, comment='alpha=0.05', **common_kwargs),
+        models.doc2vec.Doc2Vec(dm=1, window=10, alpha=0.05,
+                               comment='alpha=0.05', **common_kwargs),
         # PV-DM w/ concatenation - big, slow, experimental mode
         # window=5 (both sides) approximates paper's apparent 10-word total window size
         models.doc2vec.Doc2Vec(dm=1, dm_concat=1, window=5, **common_kwargs),
     ]
 
     # Data structure for holding data for each document
-    NewsDocument = collections.namedtuple('NewsDocument', ['tags', 'id', 'col', 'category', 'words'])
+    NewsDocument = collections.namedtuple(
+        'NewsDocument', ['tags', 'id', 'col', 'category', 'words'])
 
     main()

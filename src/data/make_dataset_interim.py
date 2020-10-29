@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-import json
+"""
+Builds the cleaned (intermediate) csv file with documents from mongodb.
+Queries the mongodb instance to obtain every document's id, category and text,
+cleanes the text, merges results from both collections and splits documents
+into train and test set. Outputs the documents to "data/interim/newsapi_docs.csv"
+"""
 import logging
 import os
 import sys
@@ -7,17 +12,10 @@ from pathlib import Path
 
 import click
 import pandas as pd
-from bson import ObjectId
 from dotenv import find_dotenv, load_dotenv
 from pymongo import MongoClient
-from src.data.text_preprocessing import (join_results, results_cleaner)
-
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, ObjectId):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
+from sklearn.model_selection import train_test_split
+from src.data.text_preprocessing import join_results, results_cleaner
 
 
 @click.command()
@@ -27,11 +25,13 @@ def main(test_size):
         cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
-    logger.info(f'Making final data set from raw data. Test size: {test_size}.')
+    logger.info(
+        f'Making final data set from raw data. Test size: {test_size}.')
 
     collection_list = db.list_collection_names()
     for col in collection_list:
-        logger.info(f"Collection {col} contains {db[col].count_documents({})} documents")
+        logger.info(
+            f"Collection {col} contains {db[col].count_documents({})} documents")
 
     # Getting text from each article
     pipeline = [
@@ -57,16 +57,22 @@ def main(test_size):
         logger.info(f'Cleaning articles from collection {col}...')
         results = list(db[col].aggregate(pipeline))  # materializing query
         for r in results:
-            r.setdefault('col', col)
+            r.setdefault('col', col)  # create collection key
         clean_results = results_cleaner(results)
-        prep_results += clean_results
+        prep_results.extend(clean_results)
     logger.info('Joining documents from both collections...')
-    output_results_train, output_results_test = join_results(prep_results, test_size)
-    
-    logger.info(f'Saving {len(output_results_train) + len(output_results_test)} documents as csv...')
+    join_results_list = join_results(prep_results)
+    # Split articles into train and test
+    output_results_train, output_results_test = train_test_split(
+        join_results_list, test_size=test_size)
+
+    logger.info(
+        f'Saving {len(output_results_train) + len(output_results_test)} documents as csv...')
     # Saving cleaned results as csv
-    df_train = pd.DataFrame(output_results_train); df_train['split'] = 'train'
-    df_test = pd.DataFrame(output_results_test); df_test['split'] = 'test'
+    df_train = pd.DataFrame(output_results_train)
+    df_train['split'] = 'train'
+    df_test = pd.DataFrame(output_results_test)
+    df_test['split'] = 'test'
     pd.concat([df_train, df_test]).to_csv(out_file, index=False, header=False)
     logger.info(f'File saved in {out_file}')
 
@@ -89,7 +95,8 @@ if __name__ == '__main__':
     MONGODB = os.environ.get("MONGODB")
 
     # Connecting to mongodb
-    db_client = MongoClient(f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")
+    db_client = MongoClient(
+        f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")
 
     # Database object
     db = db_client.news

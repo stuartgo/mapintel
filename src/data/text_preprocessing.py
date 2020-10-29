@@ -1,3 +1,7 @@
+"""
+Provides text preprocessing functions and the CorpusPreprocessing
+class for use by the data preparation scripts.
+"""
 import re
 import string
 import unicodedata
@@ -5,18 +9,23 @@ from collections import defaultdict
 
 from bs4 import BeautifulSoup
 from nltk import word_tokenize
-from nltk.stem import PorterStemmer
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.model_selection import train_test_split
-from sklearn.utils.validation import check_is_fitted    
+from sklearn.utils.validation import check_is_fitted
 
-
-# TODO: detect arabic and other languages. or if not english detector
-# TODO: coordinate roles of results_cleaner and CorpusPreprocess
+# TODO: coordinate roles of results_cleaner and CorpusPreprocess (remove overlap)
 # TODO: tokenize numbers and other word types to reduce vocabulary
 
 
 def _text_cleaner(text):
+    """Text cleaning function. Removes HTML tags, escaped characters (e.g. \n)
+    and removes NewsAPI text patterns and URLs
+
+    Args:
+        text (string): text of a news article
+
+    Returns:
+        string: cleaned text
+    """
     # Removes HTML tags
     text = BeautifulSoup(text, features="lxml").get_text()
     # Remove escaped characters
@@ -30,6 +39,14 @@ def _text_cleaner(text):
 
 
 def _detect_non_english(text):
+    """Function that detects if there's non-english characters in text
+
+    Args:
+        text (string): text of a news article
+
+    Returns:
+        boolean: True if there's non-english characters exist
+    """
     # korean
     if re.search("[\uac00-\ud7a3]", text):
         return True
@@ -42,15 +59,24 @@ def _detect_non_english(text):
     # arabic
     if re.search("[\u0600-\u06FF]", text):
         return True
-    # devanagari
+    # devanagari (hindi)
     if re.search("[\u0900-\u097F]", text):
         return True
     return False
 
 
 def results_cleaner(agg_results):
+    """Cleans the results of the aggregation pipeline mongodb query by
+     applying _detect_non_english and _text_cleaner
+
+    Args:
+        agg_results (list of dicts): output of aggregation pipeline query
+
+    Returns:
+        list of dicts: cleaned aggregation pipeline results
+    """
     remove_idx = []
-    # Go over results: detect articles with non_english characters and apply cleaning function
+    # Iterate over results: apply _detect_non_english and _text_cleaner
     for i, r in enumerate(agg_results):
         if _detect_non_english(r['text']):
             remove_idx.append(i)
@@ -62,41 +88,58 @@ def results_cleaner(agg_results):
     return agg_results
 
 
-def join_results(results_list, test_size=0.2):
-    # Go over results_list and remove duplicates based on 'text' 
+def join_results(results_list):
+    """Join cleaned results of aggregation pipeline on different
+    collections by removing duplicated documents across collections
+
+    Args:
+        results_list (list of dicts): aggregation pipeline results 
+        of multiple collection
+
+    Returns:
+        list of dicts: aggregation pipeline results of multiple 
+        collection without duplicates
+    """
+    # Go over results_list and remove duplicates based on 'text'
     holder = {}
     for result in results_list:
-        value = holder.setdefault(result['text'], [])
+        value = holder.setdefault(result['text'], [])  # each key is unique
         value.append(result['_id'])
         value.append(result['col'])
         value.append(result['category'])
-    join_results_list = [{'id': v[0], 'col': v[1], 'category': v[2], 'text': k} for k, v in holder.items()]
-    # Split articles into train and test
-    join_results_list_train, join_results_list_test = train_test_split(join_results_list, test_size=test_size)
-    return join_results_list_train, join_results_list_test
+    # Reformat into list of dictionaries
+    join_results_list = [{'id': v[0], 'col': v[1],
+                          'category': v[2], 'text': k} for k, v in holder.items()]
+    return join_results_list
 
 
 class CorpusPreprocess(BaseEstimator, TransformerMixin):
-    def __init__(self, stop_words=None, lowercase=True, strip_accents=False,
-                 strip_punctuation=None, stemmer=True, max_df=1.0, min_df=1):
-        """
-        Scikit-learn like Transformer for Corpus preprocessing
-        :param stop_words: 
-        :param lowercase:
-        :param strip_accents:
-        :param strip_punctuation:
-        :param stemmer:
-        :param max_df:
-        :param min_df:
+    def __init__(self, language='english', stop_words=None, lowercase=True, strip_accents=False,
+                 strip_punctuation=None, stemmer=None, max_df=1.0, min_df=1):
+        """Scikit-learn like Transformer for Corpus preprocessing.
+        Preprocesses text by applying multiple tasks (e.g. lowecasing, stemming, etc).
+        Fits the data for obtaining vocabulary_ (mapping of terms to document frequencies)
+         and stop_words_ (terms that were ignored because of either 'max_df', 'min_df' or 'stop_words').
 
-        :attr vocabulary_: dict
-            A mapping of terms to document frequencies.
-        :attr stop_words_ : set
-            Terms that were ignored because they either:
-              - occurred in too many documents (`max_df`)
-              - occurred in too few documents (`min_df`)
-              - were passed into param stop_words
+        Args:
+            stop_words (list, optional): list of stop words to be removed. Defaults to None.
+            lowercase (bool, optional): lowercases text if True. Defaults to True.
+            strip_accents (bool, optional): strips accents from text if True. Defaults to False.
+            strip_punctuation (iterable, optional): strips provided punctuation from text if not None.
+             Defaults to None.
+            stemmer (Stemmer instance, optional): applies the provided Stemmer's stem method to text.
+             Defaults to None.
+            max_df (float in range [0.0, 1.0], optional): ignore terms with a document frequency higher than the given 
+             threshold. If float, the parameter represents a proportion of documents, integer absolute counts.
+             Defaults to 1.0.
+            min_df (float in range [0.0, 1.0], optional): ignore terms with a document frequency lower than the given
+             threshold. If float, the parameter represents a proportion of documents, integer absolute counts.
+             Defaults to 1.
+
+        Raises:
+            ValueError: max_df and min_df are bounded to range [0.0, 1.0]
         """
+        self.language = language
         self.stop_words = stop_words
         self.lowercase = lowercase
         self.strip_accents = strip_accents
@@ -104,7 +147,7 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         self.stemmer = stemmer
         self.max_df = max_df
         self.min_df = min_df
-        if max_df < 0 or min_df < 0:
+        if (max_df < 0 or max_df > 1) or (min_df < 0 or min_df > 1):
             raise ValueError("negative value for max_df or min_df")
 
     def fit(self, X, y=None):
@@ -132,20 +175,20 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         if self.max_df is not None:
             if isinstance(self.max_df, float):
                 vocab_rel_df = {k: v / len(X) for k, v in vocab_df.items()}
-                self.stop_words_.update({k for k, v in vocab_rel_df.items() if v > self.max_df})
-            elif isinstance(self.max_df, int):
-                self.stop_words_.update({k for k, v in vocab_df.items() if v > self.max_df})
+                self.stop_words_.update(
+                    {k for k, v in vocab_rel_df.items() if v > self.max_df})
             else:
-                raise ValueError("max_df parameter should be int or float")
+                self.stop_words_.update(
+                    {k for k, v in vocab_df.items() if v > self.max_df})
 
         if self.min_df is not None:
             if isinstance(self.min_df, float):
                 vocab_rel_df = {k: v / len(X) for k, v in vocab_df.items()}
-                self.stop_words_.update({k for k, v in vocab_rel_df.items() if v < self.min_df})
-            elif isinstance(self.min_df, int):
-                self.stop_words_.update({k for k, v in vocab_df.items() if v < self.min_df})
+                self.stop_words_.update(
+                    {k for k, v in vocab_rel_df.items() if v < self.min_df})
             else:
-                raise ValueError("min_df parameter should be int or float")
+                self.stop_words_.update(
+                    {k for k, v in vocab_df.items() if v < self.min_df})
 
         # Remove stop_words_ from vocabulary
         for k in self.stop_words_:
@@ -156,7 +199,8 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
 
         # Remove stop_words from corpus
         if self.stop_words is not None:
-            corpus = [[token for token in doc if token not in self.stop_words] for doc in corpus]
+            corpus = [[token for token in doc if token not in self.stop_words]
+                      for doc in corpus]
 
         # Split vs merged
         if not tokenize:
@@ -165,14 +209,15 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         return corpus
 
     def transform(self, X, y=None, tokenize=True):
-        # Check if fit had been called
+        # Check if fit has been called
         check_is_fitted(self)
 
         # Preprocess and tokenize corpus
         corpus = self._word_tokenizer(X)
 
         # Remove stop_words from corpus
-        corpus = [[token for token in doc if token not in self.stop_words_] for doc in corpus]
+        corpus = [[token for token in doc if token not in self.stop_words_]
+                  for doc in corpus]
 
         # Split vs merged
         if not tokenize:
@@ -181,10 +226,14 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         return corpus
 
     def _word_tokenizer(self, X):
-        """
-        Preprocesses and tokenizes documents
-        :param X: list of documents
-        :return: list of preprocessed and tokenized documents
+        """Preprocesses and tokenizes each document by applying a 
+         preprocessing function.
+
+        Args:
+            X (iterable): documents to preprocess
+
+        Returns:
+            list: preprocessed and tokenized documents
         """
         # Define function conditionally so we only need to evaluate the condition once instead at every document
         if self.strip_accents and self.lowercase and self.strip_punctuation is not None:
@@ -194,9 +243,11 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
                 # Lowercase
                 doc = doc.lower()
                 # Remove accentuation
-                doc = unicodedata.normalize('NFKD', doc).encode('ASCII', 'ignore').decode('ASCII')
+                doc = unicodedata.normalize('NFKD', doc).encode(
+                    'ASCII', 'ignore').decode('ASCII')
                 # Remove punctuation
-                doc = doc.translate(str.maketrans('', '', self.strip_punctuation))
+                doc = doc.translate(str.maketrans(
+                    '', '', self.strip_punctuation))
                 return doc
         elif self.strip_accents and self.lowercase:
             def doc_preprocessing(doc):
@@ -205,16 +256,19 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
                 # Lowercase
                 doc = doc.lower()
                 # Remove accentuation
-                doc = unicodedata.normalize('NFKD', doc).encode('ASCII', 'ignore').decode('ASCII')
+                doc = unicodedata.normalize('NFKD', doc).encode(
+                    'ASCII', 'ignore').decode('ASCII')
                 return doc
         elif self.strip_accents and self.strip_punctuation is not None:
             def doc_preprocessing(doc):
                 # Removes HTML tags
                 doc = BeautifulSoup(doc, features="lxml").get_text()
                 # Remove accentuation
-                doc = unicodedata.normalize('NFKD', doc).encode('ASCII', 'ignore').decode('ASCII')
+                doc = unicodedata.normalize('NFKD', doc).encode(
+                    'ASCII', 'ignore').decode('ASCII')
                 # Remove punctuation
-                doc = doc.translate(str.maketrans('', '', self.strip_punctuation))
+                doc = doc.translate(str.maketrans(
+                    '', '', self.strip_punctuation))
                 return doc
         elif self.lowercase and self.strip_punctuation is not None:
             def doc_preprocessing(doc):
@@ -223,14 +277,16 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
                 # Lowercase
                 doc = doc.lower()
                 # Remove punctuation
-                doc = doc.translate(str.maketrans('', '', self.strip_punctuation))
+                doc = doc.translate(str.maketrans(
+                    '', '', self.strip_punctuation))
                 return doc
         elif self.strip_accents:
             def doc_preprocessing(doc):
                 # Removes HTML tags
                 doc = BeautifulSoup(doc, features="lxml").get_text()
                 # Remove accentuation
-                doc = unicodedata.normalize('NFKD', doc).encode('ASCII', 'ignore').decode('ASCII')
+                doc = unicodedata.normalize('NFKD', doc).encode(
+                    'ASCII', 'ignore').decode('ASCII')
                 return doc
         elif self.lowercase:
             def doc_preprocessing(doc):
@@ -244,17 +300,19 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
                 # Removes HTML tags
                 doc = BeautifulSoup(doc, features="lxml").get_text()
                 # Remove punctuation
-                doc = doc.translate(str.maketrans('', '', self.strip_punctuation))
+                doc = doc.translate(str.maketrans(
+                    '', '', self.strip_punctuation))
                 return doc
 
         # Apply cleaning function over X
         corpus = map(doc_preprocessing, X)
 
         # Word tokenizer
-        corpus = [word_tokenize(doc) for doc in corpus]
+        corpus = [word_tokenize(doc, language=self.language) for doc in corpus]
 
-        if self.stemmer:
-            stemmer = PorterStemmer()
-            corpus = [[stemmer.stem(token) for token in doc] for doc in corpus]
+        if self.stemmer is not None:
+            corpus = [[self.stemmer.stem(token)
+                       for token in doc] for doc in corpus]
+            return corpus
 
         return corpus

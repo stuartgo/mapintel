@@ -129,12 +129,12 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
              Defaults to None.
             stemmer (Stemmer instance, optional): applies the provided Stemmer's stem method to text.
              Defaults to None.
-            max_df (float in range [0.0, 1.0], optional): ignore terms with a document frequency higher than the given 
-             threshold. If float, the parameter represents a proportion of documents, integer absolute counts.
-             Defaults to 1.0.
-            min_df (float in range [0.0, 1.0], optional): ignore terms with a document frequency lower than the given
-             threshold. If float, the parameter represents a proportion of documents, integer absolute counts.
-             Defaults to 1.
+            max_df (float in range [0.0, 1.0] or int, optional): ignore terms with a document frequency higher 
+             than the given threshold. If float, the parameter represents a proportion of documents, integer 
+             absolute counts. Defaults to 1.0.
+            min_df (float in range [0.0, 1.0] or int, optional): ignore terms with a document frequency lower 
+             than the given threshold. If float, the parameter represents a proportion of documents, integer 
+             absolute counts. Defaults to 1.
 
         Raises:
             ValueError: max_df and min_df are bounded to range [0.0, 1.0]
@@ -147,7 +147,7 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
         self.stemmer = stemmer
         self.max_df = max_df
         self.min_df = min_df
-        if (max_df < 0 or max_df > 1) or (min_df < 0 or min_df > 1):
+        if max_df < 0 or min_df < 0:
             raise ValueError("negative value for max_df or min_df")
 
     def fit(self, X, y=None):

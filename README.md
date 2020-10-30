@@ -3,9 +3,34 @@ Mapintel
 
 The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.
 
+Usage
+------------
+The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, such as NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD and MONGODB. Each variable should be stored as a key-value pair e.g. `NEWSAPIKEY = "value_here"`. This file isn't versioned and therefore should be created by each user.
+
+A python environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. Active your environment and from the root do `pip install -r requirements.txt` to install the necessary packages.
+
+**To run the project, the following scripts should be executed in the specified order:**
+1. src/data/make_dataset_interim.py
+
+    Builds the cleaned (intermediate) csv file with documents from mongodb
+2. src/data/make_dataset_processed.py
+
+    Builds the processed (model ready) csv file with preprocessed documents
+3. src/features/vectorizer.py
+
+    Fits a BOW and a TF-IDF model to the preprocessed data and saves the fitted models for posterior use
+4. src/features/doc2vec.py
+
+    Fits a set of Doc2vec models to the preprocessed data and saves the fitted models for posterior use
+5. src/features/vectorizer_eval.py
+
+    Evaluates the BOW and TF-IDF embeddings and outputs the category predictive scores
+6. src/features/doc2vec_eval.py
+
+    Evaluates the Doc2vec embeddings and outputs the category predictive scores
+
 Project Organization
 ------------
-
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
@@ -23,6 +48,9 @@ Project Organization
     │                         the creator's initials, and a short `-` delimited description, e.g.
     │                         `1.0-jqp-initial-data-exploration`.
     │
+    ├── mongodb_insertion  <- AWS lambda function package and related scripts. Used by AWS lambda
+    │                         for regular insertion of NewsAPI articles into MongoDB database.
+    │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
@@ -36,18 +64,24 @@ Project Organization
     │   ├── __init__.py    <- Makes src a Python module
     │   │
     │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
+    │   │   ├── make_dataset_interim.py
+    │   │   ├── make_dataset_processed.py
+    │   │   └── text_preprocessing.py
     │   │
     │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
+    │   │   ├── doc2vec.py
+    │   │   ├── doc2vec_eval.py
+    │   │   ├── vectorizer.py
+    │   │   ├── vectorizer_eval.py
+    │   │   └── vectorizer.py
     │   │
     │   ├── models         <- Scripts to train models and then use trained models to make
     │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
+    │   │   ├── senteval_methods.py
+    │   │   └── senteval_train.py
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
+    │       └── embedding_space.py
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 

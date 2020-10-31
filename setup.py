@@ -1,10 +1,17 @@
 from setuptools import find_packages, setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.readlines()[3]
+
 setup(
     name='src',
     packages=find_packages(),
     version='0.1.0',
-    description='The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.',
+    description='Mapintel project',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/DavidSilva98/mapintel_project",
     author='davids98',
     license='MIT',
+    python_requires='>=3.7'
 )

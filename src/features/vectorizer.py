@@ -36,7 +36,8 @@ def main():
 
     logger.info('Fitting TfidfVectorizer...')
     # Fitting BOW representation
-    tfidf = TfidfVectorizer(**vect_kwargs)
+    # -> Vocabulary is the same so we don't need to compute it again
+    tfidf = TfidfVectorizer(**vect_kwargs, vocabulary=cv.vocabulary_)
     tfidf.fit(train_docs['prep_text'])
 
     logger.info('Saving fitted CountVectorizer...')

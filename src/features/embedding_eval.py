@@ -92,7 +92,7 @@ def compare_documents(base_doc_id, base_doc_rep, sims, compare_corpus):
     """
     output = [base_doc_rep]
     print('TARGET (%d): «%s»\n' % (base_doc_id, base_doc_rep))
-    print('SIMILAR/DISSIMILAR DOCS ACCORDING TO DOC2VEC:')
+    print('SIMILAR/DISSIMILAR DOCS:')
     for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('MEDIAN', len(sims) // 2),
                          ('LEAST', len(sims) - 1)]:
         output.extend([sims[index][1], compare_corpus[sims[index][0]]])

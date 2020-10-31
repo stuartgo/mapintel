@@ -1,0 +1,8 @@
+Model,Score
+"CountVectorizer(max_features=10000,ngram_range=(1,3))",0.7298756160525698
+"TfidfVectorizer(max_features=10000,ngram_range=(1,3))",0.7639051865759211
+"Doc2Vec(dm/c,d100,n5,w5,mc2,t4)",0.2952358601267308
+"Doc2Vec(""alpha=0.05"",dm/m,d100,n5,w10,mc2,t4)",0.5388406477352734
+"Doc2Vec(dbow,d100,n5,mc2,t4)",0.654071814128139
+"Doc2Vec(dbow,d100,n5,mc2,t4)+Doc2Vec(dm/c,d100,n5,w5,mc2,t4)",0.65360244074161
+"Doc2Vec(dbow,d100,n5,mc2,t4)+Doc2Vec(""alpha=0.05"",dm/m,d100,n5,w10,mc2,t4)",0.6453884064773527

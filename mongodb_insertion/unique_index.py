@@ -1,10 +1,18 @@
+"""
+Creates unique index in both top_headlines and everything collection of 
+MongoDB database. This index is based on description and content. The
+index prevents insertion of duplicated documents in each collection.
+"""
 import os
 import sys
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from dotenv import load_dotenv, find_dotenv
+
+# load up the entries as environment variables
 load_dotenv(find_dotenv())
 
+# Getting environmental variables
 MONGOUSERNAME = os.environ.get("MONGOUSERNAME")
 MONGOPASSWORD = os.environ.get("MONGOPASSWORD")
 MONGODB = os.environ.get("MONGODB")
@@ -17,15 +25,15 @@ db_client = MongoClient(
 # Database object
 db = db_client.news
 
-# Creating unique index
+# Creating unique index in each collection
 collection_list = db.list_collection_names()
-for col in collection_list: 
+for col in collection_list:
     db[col].create_index(
         [
             ("description", 1),
             ("content", 1)
         ],
-        unique = True
+        unique=True
     )
 
 # print(db.top_headlines.count_documents({}))
@@ -63,43 +71,47 @@ for col in collection_list:
 # print(f"ID inserted: {result.inserted_ids}")
 # print(db.top_headlines.count_documents({}))
 
-
 # Seeing how many duplicates we have in each collection
 pipeline = [
     {
         "$group": {
             "_id": {'description': '$description', 'content': '$content'},
-            "_idsNeedsToBeDeleted": {"$push": "$$ROOT._id"} # push all `_id`'s to an array
+            # push all `_id`'s to an array
+            "_idsNeedsToBeDeleted": {"$push": "$$ROOT._id"}
         }
     },
     # Remove first element - which is removing a doc
     {
         "$project": {
             "_id": 0,
-            "_idsNeedsToBeDeleted": {  
+            "_idsNeedsToBeDeleted": {
                 "$slice": [
-                    "$_idsNeedsToBeDeleted", 1, {"$size": "$_idsNeedsToBeDeleted"}
+                    "$_idsNeedsToBeDeleted", 1, {
+                        "$size": "$_idsNeedsToBeDeleted"}
                 ]
             }
         }
     },
     {
-        "$unwind": "$_idsNeedsToBeDeleted" # Unwind `_idsNeedsToBeDeleted`
+        "$unwind": "$_idsNeedsToBeDeleted"  # Unwind `_idsNeedsToBeDeleted`
     },
     # Group without a condition & push all `_idsNeedsToBeDeleted` fields to an array
     {
-        "$group": { "_id": "", "_idsNeedsToBeDeleted": { "$push": "$_idsNeedsToBeDeleted" } }
+        "$group": {"_id": "", "_idsNeedsToBeDeleted": {"$push": "$_idsNeedsToBeDeleted"}}
     },
-    { 
-        "$project" : { "_id" : 0 }  # Optional stage
+    {
+        "$project": {"_id": 0}  # Optional stage
     }
     # At the end you'll have an [{ _idsNeedsToBeDeleted: [_ids] }] or []
 ]
-    
+
+# Executing aggregation pipeline query
 collection_list = db.list_collection_names()
 for col in collection_list:
     try:
         idsList = list(db[col].aggregate(pipeline))[0]["_idsNeedsToBeDeleted"]
-        print(f"{len(idsList)} instances of documents with duplicated content and description in {col}\n")
+        print(
+            f"{len(idsList)} instances of documents with duplicated content and description in {col}\n")
     except:
-        print(f"0 instances of documents with duplicated content and description in {col}\n")
+        print(
+            f"0 instances of documents with duplicated content and description in {col}\n")

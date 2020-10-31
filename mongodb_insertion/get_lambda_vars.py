@@ -1,3 +1,7 @@
+"""
+Gets aws lambda function necessary variables out of .env file. 
+This variables will be deployed to aws lambda and used by lambda_function.py.
+"""
 import os
 from dotenv import load_dotenv, find_dotenv
 

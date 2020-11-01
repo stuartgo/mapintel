@@ -5,35 +5,46 @@ The project aims to explore new solutions in the area of text mining, more speci
 
 Usage
 ------------
-The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, such as NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD and MONGODB. Each variable should be stored as a key-value pair e.g. `NEWSAPIKEY = "value_here"`. This file isn't versioned and therefore should be created by each user.
+Make sure your directory tree looks like the one in the Project Organization section. The source code depends on this structure so it's important you follow it.
 
-A python environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. Active your environment and from the root do `pip install -r requirements.txt` to install the necessary packages.
+The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, such as NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD and MONGODB. Each variable should be stored as a key-value pair e.g. *NEWSAPIKEY = "value_here"*. This file isn't versioned and therefore should be created by each user.
 
-**To run the project, the following scripts should be executed in the specified order:**
-1. src/data/make_dataset_interim.py
+A python environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. The Makefile can be used to create the environment `make create_environment` and to install the necessary dependencies `make requirements`.
+
+**The Makefile can be used to run the project:**
+
+- `make evaluation` will evaluate the document embeddings, ensure they exist and that the necessary datasets are created.
+
+**Alternatively, the scripts below can be executed in the following order:**
+1. *src/data/make_dataset_interim.py*
 
     Builds the cleaned (intermediate) csv file with documents from mongodb
-2. src/data/make_dataset_processed.py
+2. *src/data/make_dataset_processed.py*
 
     Builds the processed (model ready) csv file with preprocessed documents
-3. src/features/vectorizer.py
+3. *src/features/vectorizer.py*
 
     Fits a BOW and a TF-IDF model to the preprocessed data and saves the fitted models for posterior use
-4. src/features/doc2vec.py
+4. *src/features/doc2vec.py*
 
     Fits a set of Doc2vec models to the preprocessed data and saves the fitted models for posterior use
-5. src/features/vectorizer_eval.py
+5. *src/features/vectorizer_eval.py*
 
     Evaluates the BOW and TF-IDF embeddings and outputs the category predictive scores
-6. src/features/doc2vec_eval.py
+6. *src/features/doc2vec_eval.py*
 
     Evaluates the Doc2vec embeddings and outputs the category predictive scores
+
+MongoDB access
+------------
+Accessing the MongoDB database requires a username and password. To access the database with pymongo you can use the following expression: `pymongo.MongoClient(f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")`, where MONGOUSERNAME, MONGOPASSWORD and MONGODB are variables with the username, password and database values respectively. These variables can be placed in the .env file and then imported as environment variables.
 
 Project Organization
 ------------
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
+    ├── .env               <- Stores your secrets and config variables
     ├── data
     │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
@@ -43,6 +54,8 @@ Project Organization
     ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
+    │   ├── ocr_outputs
+    │   └── saved_models
     │
     ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
     │                         the creator's initials, and a short `-` delimited description, e.g.
@@ -73,12 +86,11 @@ Project Organization
     │   │   ├── doc2vec_eval.py
     │   │   ├── vectorizer.py
     │   │   ├── vectorizer_eval.py
-    │   │   └── vectorizer.py
+    │   │   └── embedding_eval.py
     │   │
     │   ├── models         <- Scripts to train models and then use trained models to make
     │   │   │                 predictions
-    │   │   ├── senteval_methods.py
-    │   │   └── senteval_train.py
+    │   │   └── senteval_evaluation.py
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── embedding_space.py

@@ -4,12 +4,14 @@
 # GLOBALS                                                                       #
 #################################################################################
 
+# SHELL:=/bin/bash
+# CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
 PROJECT_NAME = mapintel
 PYTHON_INTERPRETER = python3
-AWS_ENV := $(shell $(PYTHON_INTERPRETER) src/data/newsapi_mongodb/get_env.py)
+aws_set_lambdavars: AWS_ENV = $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -26,9 +28,24 @@ requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 
-## Make Dataset
+# ## Build Necessary Directory Structure
+# directories: 
+# 	echo "Not yet implemented"
+
+## Make Datasets
 data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/processed
+	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py; \
+	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
+
+## Make Embeddings
+features: data
+	$(PYTHON_INTERPRETER) src/features/vectorizer.py; \
+	$(PYTHON_INTERPRETER) src/features/doc2vec.py
+
+## Make Embeddings Evaluation
+evaluation: features
+	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py; \
+	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 
 ## Delete all compiled Python files
 clean:
@@ -44,15 +61,21 @@ aws_set_accesskeys:
 	aws configure
 
 ## Set environmental variables in AWS lambda
-aws_set_lambdavars: aws_set_accesskeys
-	cd src/data/newsapi_mongodb; \
+aws_set_lambdavars:
+	cd mongodb_insertion; \
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(AWS_ENV)
 
 ## Update AWS lambda function python script
-aws_update_lambda: aws_set_lambdavars
-	cd src/data/newsapi_mongodb; \
+aws_update_lambda:
+	cd mongodb_insertion; \
+	pip install --target ./python_package newsapi-python==0.2.6 pymongo==3.11.0 dnspython==1.16.0; \
+	cd python_package; \
+	zip -r9 ../newsapi_mongodb.zip .; \
+	cd ..; \
 	zip -g newsapi_mongodb.zip lambda_function.py; \
-	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip
+	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip; \
+	rm -rf python_package; \
+	rm -rf newsapi_mongodb.zip
 
 # ## Upload Data to S3
 # sync_data_to_s3:
@@ -89,8 +112,17 @@ else
 endif
 
 ## Test python environment is setup correctly
-test_environment:
+test_environment: activate_environment
 	$(PYTHON_INTERPRETER) test_environment.py
+
+# ## Activate created python environment
+# activate_environment:
+# ifeq (True,$(HAS_CONDA))
+# 	$(CONDA_ACTIVATE) $(PROJECT_NAME)
+# else
+# 	workon $(PROJECT_NAME)
+# endif
+
 
 #################################################################################
 # PROJECT RULES                                                                 #

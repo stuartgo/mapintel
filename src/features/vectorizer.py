@@ -34,19 +34,18 @@ def main():
     cv = CountVectorizer(**vect_kwargs)
     cv.fit(train_docs['prep_text'])
 
-    logger.info('Fitting TfidfVectorizer...')
-    # Fitting BOW representation
-    # -> Vocabulary is the same so we don't need to compute it again
-    tfidf = TfidfVectorizer(**vect_kwargs, vocabulary=cv.vocabulary_)
-    tfidf.fit(train_docs['prep_text'])
-
     logger.info('Saving fitted CountVectorizer...')
     # Saving fitted model
-    dump(cv, output_file)
+    dump(cv, os.path.join(output_path, "CountVectorizer.joblib"))
+
+    logger.info('Fitting TfidfVectorizer...')
+    # Fitting BOW representation
+    tfidf = TfidfVectorizer(**vect_kwargs)
+    tfidf.fit(train_docs['prep_text'])
 
     logger.info('Saving fitted TfidfVectorizer...')
     # Saving fitted model
-    dump(tfidf, output_file)
+    dump(tfidf, os.path.join(output_path, "TfidfVectorizer.joblib"))
 
 
 if __name__ == '__main__':
@@ -57,8 +56,8 @@ if __name__ == '__main__':
     project_dir = Path(__file__).resolve().parents[2]
     data_file = os.path.join(
         project_dir, "data", "processed", "newsapi_docs.csv")
-    output_file = os.path.join(
-        project_dir, "models", "saved_models", "CountVectorizer.joblib")
+    output_path = os.path.join(
+        project_dir, "models", "saved_models")
 
     # Hyperparameter setting
     vect_kwargs = dict(max_features=10000, ngram_range=(1, 3))

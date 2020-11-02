@@ -5,7 +5,6 @@ The project aims to explore new solutions in the area of text mining, more speci
 
 Usage
 ------------
-Make sure your directory tree looks like the one in the Project Organization section. The source code depends on this structure so it's important you follow it.
 
 The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, such as NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD and MONGODB. Each variable should be stored as a key-value pair e.g. *NEWSAPIKEY = "value_here"*. This file isn't versioned and therefore should be created by each user.
 
@@ -13,9 +12,9 @@ A python environment should also be created to execute the code. A requirements.
 
 **The Makefile can be used to run the project:**
 
-- `make evaluation` will evaluate the document embeddings, ensure they exist and that the necessary datasets are created.
+- `make all` will ensure the .env file exists, create all necessary directories, the dataset files, the model dumps and the evaluation scores file.
 
-**Alternatively, the scripts below can be executed in the following order:**
+**Alternatively, the scripts below can be executed in the following order, given the .env and the necessary directories exist:**
 1. *src/data/make_dataset_interim.py*
 
     Builds the cleaned (intermediate) csv file with documents from mongodb
@@ -24,10 +23,10 @@ A python environment should also be created to execute the code. A requirements.
     Builds the processed (model ready) csv file with preprocessed documents
 3. *src/features/vectorizer.py*
 
-    Fits a BOW and a TF-IDF model to the preprocessed data and saves the fitted models for posterior use
+    Fits a BOW and a TF-IDF model to the preprocessed data and saves the fitted models for posterior use at models/saved_models
 4. *src/features/doc2vec.py*
 
-    Fits a set of Doc2vec models to the preprocessed data and saves the fitted models for posterior use
+    Fits a set of Doc2vec models to the preprocessed data and saves the fitted models for posterior use at models/saved_models
 5. *src/features/vectorizer_eval.py*
 
     Evaluates the BOW and TF-IDF embeddings and outputs the category predictive scores
@@ -37,7 +36,12 @@ A python environment should also be created to execute the code. A requirements.
 
 MongoDB access
 ------------
-Accessing the MongoDB database requires a username and password. To access the database with pymongo you can use the following expression: `pymongo.MongoClient(f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")`, where MONGOUSERNAME, MONGOPASSWORD and MONGODB are variables with the username, password and database values respectively. These variables can be placed in the .env file and then imported as environment variables.
+Accessing the MongoDB database requires a username and password. To access the database with pymongo you can use the following expression: `pymongo.MongoClient(f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")`, where MONGOUSERNAME, MONGOPASSWORD and MONGODB are variables with the username, password and database values respectively. These variables can be placed in the **.env file** and then imported as environment variables.
+
+AWS Lambda setup
+------------
+To set up the AWS Lambda service you can use `make aws_set_lambdavars` to define the environment variables and `make aws_set_lambdafun` to deploy the lambda function and all necessary dependencies.
+The scheduler trigger and the eventual destinations need to be set up manually. 
 
 Project Organization
 ------------

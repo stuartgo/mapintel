@@ -1,17 +1,16 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: all data features evaluation clean lint requirements sync_data_to_s3 sync_data_from_s3 aws_set_accesskeys aws_set_lambdavars aws_update_lambda
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
 # SHELL:=/bin/bash
-# CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
 PROJECT_NAME = mapintel
 PYTHON_INTERPRETER = python3
-aws_set_lambdavars: AWS_ENV = $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
+FOLDERS = data/external data/interim data/processed data/raw models/saved_models
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -23,29 +22,20 @@ endif
 # COMMANDS                                                                      #
 #################################################################################
 
-## Install Python Dependencies
-requirements: test_environment
-	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+## Build the project
+all: directories data features evaluation
 
-# ## Build Necessary Directory Structure
-# directories: 
-# 	echo "Not yet implemented"
+## Build Necessary Directory Structure
+directories: $(FOLDERS)
 
-## Make Datasets
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py; \
-	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
+## Make Dataset
+data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 
 ## Make Embeddings
-features: data
-	$(PYTHON_INTERPRETER) src/features/vectorizer.py; \
-	$(PYTHON_INTERPRETER) src/features/doc2vec.py
+features: models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
 
 ## Make Embeddings Evaluation
-evaluation: features
-	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py; \
-	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
+evaluation: models/embedding_predictive_scores.csv
 
 ## Delete all compiled Python files
 clean:
@@ -56,42 +46,50 @@ clean:
 lint:
 	flake8 src
 
-## Set AWS configuration access keys
-aws_set_accesskeys:
-	aws configure
+## Set AWS lambda environment variables
+aws_set_lambdavars: .env mongodb_insertion/get_lambda_vars.py
+ifeq (default,$(PROFILE))
+	cd mongodb_insertion && \
+	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
+else
+	cd mongodb_insertion && \
+	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py) --profile $(PROFILE)
+endif
 
-## Set environmental variables in AWS lambda
-aws_set_lambdavars:
-	cd mongodb_insertion; \
-	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(AWS_ENV)
-
-## Update AWS lambda function python script
-aws_update_lambda:
-	cd mongodb_insertion; \
-	pip install --target ./python_package newsapi-python==0.2.6 pymongo==3.11.0 dnspython==1.16.0; \
-	cd python_package; \
-	zip -r9 ../newsapi_mongodb.zip .; \
-	cd ..; \
-	zip -g newsapi_mongodb.zip lambda_function.py; \
-	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip; \
+## Set AWS lambda function
+aws_set_lambdafun: mongodb_insertion/lambda_function.py
+	cd mongodb_insertion && \
+	pip install --target ./python_package newsapi-python==0.2.6 pymongo==3.11.0 dnspython==1.16.0
+	cd mongodb_insertion/python_package && \
+	zip -r9 ../newsapi_mongodb.zip .
+	cd mongodb_insertion && \
+	zip -g newsapi_mongodb.zip lambda_function.py
+ifeq (default,$(PROFILE))
+	cd mongodb_insertion && \
+	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip
+else
+	cd mongodb_insertion && \
+	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip --profile $(PROFILE)
+endif
+	cd mongodb_insertion && \
 	rm -rf python_package; \
 	rm -rf newsapi_mongodb.zip
 
-# ## Upload Data to S3
-# sync_data_to_s3:
-# ifeq (default,$(PROFILE))
-# 	aws s3 sync data/ s3://$(BUCKET)/data/
-# else
-# 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-# endif
+## Upload Data to S3
+sync_data_to_s3:
+ifeq (default,$(PROFILE))
+	aws s3 sync data/ s3://$(BUCKET)/data/
+else
+	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+endif
 
-# ## Download Data from S3
-# sync_data_from_s3:
-# ifeq (default,$(PROFILE))
-# 	aws s3 sync s3://$(BUCKET)/data/ data/
-# else
-# 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-# endif
+## Download Data from S3
+sync_data_from_s3:
+ifeq (default,$(PROFILE))
+	aws s3 sync s3://$(BUCKET)/data/ data/
+else
+	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+endif
 
 ## Set up python interpreter environment
 create_environment:
@@ -102,7 +100,7 @@ ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
 else
 	conda create --name $(PROJECT_NAME) python=2.7
 endif
-		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
+	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
 	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
 	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
@@ -111,24 +109,49 @@ else
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
 
+## Install Python Dependencies
+requirements: test_environment
+	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+
 ## Test python environment is setup correctly
-test_environment: activate_environment
+test_environment:
 	$(PYTHON_INTERPRETER) test_environment.py
-
-# ## Activate created python environment
-# activate_environment:
-# ifeq (True,$(HAS_CONDA))
-# 	$(CONDA_ACTIVATE) $(PROJECT_NAME)
-# else
-# 	workon $(PROJECT_NAME)
-# endif
-
 
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
 
+# Creates folders (used with order-only-prerequisites)
+$(FOLDERS):
+	mkdir -p $@
 
+.env: 
+	@echo ">>> .env file wasn't detected at root directory. Make sure to include there the environment variables specified in README"
+	@false
+
+data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env | data/interim
+	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py
+
+# This rule can have some problems when running a parallel make
+data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv | data/processed models/saved_models
+	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
+
+# This rule can have some problems when running a parallel make
+models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+	$(PYTHON_INTERPRETER) src/features/doc2vec.py
+
+# This rule can have some problems when running a parallel make
+models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+	$(PYTHON_INTERPRETER) src/features/vectorizer.py
+
+# Double-colon rules provide a mechanism for cases in which the method used to update a target differs depending on which prerequisite files caused the update
+models/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib
+	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py
+
+# Double-colo rule
+models/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py models/saved_models/doc2vec*
+	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 
 #################################################################################
 # Self Documenting Commands                                                     #

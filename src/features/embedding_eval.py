@@ -7,6 +7,7 @@ from collections import Counter
 import os
 from functools import reduce
 
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 # TODO: Think about which classification evaluation measure(s) to use
@@ -101,30 +102,27 @@ def compare_documents(base_doc_id, base_doc_rep, sims, compare_corpus):
     return output
 
 
-def export_results(predictive_scores, out_path, overwrite=False):
+def export_results(predictive_scores, out_path):
     """Exports predictive scores of each embedding model to out_path.
-    If overwrite=True it will overwrite the file, otherwise it will 
-     append results if the file exists and the models don't yet have
-     any predictive score registered.
+    If the output file already exists, it will preserve model scores that only
+     exist there and concatenate predictive_scores, otherwise it will create 
+     the output file with just predictive_scores.
 
     Args:
         predictive_scores (Pandas Series): Series with model name in index
          and the corresponding predictive score values
         out_path (string): output path to csv file where to store results
-        overwrite (bool, optional): If True, overwrites the out_path file.
-         Defaults to False.
     """
-    if overwrite:
-        predictive_scores.to_csv(out_path, index_label='Model')
+    if os.path.exists(out_path):
+        df = pd.read_csv(out_path)
+        # Get Models that only exist in the csv file
+        set_difference = df.loc[~df['Model'].isin(predictive_scores.index)]
+        # Concatenate the predictive_scores model scores with the set_difference
+        pd.DataFrame(
+            np.concatenate(
+                [set_difference.values, predictive_scores.reset_index().values], axis=0),
+            columns=set_difference.columns
+        ).to_csv(out_path, index=False)  # Export to csv
     else:
-        if os.path.exists(out_path):
-            df = pd.read_csv(out_path)
-            existing_models = df['Model'].unique()
-            non_existing_scores = predictive_scores.loc[~predictive_scores.index.isin(
-                existing_models)]
-            if non_existing_scores.empty:
-                logger.warning(f'predictive_scores already in out_path file.')
-                return
-            non_existing_scores.to_csv(out_path, mode='a', header=False)
-        else:
-            predictive_scores.to_csv(out_path, index_label='Model')
+        predictive_scores.reset_index().to_csv(
+            out_path, header=['Model', 'Score'], index=False)

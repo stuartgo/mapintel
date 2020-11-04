@@ -24,10 +24,7 @@ endif
 #################################################################################
 
 ## Build the project
-all: directories data features evaluation
-
-## Build Necessary Directory Structure
-directories: $(FOLDERS)
+all: $(FOLDERS) data features evaluation
 
 ## Make Dataset
 data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
@@ -76,26 +73,26 @@ endif
 	rm -rf python_package; \
 	rm -rf newsapi_mongodb.zip
 
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
+# ## Upload Data to S3
+# sync_data_to_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync data/ s3://$(BUCKET)/data/
+# else
+# 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+# endif
 
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
+# ## Download Data from S3
+# sync_data_from_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync s3://$(BUCKET)/data/ data/
+# else
+# 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+# endif
 
 ## Set up python interpreter environment
 create_environment:
 ifeq (True,$(HAS_CONDA))
-		@echo ">>> Detected conda, creating conda environment."
+	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
 	conda create --name $(PROJECT_NAME) python=3.7
 else
@@ -114,22 +111,23 @@ endif
 requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	# conda env update --name $(PROJECT_NAME) --file environment.yml
 
 ## Test python environment is setup correctly
 test_environment: activate_environment
 	$(PYTHON_INTERPRETER) test_environment.py
 
-## Activate created python environment
-activate_environment:
-ifeq (True,$(HAS_CONDA))
-	$(CONDA_ACTIVATE) $(PROJECT_NAME)
-else
-	workon $(PROJECT_NAME)
-endif
-
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
+
+# Set PYTHON_INTERPRETER to interpreter from created environment
+activate_environment:
+ifeq (True,$(HAS_CONDA))
+	$(eval PYTHON_INTERPRETER:=$(shell $(CONDA_ACTIVATE) $(PROJECT_NAME) && which python))
+else
+	$(eval PYTHON_INTERPRETER:=$(shell workon $(PROJECT_NAME) && which python))
+endif
 
 # Creates folders (used with order-only-prerequisites)
 $(FOLDERS):

@@ -122,9 +122,9 @@ test_environment: activate_environment
 ## Activate created python environment
 activate_environment:
 ifeq (True,$(HAS_CONDA))
-    $(CONDA_ACTIVATE) $(PROJECT_NAME)
+	$(CONDA_ACTIVATE) $(PROJECT_NAME)
 else
-    workon $(PROJECT_NAME)
+	workon $(PROJECT_NAME)
 endif
 
 #################################################################################

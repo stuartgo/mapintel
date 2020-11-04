@@ -4,7 +4,8 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-# SHELL:=/bin/bash
+SHELL:=/bin/bash
+CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
@@ -115,8 +116,16 @@ requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 
 ## Test python environment is setup correctly
-test_environment:
+test_environment: activate_environment
 	$(PYTHON_INTERPRETER) test_environment.py
+
+## Activate created python environment
+activate_environment:
+ifeq (True,$(HAS_CONDA))
+    $(CONDA_ACTIVATE) $(PROJECT_NAME)
+else
+    workon $(PROJECT_NAME)
+endif
 
 #################################################################################
 # PROJECT RULES                                                                 #

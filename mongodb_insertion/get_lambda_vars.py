@@ -17,7 +17,7 @@ def main ():
     MONGOPASSWORD = os.environ.get("MONGOPASSWORD")
     MONGODB = os.environ.get("MONGODB")
 
-    return "Variables={{NEWSAPIKEY={},MONGOUSERNAME={},MONGOPASSWORD={},MONGODB={}}}".format(NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD, MONGODB)
+    return "\"Variables={{NEWSAPIKEY={},MONGOUSERNAME={},MONGOPASSWORD={},MONGODB={}}}\"".format(NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD, MONGODB)
 
 
 if __name__ == "__main__":

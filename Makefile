@@ -27,13 +27,13 @@ endif
 all: $(FOLDERS) data features evaluation
 
 ## Make Dataset
-data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
+data: set_interpreter data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 
 ## Make Embeddings
-features: models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
+features: set_interpreter models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
 
 ## Make Embeddings Evaluation
-evaluation: models/embedding_predictive_scores.csv
+evaluation: set_interpreter models/embedding_predictive_scores.csv
 
 ## Delete all compiled Python files
 clean:
@@ -45,12 +45,10 @@ lint:
 	flake8 src
 
 ## Set AWS lambda environment variables
-aws_set_lambdavars: .env mongodb_insertion/get_lambda_vars.py
+aws_set_lambdavars: .env set_interpreter mongodb_insertion/get_lambda_vars.py
 ifeq (default,$(PROFILE))
-	cd mongodb_insertion && \
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
 else
-	cd mongodb_insertion && \
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py) --profile $(PROFILE)
 endif
 
@@ -114,7 +112,7 @@ requirements: test_environment
 	# conda env update --name $(PROJECT_NAME) --file environment.yml
 
 ## Test python environment is setup correctly
-test_environment: activate_environment
+test_environment: set_interpreter
 	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################
@@ -122,7 +120,7 @@ test_environment: activate_environment
 #################################################################################
 
 # Set PYTHON_INTERPRETER to interpreter from created environment
-activate_environment:
+set_interpreter:
 ifeq (True,$(HAS_CONDA))
 	$(eval PYTHON_INTERPRETER:=$(shell $(CONDA_ACTIVATE) $(PROJECT_NAME) && which python))
 else

@@ -9,10 +9,44 @@ from functools import reduce
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.linear_model import LogisticRegression
-# TODO: Think about which classification evaluation measure(s) to use
 
 logger = logging.getLogger(__name__)
+
+
+def log_loss_score(X, y, k=4):
+    """Given a dataset of N documents and their categories, evaluates the document embeddings 
+     vectors by classifying whether each of the N(N−1)/2 pairs of documents belongs to the 
+     same category or not.
+    Applies the logistic function over the cosine similarity of each pair of documents and 
+     then uses it as the predicted value for computing the binary cross-entropy cost across
+     all N(N−1)/2 pairs of documents.
+
+    Args:
+        X (array-like, sparse matrix): Documents' embedding vectors
+        y (array-like): Documents' category labels 
+        k (int): Steepness of the logistic function curve. 
+         Should be set to account for [-1, 1] range of input values. Defaults to 4.
+
+    Returns:
+        float: Binary cross-entropy cost of pairs of documents
+    """
+    # Cosine similarity of test set instances
+    sim_matrix = cosine_similarity(X)
+    # Convert cosine similarities to probability matrix using sigmoid function
+    # (k=4 more steepness because x varies between -1 and 1)
+    prob_matrix = 1/(1 + np.exp(-k*sim_matrix))
+    # Returns tuple with two arrays, each with the indices along one dimension
+    tri_idx = np.triu_indices(len(y), 1)
+    # Pairs row and col indices and checks if corresponding observations have the same label
+    y_labels = np.array([1 if y[i] == y[j] else 0 for i, j in zip(*tri_idx)])
+    # Get upper triangle of probability matrix to array
+    y_pred = prob_matrix[tri_idx]  # the N(N−1)/2 independent predictions
+    # Binary cross-entropy
+    log_loss = y_labels * np.log(y_pred) + (1 - y_labels) * np.log(1 - y_pred)
+    cost = -1 * np.mean(log_loss)
+    return cost
 
 
 def predictive_model_score(X_train, y_train, X_test, y_test):
@@ -102,27 +136,27 @@ def compare_documents(base_doc_id, base_doc_rep, sims, compare_corpus):
     return output
 
 
-def export_results(predictive_scores, out_path):
-    """Exports predictive scores of each embedding model to out_path.
-    If the output file already exists, it will preserve model scores that only
-     exist there and concatenate predictive_scores, otherwise it will create 
-     the output file with just predictive_scores.
+def export_results(model_outputs, out_path):
+    """Exports the model_outputs of each embedding model to out_path.
+    If the output file already exists, it will preserve model outputs that only
+     exist there and concatenate model_outputs, otherwise it will create 
+     the output file with just model_outputs.
 
     Args:
-        predictive_scores (Pandas Series): Series with model name in index
-         and the corresponding predictive score values
+        model_outputs (Pandas DataFrame): DataFrame with model name in index
+         and the corresponding outputs as values (1 column for each output)
         out_path (string): output path to csv file where to store results
     """
     if os.path.exists(out_path):
         df = pd.read_csv(out_path)
         # Get Models that only exist in the csv file
-        set_difference = df.loc[~df['Model'].isin(predictive_scores.index)]
-        # Concatenate the predictive_scores model scores with the set_difference
+        set_difference = df.loc[~df['Model'].isin(model_outputs.index)]
+        # Concatenate model_outputs with the set_difference
         pd.DataFrame(
             np.concatenate(
-                [set_difference.values, predictive_scores.reset_index().values], axis=0),
+                [set_difference.values, model_outputs.reset_index().values], axis=0),
             columns=set_difference.columns
         ).to_csv(out_path, index=False)  # Export to csv
     else:
-        predictive_scores.reset_index().to_csv(
-            out_path, header=['Model', 'Score'], index=False)
+        model_outputs.reset_index().to_csv(
+            out_path, header=['Model', "Mean_accuracy", "Log_loss"], index=False)

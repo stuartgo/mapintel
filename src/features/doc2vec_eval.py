@@ -16,7 +16,8 @@ from gensim.test.test_doc2vec import ConcatenatedDoc2Vec
 from src.features.embedding_eval import (compare_documents,
                                          evaluate_inferred_vectors,
                                          export_results,
-                                         predictive_model_score)
+                                         predictive_model_score,
+                                         log_loss_score)
 
 # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
 # https://radimrehurek.com/gensim/models/doc2cvec.html
@@ -51,9 +52,7 @@ def main():
         file) for file in model_files]
 
     # Creating objects to store data inside loop
-    model_scores = defaultdict(lambda: 0)
-    # rank_zero = defaultdict(lambda: 0)
-    # compare_docs = defaultdict(list)
+    models_out = defaultdict(lambda: [])
 
     # Creating constants (invariable across loop iterations)
     # sample train docs to evaluate inferred vs learned vectors
@@ -72,14 +71,19 @@ def main():
         test_vecs = [model.infer_vector(doc.words) for doc in test_docs]
 
         # Predictive downstream task (i.e. classifying news topics)
-        test_scores, test_predictions, logit = predictive_model_score(train_vecs,
-                                                                      train_targets, test_vecs, test_targets)
-        model_scores[modelname] = test_scores
+        test_scores, _, _ = predictive_model_score(
+            train_vecs, train_targets, test_vecs, test_targets)
+        models_out[modelname].append(test_scores)
         print("Model %s predictive score: %f\n" % (modelname, test_scores))
+
+        # Log-loss of predicting whether pairs of observations belong to the same category
+        cost = log_loss_score(test_vecs, test_targets)
+        models_out[modelname].append(cost)
+        print("Model %s log-loss: %f\n" % (modelname, cost))
 
         # Are inferred vectors close to the precalculated ones?
         top10_distribution = evaluate_inferred_vectors(model, train_samples)
-        # rank_zero[modelname] = top10_distribution[0] / 1000
+        # models_out[modelname].append(top10_distribution[0] / 1000)
         print('Are inferred vectors close to the precalculated ones?')
         # We want documents to be the most similar with themselves (i.e. rank 0)
         print(top10_distribution, "\n")
@@ -93,7 +97,7 @@ def main():
         print("Do close documents seem more related than distant ones?")
         compare_out = compare_documents(test_doc_eval.tags[0], test_doc_eval.original, sims,
                                         list(map(lambda x: x.original, train_docs)))
-        # compare_docs[modelname] = compare_out
+        # models_out[modelname].append(compare_out)
         print("-----------------------------------------------------------------------------------------")
 
     # Concatenating doc2vec dm and dbow models
@@ -112,16 +116,22 @@ def main():
         test_vecs = [model.infer_vector(doc.words) for doc in test_docs]
 
         # Predictive downstream task (i.e. classifying news topics)
-        test_scores, test_predictions, logit = predictive_model_score(train_vecs,
-                                                                      train_targets, test_vecs, test_targets)
-        model_scores[modelname] = test_scores
+        test_scores, _, _ = predictive_model_score(
+            train_vecs, train_targets, test_vecs, test_targets)
+        models_out[modelname].append(test_scores)
         print("Model %s predictive score: %f\n" % (modelname, test_scores))
+
+        # Log-loss of predicting whether pairs of observations belong to the same category
+        cost = log_loss_score(test_vecs, test_targets)
+        models_out[modelname].append(cost)
+        print("Model %s log-loss: %f\n" % (modelname, cost))
         print("-----------------------------------------------------------------------------------------")
 
     # Exporting results
     logger.info(f'Exporting results...')
-    predictive_scores = pd.Series(model_scores, name="Score")
-    export_results(predictive_scores, out_path)
+    models_output = pd.DataFrame(
+        models_out, index=["Mean_accuracy", "Log_loss"]).T
+    export_results(models_output, out_path)
 
 
 if __name__ == '__main__':

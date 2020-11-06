@@ -13,7 +13,8 @@ from joblib import load
 from sklearn.metrics.pairwise import cosine_similarity
 from src.features.embedding_eval import (compare_documents,
                                          export_results,
-                                         predictive_model_score)
+                                         predictive_model_score,
+                                         log_loss_score)
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
     model_instances = [load(file) for file in model_files]
 
     # Creating objects to store data inside loop
-    model_scores = defaultdict(lambda: 0)
+    models_out = defaultdict(lambda: [])
 
     # Creating constants (invariable across loop iterations)
     # random test doc to evaluate distances
@@ -55,10 +56,15 @@ def main():
         test_vecs = model.transform(test_docs['prep_text'])
 
         # Predictive downstream task (i.e. classifying news topics)
-        test_scores, test_predictions, logit = predictive_model_score(train_vecs,
-                                                                      train_docs['category'], test_vecs, test_docs['category'])
-        model_scores[modelname] = test_scores
+        test_scores, _, _ = predictive_model_score(train_vecs,
+                                                   train_docs['category'], test_vecs, test_docs['category'])
+        models_out[modelname].append(test_scores)
         print("Model %s predictive score: %f\n" % (modelname, test_scores))
+
+        # Log-loss of predicting whether pairs of observations belong to the same category
+        cost = log_loss_score(test_vecs, test_docs['category'].tolist())
+        models_out[modelname].append(cost)
+        print("Model %s log-loss: %f\n" % (modelname, cost))
 
         # Get cosine similarity between random test doc and train docs
         train_vectors = model.transform(train_docs['prep_text'])
@@ -75,8 +81,9 @@ def main():
 
     # Exporting results
     logger.info(f'Exporting results...')
-    predictive_scores = pd.Series(model_scores, name="Score")
-    export_results(predictive_scores, out_path)
+    models_output = pd.DataFrame(
+        models_out, index=["Mean_accuracy", "Log_loss"]).T
+    export_results(models_output, out_path)
 
 
 if __name__ == '__main__':

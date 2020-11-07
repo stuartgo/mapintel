@@ -59,8 +59,10 @@ Project Organization
     │
     ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
     │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
+    ├── models             <- Trained and serialized models, model predictions, model summaries
+    |   |                     and other model outputs
     │   ├── ocr_outputs
+    │   ├── figures
     │   └── saved_models
     │
     ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),

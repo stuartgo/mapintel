@@ -68,7 +68,7 @@ def embedding_vectors(model_name, train_docs, test_docs):
         vect_test_corpus = model.transform(test_docs)
         # LSA to reduce vector dimensionality
         logger.info("Applying LSA to reduce dimensionality...")
-        lsa = TruncatedSVD(200, random_state=1)
+        lsa = TruncatedSVD(100, random_state=1)
         vect_train_corpus_red = lsa.fit_transform(vect_train_corpus)
         vect_test_corpus_red = lsa.transform(vect_test_corpus)
         explained_variance = lsa.explained_variance_ratio_.sum()

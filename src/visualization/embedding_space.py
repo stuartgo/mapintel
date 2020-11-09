@@ -1,11 +1,19 @@
 """
 Visualize the document embeddings produced by a given model using t-SNE.
+
 Receives a path to an embedding model file as an argument, loads it and
- gets the embeddings for the training and test set. If the embedding 
- dimensionality is large, LSA is applied to suppress some noise and speed
- up the computations required by t-SNE. 
+gets the embeddings for the training and test set. If the embedding 
+dimensionality is large, LSA is applied to suppress some noise and speed
+up the computations required by t-SNE. 
+
 Outputs a figure of the 2D embedding space for the passed model.
+
+Examples
+--------
+>>> # Pass a .model file as a positional argument to the script
+>>> python src/visualization/embedding_space.py models/saved_models/file.model
 """
+
 import logging
 import os
 import re

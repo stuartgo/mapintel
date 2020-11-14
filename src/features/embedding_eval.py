@@ -10,39 +10,37 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 
 logger = logging.getLogger(__name__)
 
 
-def log_loss_score(X, y, k=4):
+def log_loss_score(X, y):
     """Given a dataset of N documents and their categories, evaluates the document embeddings 
      vectors by classifying whether each of the N(N−1)/2 pairs of documents belongs to the 
      same category or not.
-    Applies the logistic function over the cosine similarity of each pair of documents and 
+    Applies min-max scaling over the cosine similarity of each pair of documents and 
      then uses it as the predicted value for computing the binary cross-entropy cost across
      all N(N−1)/2 pairs of documents.
 
     Args:
         X (array-like, sparse matrix): Documents' embedding vectors
         y (array-like): Documents' category labels 
-        k (int): Steepness of the logistic function curve. 
-         Should be set to account for [-1, 1] range of input values. Defaults to 4.
 
     Returns:
         float: Binary cross-entropy cost of pairs of documents
     """
     # Cosine similarity of test set instances
     sim_matrix = cosine_similarity(X)
-    # Convert cosine similarities to probability matrix using sigmoid function
-    # (k=4 more steepness because x varies between -1 and 1)
-    prob_matrix = 1/(1 + np.exp(-k*sim_matrix))
     # Returns tuple with two arrays, each with the indices along one dimension
     tri_idx = np.triu_indices(len(y), 1)
     # Pairs row and col indices and checks if corresponding observations have the same label
     y_labels = np.array([1 if y[i] == y[j] else 0 for i, j in zip(*tri_idx)])
-    # Get upper triangle of probability matrix to array
-    y_pred = prob_matrix[tri_idx]  # the N(N−1)/2 independent predictions
+    # Get unique similarities (upper triangle)
+    sim_unique = np.expand_dims(sim_matrix[tri_idx], axis=1)
+    # Get probability array of unique upper triangle using MinMaxScaler [0.001, 0.999] to avoid np.log(0)
+    y_pred = MinMaxScaler((0.001, 0.999)).fit_transform(sim_unique)[:, 0]
     # Binary cross-entropy
     log_loss = y_labels * np.log(y_pred) + (1 - y_labels) * np.log(1 - y_pred)
     cost = -1 * np.mean(log_loss)

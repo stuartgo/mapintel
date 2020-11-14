@@ -1,17 +1,15 @@
-.PHONY: all data features evaluation clean lint requirements sync_data_to_s3 sync_data_from_s3 aws_set_accesskeys aws_set_lambdavars aws_update_lambda
+.PHONY: all data features evaluation clean lint aws_set_lambdavars aws_set_lambdafun create_environment requirements test_environment
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
 SHELL:=/bin/bash
-CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
+# BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
 PROJECT_NAME = mapintel
 PYTHON_INTERPRETER = python3
-FOLDERS = data/external data/interim data/processed data/raw models/saved_models
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -24,16 +22,16 @@ endif
 #################################################################################
 
 ## Build the project
-all: $(FOLDERS) data features evaluation
+all: data features evaluation
 
 ## Make Dataset
-data: set_interpreter data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
+data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 
 ## Make Embeddings
-features: set_interpreter models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
+features: models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
 
 ## Make Embeddings Evaluation
-evaluation: set_interpreter models/embedding_predictive_scores.csv
+evaluation: models/embedding_predictive_scores.csv
 
 ## Delete all compiled Python files
 clean:
@@ -45,7 +43,7 @@ lint:
 	flake8 src
 
 ## Set AWS lambda environment variables
-aws_set_lambdavars: .env set_interpreter mongodb_insertion/get_lambda_vars.py
+aws_set_lambdavars: .env mongodb_insertion/get_lambda_vars.py
 ifeq (default,$(PROFILE))
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
 else
@@ -92,9 +90,9 @@ create_environment:
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create --name $(PROJECT_NAME) python=3.7 --no-default-packages
 else
-	conda create --name $(PROJECT_NAME) python=2.7
+	conda create --name $(PROJECT_NAME) python=2.7 --no-default-packages
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
@@ -107,54 +105,41 @@ endif
 
 ## Install Python Dependencies
 requirements: test_environment
+ifeq (True,$(HAS_CONDA))
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-	# conda env update --name $(PROJECT_NAME) --file environment.yml
+	# $(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	conda env update --name $(PROJECT_NAME) --file environment.yml
+endif
 
 ## Test python environment is setup correctly
-test_environment: set_interpreter
+test_environment:
 	$(PYTHON_INTERPRETER) test_environment.py
 
 #################################################################################
 # PROJECT RULES                                                                 #
 #################################################################################
 
-# Set PYTHON_INTERPRETER to interpreter from created environment
-set_interpreter:
-ifeq (True,$(HAS_CONDA))
-	$(eval PYTHON_INTERPRETER:=$(shell $(CONDA_ACTIVATE) $(PROJECT_NAME) && which python))
-else
-	$(eval PYTHON_INTERPRETER:=$(shell workon $(PROJECT_NAME) && which python))
-endif
-
-# Creates folders (used with order-only-prerequisites)
-$(FOLDERS):
-	mkdir -p $@
-
 .env: 
 	@echo ">>> .env file wasn't detected at root directory. Make sure to include there the environment variables specified in README"
 	@false
 
-data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env | data/interim
+data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env
 	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py
 
-# This rule can have some problems when running a parallel make
-data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv | data/processed models/saved_models
+data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv
 	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
 
-# This rule can have some problems when running a parallel make
-models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/doc2vec.py
 
-# This rule can have some problems when running a parallel make
-models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer.py
 
 # Double-colon rules provide a mechanism for cases in which the method used to update a target differs depending on which prerequisite files caused the update
 models/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py
 
-# Double-colo rule
+# Double-colon rule
 models/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py models/saved_models/doc2vec*
 	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 

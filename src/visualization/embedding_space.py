@@ -30,6 +30,34 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 
 
+def read_data(data_file):
+    """Read the preprocessed news corpus and splits it into training and test set.
+
+    Args:
+        data_file (str): path to csv file that holds the preprocessed data
+
+    Returns:
+        tuple: unique categories list, training documents and test documents
+    """
+    logger = logging.getLogger(__name__)
+
+    df = pd.read_csv(data_file, names=[
+                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
+    logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
+
+    logger.info('Formatting data...')
+    # Formatting data
+    all_docs = df.loc[~df['prep_text'].isna()]
+    train_docs = all_docs.loc[all_docs['split'] == 'train']
+    test_docs = all_docs.loc[all_docs['split'] == 'test']
+    unq_topics = df['category'].unique().tolist()
+    logger.info(
+        f'{train_docs.shape[0]} documents from train set out of {df.shape[0]} documents')
+    del df, all_docs
+
+    return unq_topics, train_docs, test_docs
+
+
 def embedding_vectors(model_name, train_docs, test_docs):
     """Get embedding vectors from train_docs and test_docs using a given model.
     The function uses the model_name to extract the model type and then obtain
@@ -95,19 +123,7 @@ def main(model_name):
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=[
-                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
-    logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
-
-    logger.info('Formatting data...')
-    # Formatting data
-    all_docs = df.loc[~df['prep_text'].isna()]
-    train_docs = all_docs.loc[all_docs['split'] == 'train']
-    test_docs = all_docs.loc[all_docs['split'] == 'test']
-    unq_topics = df['category'].unique().tolist()
-    logger.info(
-        f'{train_docs.shape[0]} documents from train set out of {df.shape[0]} documents')
-    del df, all_docs
+    unq_topics, train_docs, test_docs = read_data(data_file)
 
     logger.info('Obtaining document embeddings...')
     # Obtain the vectorized corpus
@@ -164,7 +180,7 @@ if __name__ == '__main__':
     # t-SNE kwargs
     tsne_kwargs = dict(
         n_components=2, perplexity=30, learning_rate=200, n_iter=1000,
-        n_iter_without_progress=300, metric='cosine', random_state=1
+        n_iter_without_progress=300, metric='cosine', init='pca', random_state=1
     )
 
     main()

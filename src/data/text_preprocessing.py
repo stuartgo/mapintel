@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from bs4 import BeautifulSoup
 from nltk import word_tokenize
+import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted
 
@@ -306,6 +307,12 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
 
         # Apply cleaning function over X
         corpus = map(doc_preprocessing, X)
+
+        # Ensure 'punkt' tokenizer is installed
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt')
 
         # Word tokenizer
         corpus = [word_tokenize(doc, language=self.language) for doc in corpus]

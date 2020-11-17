@@ -57,7 +57,7 @@ def main(model_name):
         plt.legend(handles=handles, loc="upper left",
                    title="Topics", bbox_to_anchor=(0., 0.6, 0.4, 0.4))
         # Set title
-        plt.title(f'Test Corpus Embedding Space\n{params}')
+        plt.title(f'Test Corpus t-SNE Map - KL: {tsne_model.kl_divergence_}\n{params}')
 
         # Save figure
         plt.savefig(os.path.join(
@@ -79,16 +79,16 @@ if __name__ == '__main__':
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
     # Default model instance to use for hyperparameter tuning of t-SNE
-    default_model = os.path.join(model_dir, "doc2vecdbowd100n5mc2t4.model")
+    default_model = os.path.join(model_dir, "doc2vecdmcd100n5w5mc2t4.model")
 
     # t-SNE ParameterGrid
     param_grid = ParameterGrid(
         {
-            'perplexity': [15, 30, 45],
-            'learning_rate': [200, 400],
+            'perplexity': [5, 10, 40],
+            'learning_rate': [200],
             'n_iter': [1000, 2000],
-            'init': ['random', 'pca'],
-            'metric': ['cosine', 'euclidean']
+            'init': ['pca'],
+            'metric': ['cosine']
         }
     )
 

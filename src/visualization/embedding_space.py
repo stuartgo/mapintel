@@ -29,6 +29,8 @@ from joblib import load
 from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 
+# TODO: to get the optimal t-SNE maps we can run t-sne 10 times and get the map with lowest KL
+# "It is perfectly fine to run t-SNE ten times, and select the solution with the lowest KL divergence"
 
 def read_data(data_file):
     """Read the preprocessed news corpus and splits it into training and test set.
@@ -134,7 +136,9 @@ def main(model_name):
     logger.info('Fitting t-SNE model...')
     tsne_model = TSNE(**tsne_kwargs, n_jobs=-1, verbose=1)
     embedded_train_corpus = tsne_model.fit_transform(vect_train_corpus)
+    train_corpus_KL = tsne_model.kl_divergence_
     embedded_test_corpus = tsne_model.fit_transform(vect_test_corpus)
+    test_corpus_KL = tsne_model.kl_divergence_
 
     # Visualize a 2D map of the vectorized corpus
     logger.info('Plotting 2D embedding space...')
@@ -145,7 +149,7 @@ def main(model_name):
         axes.flatten(),  # axes
         [embedded_train_corpus, embedded_test_corpus],  # corpora
         [train_docs['category'], test_docs['category']],  # topics
-        ['Train Corpus Embedding Space', 'Test Corpus Embedding Space']  # titles
+        [f'Train Corpus t-SNE Map - KL: {test_corpus_KL}', f'Test Corpus t-SNE Map - KL: {train_corpus_KL}']  # titles
     )
 
     for ax, X, top, tit in iterator:

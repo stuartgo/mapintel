@@ -190,6 +190,9 @@ dependencies:
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.5=h9ceee32_0
   - pip:
+    - -e .
+    - -e git+https://github.com/lgalke/vec4ir.git@ac7e7e64d0b666688ade33ec44ac6034a994a830#egg=vec4ir
+    - -e git+https://github.com/taylorkangbeck/SentEval.git@a7a176e727e35d51f43f71c3a753dc5f5423bf1a#egg=SentEval
     - alabaster==0.7.12
     - awscli==1.18.168
     - babel==2.8.0

@@ -7,11 +7,11 @@ import collections
 import logging
 import multiprocessing
 import os
-from pathlib import Path
 from string import punctuation
 
 import pandas as pd
 from gensim import models
+from src import PROJECT_ROOT
 
 # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
 # https://radimrehurek.com/gensim/models/doc2cvec.html
@@ -62,11 +62,10 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
-    output_dir = os.path.join(project_dir, "models", "saved_models")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
+    output_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
 
     # Hyperparameter setting
     common_kwargs = dict(

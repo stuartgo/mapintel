@@ -17,7 +17,6 @@ Examples
 import logging
 import os
 import re
-from pathlib import Path
 
 import click
 import matplotlib.patches as mpatches
@@ -28,6 +27,7 @@ from gensim import models
 from joblib import load
 from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
+from src import PROJECT_ROOT
 
 # TODO: to get the optimal t-SNE maps we can run t-sne 10 times and get the map with lowest KL
 # "It is perfectly fine to run t-SNE ten times, and select the solution with the lowest KL divergence"
@@ -174,12 +174,11 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
-    model_dir = os.path.join(project_dir, "models", "saved_models")
-    out_dir = os.path.join(project_dir, "models", "figures")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
+    model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
+    out_dir = os.path.join(PROJECT_ROOT, "models", "figures")
 
     # t-SNE kwargs
     tsne_kwargs = dict(

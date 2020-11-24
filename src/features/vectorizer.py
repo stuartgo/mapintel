@@ -5,11 +5,11 @@ posterior use in "models/saved_models"
 """
 import logging
 import os
-from pathlib import Path
 
 import pandas as pd
 from joblib import dump, load
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from src import PROJECT_ROOT
 
 
 def main():
@@ -52,12 +52,11 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
     output_path = os.path.join(
-        project_dir, "models", "saved_models")
+        PROJECT_ROOT, "models", "saved_models")
 
     # Hyperparameter setting
     vect_kwargs = dict(max_features=10000, ngram_range=(1, 3))

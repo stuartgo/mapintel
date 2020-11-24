@@ -7,8 +7,6 @@ into train and test set. Outputs the documents to "data/interim/newsapi_docs.csv
 """
 import logging
 import os
-import sys
-from pathlib import Path
 
 import click
 import pandas as pd
@@ -16,6 +14,7 @@ from dotenv import find_dotenv, load_dotenv
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 from src.data.text_preprocessing import join_results, results_cleaner
+from src import PROJECT_ROOT
 
 
 @click.command()
@@ -85,9 +84,8 @@ if __name__ == '__main__':
     # load up the .env entries as environment variables
     load_dotenv(find_dotenv())
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
-    out_file = os.path.join(project_dir, "data", "interim", "newsapi_docs.csv")
+    # Defining Paths
+    out_file = os.path.join(PROJECT_ROOT, "data", "interim", "newsapi_docs.csv")
 
     # Loading environmental variables
     MONGOUSERNAME = os.environ.get("MONGOUSERNAME")

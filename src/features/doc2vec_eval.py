@@ -7,17 +7,16 @@ import os
 import re
 from collections import defaultdict, namedtuple
 from itertools import product
-from pathlib import Path
 from random import choice, sample
 
 import pandas as pd
 from gensim import models
 from gensim.test.test_doc2vec import ConcatenatedDoc2Vec
+from src import PROJECT_ROOT
 from src.features.embedding_eval import (compare_documents,
                                          evaluate_inferred_vectors,
-                                         export_results,
-                                         predictive_model_score,
-                                         log_loss_score)
+                                         export_results, log_loss_score,
+                                         predictive_model_score)
 
 # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
 # https://radimrehurek.com/gensim/models/doc2cvec.html
@@ -138,14 +137,13 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.WARNING, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
-    model_dir = os.path.join(project_dir, "models", "saved_models")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
+    model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
     model_files = [os.path.join(model_dir, f) for f in os.listdir(
         model_dir) if re.search("^doc2vec.*\.model$", f)]
-    out_path = os.path.join(project_dir, "models",
+    out_path = os.path.join(PROJECT_ROOT, "models",
                             "embedding_predictive_scores.csv")
 
     # Data structure for holding data for each document

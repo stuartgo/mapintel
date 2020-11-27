@@ -69,6 +69,13 @@ endif
 	rm -rf python_package; \
 	rm -rf newsapi_mongodb.zip
 
+## Download the necessary pre-trained embeddings
+pretrain_embeddings: data/external/GoogleNews-vectors-negative300.bin data/external/glove.840B.300d data/external/crawl-300d-2M.vec
+
+## Download SentEval's transfer tasks dataset
+transfer_tasks: src/senteval
+	cd src/senteval/data/downstream && ./get_transfer_data.bash
+
 # ## Upload Data to S3
 # sync_data_to_s3:
 # ifeq (default,$(PROFILE))
@@ -119,7 +126,7 @@ test_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-.env: 
+.env:
 	@echo ">>> .env file wasn't detected at root directory. Make sure to include there the environment variables specified in README"
 	@false
 
@@ -143,8 +150,20 @@ models/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py models/
 models/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py models/saved_models/doc2vec*
 	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 
+data/external/GoogleNews-vectors-negative300.bin:
+	@echo "--- Downloading Word2vec embeddings ---"
+	wget -cP data/external/ https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz && gzip -d data/external/GoogleNews-vectors-negative300.bin.gz
+
+data/external/glove.840B.300d:
+	@echo "--- Downloading GloVe embeddings ---"
+	curl -Lo data/external/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip && unzip data/external/glove.840B.300d.zip -d data/external && rm -f data/external/glove.840B.300d.zip
+
+data/external/crawl-300d-2M.vec:
+	@echo "--- Downloading FastText embeddings ---"
+	curl -Lo data/external/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip && unzip data/external/crawl-300d-2M.vec.zip -d data/external && rm -f data/external/crawl-300d-2M.vec.zip
+
 #################################################################################
-# Self Documenting Commands                                                     #
+# Self Documenting Commands                                                     #models
 #################################################################################
 
 .DEFAULT_GOAL := help

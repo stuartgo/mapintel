@@ -1,15 +1,16 @@
 """
 Fits a BOW and TF-IDF model to the preprocessed data in 
 "data/processed/newsapi_docs.csv" and saves the fitted models for 
-posterior use in "models/saved_models"
+posterior use in "models/saved_models" and the embedding vectors in
+"models/saved_embeddings"
 """
 import logging
 import os
 from pathlib import Path
 
-import pandas as pd
-from joblib import dump, load
+from joblib import dump
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from src.features.embedding_extractor import read_data, save_embeddings
 
 
 def main():
@@ -17,35 +18,39 @@ def main():
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=[
-                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
-    logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
-
-    logger.info('Formatting data...')
-    # Formatting data
-    train_docs = df.loc[(df['split'] == 'train') &
-                        (df['prep_text'] is not None)]
-    logger.info('Percentage of documents from train set: {0:.2f}%'.format(
-        (train_docs.shape[0]/df.shape[0])*100))
-    del df
+    _, train_docs, test_docs = read_data(data_file)
 
     logger.info('Fitting CountVectorizer...')
     # Fitting BOW representation
     cv = CountVectorizer(**vect_kwargs)
-    cv.fit(train_docs['prep_text'])
-
+    vect_train_corpus = cv.fit_transform(train_docs['prep_text'])
+    vect_test_corpus = cv.transform(test_docs['prep_text'])
     logger.info('Saving fitted CountVectorizer...')
     # Saving fitted model
-    dump(cv, os.path.join(output_path, "CountVectorizer.joblib"))
+    dump(cv, os.path.join(output_dir_models, "CountVectorizer.joblib"))
+    logger.info("Saving CountVectorizer embeddings...")
+    # Saving the embeddings from the train docs
+    save_embeddings(
+        os.path.join(output_dir_embeddings, "train_CountVectorizer"), vect_train_corpus)
+    # Saving the embeddings from the test docs
+    save_embeddings(
+        os.path.join(output_dir_embeddings, "test_CountVectorizer"), vect_test_corpus)
 
     logger.info('Fitting TfidfVectorizer...')
     # Fitting BOW representation
     tfidf = TfidfVectorizer(**vect_kwargs)
-    tfidf.fit(train_docs['prep_text'])
-
+    vect_train_corpus = tfidf.fit_transform(train_docs['prep_text'])
+    vect_test_corpus = tfidf.transform(test_docs['prep_text'])
     logger.info('Saving fitted TfidfVectorizer...')
     # Saving fitted model
-    dump(tfidf, os.path.join(output_path, "TfidfVectorizer.joblib"))
+    dump(tfidf, os.path.join(output_dir_models, "TfidfVectorizer.joblib"))
+    logger.info("Saving TfidfVectorizer embeddings...")
+    # Saving the embeddings from the train docs
+    save_embeddings(
+        os.path.join(output_dir_embeddings, "train_TfidfVectorizer"), vect_train_corpus)
+    # Saving the embeddings from the test docs
+    save_embeddings(
+        os.path.join(output_dir_embeddings, "test_TfidfVectorizer"), vect_test_corpus)
 
 
 if __name__ == '__main__':
@@ -56,8 +61,10 @@ if __name__ == '__main__':
     project_dir = Path(__file__).resolve().parents[2]
     data_file = os.path.join(
         project_dir, "data", "processed", "newsapi_docs.csv")
-    output_path = os.path.join(
+    output_dir_models = os.path.join(
         project_dir, "models", "saved_models")
+    output_dir_embeddings = os.path.join(
+        project_dir, "models", "saved_embeddings")
 
     # Hyperparameter setting
     vect_kwargs = dict(max_features=10000, ngram_range=(1, 3))

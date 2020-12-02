@@ -2,6 +2,7 @@
 mongodb_insertion/python_package
 mongodb_insertion/newsapi_mongodb.zip
 models/saved_models/
+models/saved_embeddings/
 models/figures/
 vec4ir/
 senteval/

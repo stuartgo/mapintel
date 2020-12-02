@@ -42,12 +42,12 @@ def format_embedding_files(embedding_files):
     """Formats the embedding_files list into a 2-level dictionary with
     the model names and the respective train and test embedding files
 
-    :param embedding_files: list of npy files holding the embeddings
+    :param embedding_files: list of npy/npz files holding the embeddings
     :return: 2-level dictionary with the model names and the respective
     train and test embedding files
     """
     # Forming embeddings dictionary
-    embeddings = defaultdict(lambda: defaultdict())
+    embeddings = defaultdict(lambda: defaultdict(str))
     for file in embedding_files:
         split, model = os.path.splitext(os.path.basename(file))[0].split("_")
         embeddings[model][split] = file
@@ -56,21 +56,32 @@ def format_embedding_files(embedding_files):
 
 def embeddings_generator(embeddings):
     """Generator that loads a set of npy files corresponding to the train
-    and test embeddings of a specific model
+    and/or test embeddings of a specific model
 
     :param embeddings: 2-level dictionary with model names and the respective
-    train and test embedding files
-    :return: yields the model name, the train and test corpus embeddings for
+    train and/or test embedding files
+    :return: yields the model name, the train and/or test corpus embeddings for
     a given model in embeddings
     """
     logger = logging.getLogger(__name__)
     # Generator that load the embedding vectors for each model
     for model in embeddings:
         logger.info(f'Loading embeddings of {model}...')
-        if os.path.splitext(embeddings[model]['train'])[1] == ".npz":  # Check whether the file holds a sparse matrix
-            yield model, load_npz(embeddings[model]['train']), load_npz(embeddings[model]['test'])
+        # Check whether the file holds a sparse matrix
+        if os.path.splitext(list(embeddings[model].values())[0])[1] == ".npz":
+            if not embeddings[model]['train']:
+                yield model, load_npz(embeddings[model]['test'])
+            elif not embeddings[model]['test']:
+                yield model, load_npz(embeddings[model]['train'])
+            else:
+                yield model, load_npz(embeddings[model]['train']), np.load(embeddings[model]['test'])
         else:
-            yield model, np.load(embeddings[model]['train']), np.load(embeddings[model]['test'])
+            if not embeddings[model]['train']:
+                yield model, np.load(embeddings[model]['test'])
+            elif not embeddings[model]['test']:
+                yield model, np.load(embeddings[model]['train'])
+            else:
+                yield model, np.load(embeddings[model]['train']), np.load(embeddings[model]['test'])
 
 
 def save_embeddings(output_file, vectors):

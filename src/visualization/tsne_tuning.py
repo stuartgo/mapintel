@@ -1,9 +1,9 @@
 """
 Performs Hyperparameter tuning of the t-SNE model.
 
-Receives a path to an embedding model file (doc2vecdbowd100n5mc2t4.model 
-by default), loads it and gets the embeddings for the test set.
-Plots the t-SNE space for various hyperparameter configurations.
+Receives a path to a test corpus embeddings file (doc2vecdbowd100n5mc2*
+model by default) and loads it. Plots the t-SNE space for various
+hyperparameter configurations of the embeddings of that model.
 
 Outputs a figure of the 2D embedding space for each hyperparameter
 setting.
@@ -12,32 +12,49 @@ import logging
 import os
 from pathlib import Path
 
+import glob
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 from sklearn.model_selection import ParameterGrid
-from src.visualization.embedding_space import read_data, embedding_vectors
+from src.features.embedding_extractor import (read_data,
+                                              format_embedding_files,
+                                              embeddings_generator)
 
 
-def main(model_name):
+def main(embeddings_file):
     logger = logging.getLogger(__name__)
 
-    model_tag = os.path.splitext(os.path.basename(model_name))[0]
+    split, model_tag = os.path.splitext(os.path.basename(embeddings_file))[0].split("_")
+    if split != 'test':
+        raise ValueError("Perform the hyperparameter tuning on the test set.")
 
     logger.info('Reading data...')
     # Reading data into memory
-    unq_topics, train_docs, test_docs = read_data(data_file)
+    unq_topics, _, docs = read_data(data_file)
 
     logger.info('Obtaining document embeddings...')
     # Obtain the vectorized corpus
-    _, vect_test_corpus = embedding_vectors(
-        model_name, train_docs['prep_text'], test_docs['prep_text'])
+    embedding_dict = format_embedding_files([embeddings_file])
+    gen = embeddings_generator(embedding_dict)
+    _, vect_corpus = list(gen)[0]
+
+    # Apply TruncatedSVD (aka LSA) for large dimensionality embeddings
+    if vect_corpus.shape[1] > max_dim:
+        logger.info("Applying LSA to reduce dimensionality...")
+        lsa = TruncatedSVD(100, random_state=1)
+        vect_corpus = lsa.fit_transform(vect_corpus)
+        explained_variance = lsa.explained_variance_ratio_.sum()
+        logger.info("Explained variance of the LSA step: {}%".format(
+            int(explained_variance * 100)))
 
     # Fit t-SNE model and obtain 2D projections
     for params in param_grid:
         logger.info(f'Fitting t-SNE model with {params} ...')
         tsne_model = TSNE(**params, n_jobs=-1, verbose=1, random_state=1)
-        embedded_test_corpus = tsne_model.fit_transform(vect_test_corpus)
+        tsne_corpus = tsne_model.fit_transform(vect_corpus)
+        corpus_kl = tsne_model.kl_divergence_
 
         # Visualize a 2D map of the vectorized corpus
         logger.info('Plotting 2D embedding space...')
@@ -45,19 +62,17 @@ def main(model_name):
             zip(unq_topics, ['red', 'blue', 'green', 'yellow', 'orange', 'black', 'brown']))
 
         # Figure
-        plt.figure(figsize=(13, 7))
+        plt.figure(figsize=(11, 7))
         # Color for each point
-        color_points = list(map(lambda x: categ_map[x], test_docs['category']))
+        color_points = list(map(lambda x: categ_map[x], docs['category']))
         # Scatter plot
-        plt.scatter(embedded_test_corpus[:, 0],
-                    embedded_test_corpus[:, 1], c=color_points)
+        plt.scatter(tsne_corpus[:, 0], tsne_corpus[:, 1], c=color_points)
         # Produce a legend with the unique colors from the scatter
-        handles = [mpatches.Patch(color=c, label=l)
-                   for l, c in categ_map.items()]
+        handles = [mpatches.Patch(color=c, label=l) for l, c in categ_map.items()]
         plt.legend(handles=handles, loc="upper left",
                    title="Topics", bbox_to_anchor=(0., 0.6, 0.4, 0.4))
         # Set title
-        plt.title(f'Test Corpus t-SNE Map - KL: {tsne_model.kl_divergence_}\n{params}')
+        plt.title(f'Test Corpus t-SNE Map - KL: {corpus_kl}\n{params}')
 
         # Save figure
         plt.savefig(os.path.join(
@@ -72,14 +87,23 @@ if __name__ == '__main__':
     project_dir = Path(__file__).resolve().parents[2]
     data_file = os.path.join(
         project_dir, "data", "processed", "newsapi_docs.csv")
-    model_dir = os.path.join(project_dir, "models", "saved_models")
+    embeddings_dir = os.path.join(project_dir, "models", "saved_embeddings")
     out_dir = os.path.join(project_dir, "models", "figures", "tse_tuning")
 
     # Check if out_dir exists. If it doesn't then create the directory
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-    # Default model instance to use for hyperparameter tuning of t-SNE
-    default_model = os.path.join(model_dir, "doc2vecdmcd100n5w5mc2t4.model")
+    # Default test embeddings to use for hyperparameter tuning of t-SNE
+    # Using glob because the filename depends on the number of threads used to
+    # train the model and therefore we set it as a pattern
+    default_embeddings = glob.glob(os.path.join(embeddings_dir, "test_doc2vecdmcd100n5w5mc2*.npy"))
+    if len(default_embeddings) > 1:
+        raise ValueError("There is more than one file with the same pattern as the default document.")
+    else:
+        default_embeddings = default_embeddings[0]
+
+    # Set maximum dimensionality to apply direct t-SNE
+    max_dim = 100
 
     # t-SNE ParameterGrid
     param_grid = ParameterGrid(
@@ -92,4 +116,4 @@ if __name__ == '__main__':
         }
     )
 
-    main(default_model)
+    main(default_embeddings)

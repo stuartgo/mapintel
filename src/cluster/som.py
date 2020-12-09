@@ -17,22 +17,24 @@ Examples
 '''
 
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-from sys import exit
-from minisom import MiniSom
-import click
 import logging
 import os
 import re
+from sys import exit
+
+import click
 import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from gensim import models
+from minisom import MiniSom
+from pylab import axis, bone, colorbar, pcolor, plot, show
+from sklearn.decomposition import TruncatedSVD
+from sklearn.model_selection import ParameterGrid
 from src import PROJECT_ROOT
 
-from sklearn.decomposition import TruncatedSVD
-from gensim import models
-#from src.visualization.embedding_space import read_data, embedding_vectors
-
+# from src.visualization.embedding_space import embedding_vectors, read_data
 
 '''
 def load_embeddings():
@@ -41,51 +43,7 @@ def load_embeddings():
 '''
 
 
-def tune_som(vect_train_corpus, train_labels, model_name):
-	''' Tune & plot SOMs for different hyperparameters
-
-	Parameters
-	----------
-	vect_train_corpus: (float) neighbourhood function spread
-	train_labels:      labels for the dataset
-	model_name:        (str) model name
-
-	Returns
-	-------
-	som:               SOM object
-	som_dim:           (int) dimensionality of the SOM (N, where SOM is NxN)
-	'''
-	
-	logger = logging.getLogger(__name__)
-
-	som_hyperparams = {}
-	som_hyperparams['neighbourhood_function_spread'] = [0.5, 1]
-	som_hyperparams['learning_rate'] = [0.5, 1]
-	som_hyperparams['n_iter'] = [100, 500, 1000]
-	
-	idx_mdl = 0
-	models = {}
-
-	for n_iter in som_hyperparams['n_iter']:
-		for lr in som_hyperparams['learning_rate']:
-			for sigma in som_hyperparams['neighbourhood_function_spread']:
-				
-				logger.info("Fitting SOM #{}".format(idx_mdl))
-				logger.info("Fitting SOM with hyper-parameters:  \
-				          \nn_iter: {}\nlearning_rate: {}\nsigma: {} \
-				          ".format(n_iter, lr, sigma))
-
-				som, som_dim = fit_som(model_name, vect_train_corpus, sigma, lr, n_iter)
-				models[idx_mdl] = som
-				idx_mdl += 1
-
-				# main call
-				viz_som(som, som_dim, vect_train_corpus, train_labels, model_name, n_iter, lr, sigma)
-
-	return som, som_dim
-
-
-def fit_som(model_name, vect_train_corpus, sigma, lr, n_iter):
+def fit_som(som_file_name, vect_train_corpus, som_params):
 	''' Fit a SOM
 
 	Parameters
@@ -101,156 +59,122 @@ def fit_som(model_name, vect_train_corpus, sigma, lr, n_iter):
 	som:               SOM object
 	som_dim:           (int) dimensionality of the SOM (N, where SOM is NxN)
 	'''
+
+	logging.info("SOM does not yet exist. Fitting SOM... {}".format(som_file_name))
+
+	# Separating n_iter to pass to train method
+	n_iter = som_params['n_iter']
+	params = som_params.copy()
+	params.pop('n_iter')
+
+	# Initialise a 6x6 SOM
+	som = MiniSom(**params, random_seed=0)
 	
-	som_exists = check_som_exists(model_name)
+	# Train the SOM
+	# NB. sigma and learning_rate are both reduced over the course of training
+	som.train(vect_train_corpus, n_iter, verbose=True)
 
-	if som_exists is True:
-		logging.info("SOM already exists. Skip model fitting for {}".format(model_name))
-		som = load_som(model_name)
-		return som, None
+	# Save the SOM
+	save_som(som, som_file_name)
 
-	elif som_exists is False:
-		logging.info("SOM does not yet exist. Fitting SOM... {}".format(model_name))
-
-		embed_dimensionality = np.shape(vect_train_corpus)[1]
-		som_dim = 16
-
-		# Initialise a 6x6 SOM
-		som = MiniSom(som_dim, som_dim,
-					  embed_dimensionality,
-					  sigma=sigma,
-					  learning_rate=lr,
-					  neighborhood_function='gaussian',
-					  random_seed=0)
-		
-		# Train the SOM
-		# NB. sigma and learning_rate are both reduced over the course of training
-		som.train(vect_train_corpus, n_iter)
-
-		# Save the SOM
-		som_model_name = som_fname(model_name, som_dim, n_iter, lr, sigma)
-		save_som(som, som_model_name)
+	return som
 
 
-		return som, som_dim
+# def winning_neuron_per_doc(som, vect_train_corpus):
+# 	''' Build a dict with the winning neuron coordinates for each document 
+
+# 	NB. this is an experimental function, not used in the pipeline right now
+# 	'''
+# 	n_docs = np.shape(vect_train_corpus)[0]
+# 	winner = {}
+# 	winner = {n: som.winner(vect_train_corpus[n]) for n in range(n_docs)}
+# 	return winner
 
 
-def winning_neuron_per_doc(som, vect_train_corpus)
-	''' Build a dict with the winning neuron coordinates for each document 
-
-	NB. this is an experimental function, not used in the pipeline right now
-	'''
-	n_docs = np.shape(vect_train_corpus)[0]
-	winner = {}
-	winner = {n: som.winner(vect_train_corpus[n]) for n in range(n_docs)}
-	return winner
-
-
-def som_fname(model_name, som_dim, n_iter, lr, sigma):
+def som_fname(model_name, som_params):
 	''' Compile the SOM filename based on its hyper-parameters
 	'''
-
-	fname = model_name + "__" + str(som_dim) + "x" + str(som_dim) + \
-	          "_n_iter" + str(n_iter) + "lr" + str(lr) + "sigma" + str(sigma)
+	# Get filename based on som_params
+	params_name = "".join([k+str(v) for k, v in som_params.items()])
+	fname = model_name + params_name
 
 	return fname
 
 
-def viz_fname(model_name, som_dim, n_iter, lr, sigma):
-	''' Compile the U-matrix filename based on the SOM's hyper-parameters
-	'''
-
-	fname = model_name + "__" + str(som_dim) + "x" + str(som_dim) + \
-	          "_n_iter" + str(n_iter) + "lr" + str(lr) + "sigma" + str(sigma) + \
-	          ".png"
-
-	if os.path.exists(fname):
-		som_plot_exists = True
-	else:
-		som_plot_exists = False
-
-	return fname, som_plot_exists
-
-
-def viz_som(som, som_dim, data, labels, model_name, n_iter, lr, sigma, subplot_idx=None):
+def viz_som(som, data, labels, som_file_name, som_params, subplot_idx=None):
 	''' Plot the U-matrix
 	'''
 
-	from pylab import plot, axis, show, pcolor, colorbar, bone
+	logging.info("Plotting SOM U-matrix: {}".format(som_file_name))
 	
-	fname, som_plot_exists = viz_fname(model_name, som_dim, n_iter, lr, sigma)
-	if som_plot_exists is True:
-		logging.info("SOM plot already exists: {}".format(fname))
+	bone()
 
-	elif som_plot_exists is False:
-		logging.info("Plotting SOM U-matrix: {}".format(fname))
+	# Distance map aka U-matrix
+	pcolor(som.distance_map().T)
+	# plt.colorbar()
 
-		bone()
+	# Loading labels
+	n_labels = len(labels.unique())
+	target = range(n_labels)
+	labs = {}
+	labels_int = []
+	for i,l in enumerate(labels.unique()):
+		labs[l] = i
+	target = labs
+	
+	# Need the labels list to be numbers and not strings
+	# in order to index the markers
+	labels_int = [labs[n] for n in labels]
+	target = labels_int
 
-		# Distance map aka U-matrix
-		pcolor(som.distance_map().T)
-		# plt.colorbar()
+	markers = ['o','s','D','x','o','s','D']
+	colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6']
 
-		# Loading labels
-		n_labels = len(labels.unique())
-		target = range(n_labels)
-		labs = {}
-		labels_int = []
-		for i,l in enumerate(labels.unique()):
-			labs[l] = i
-		target = labs
-		
-		# Need the labels list to be numbers and not strings
-		# in order to index the markers
-		labels_int = [labs[n] for n in labels]
-		target = labels_int
+	for cnt, xx in enumerate(data):
+		# For sample xx...
+		# Get winning neuron
+		w = som.winner(xx)
 
-		markers = ['o','s','D','x','o','s','D']
-		colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+		# Place a marker on the winning position for this sample...
+		# Index for marker colour and shape
+		mrk_idx = target[cnt]
+		# Offset the markers by an amount between 0.2-0.8 to avoid overlap
+		offset = 0.2 + 0.05*mrk_idx
+		# Marker coordinates
+		x = w[0] + offset
+		y = w[1] + offset
 
-		for cnt, xx in enumerate(data):
-			# For sample xx...
-			# Get winning neuron
-			w = som.winner(xx)
+		plot(x, y,
+			markers[target[cnt]-1],
+			markerfacecolor='None',
+			markeredgecolor=colors[target[cnt]-1],
+			markersize=5,
+			markeredgewidth=2,
+			alpha=0.1)
+	#axis([0,som.weights.shape[0],0,som.weights.shape[1]])
 
-			# Place a marker on the winning position for this sample...
-			# Index for marker colour and shape
-			mrk_idx = target[cnt]
-			# Offset the markers by an amount between 0.2-0.8 to avoid overlap
-			offset = 0.2 + 0.05*mrk_idx
-			# Marker coordinates
-			x = w[0] + offset
-			y = w[1] + offset
-
-			plot(x, y,
-				 markers[target[cnt]-1],
-			     markerfacecolor='None',
-				 markeredgecolor=colors[target[cnt]-1],
-			     markersize=5,
-			     markeredgewidth=2,
-			     alpha=0.1)
-		#axis([0,som.weights.shape[0],0,som.weights.shape[1]])
-
-		title = str(som_dim) + "x" + str(som_dim) + " " + model_name
-		plt.title(title)
-
-		plt.savefig(fname)
+	plt.title(som_file_name)
+	plt.savefig(os.path.join(fig_dir, som_file_name + '.png'))
 
 
-
-def check_som_exists(model_name):
+def check_som_exists(fname, type):
 	'''Check if SOM exists before fitting it'''
-	fname = model_name.split('.')[0] + '.som'
-	fpath = os.path.join(model_dir, fname)
+	
+	if type == "som":
+		fpath = os.path.join(model_dir, fname + '.som')
+	elif type == "viz":
+		fpath = os.path.join(fig_dir, fname + '.png')
+	else:
+		raise ValueError("type can only take 'viz' or 'som' values.")
+
+	# Check path existence
 	if os.path.exists(fpath):
 		return True
 	else:
 		return False
 
 
-
-#def save_som(som, model_name):
-def save_som(som, som_model_name):
+def save_som(som, model_name):
 	"""Save the SOM into a .som file
 
 	Args:
@@ -260,23 +184,24 @@ def save_som(som, som_model_name):
 		None
 	"""
 
-	#fname = model_name.split('.')[0] + '.som'
-	fname = som_model_name + '.som'
+	fname = model_name + '.som'
 	fpath = os.path.join(model_dir, fname)
 
 	logging.info("Saving SOM: {}".format(fpath))
 
 	with open(fpath, 'wb') as outfile:
 		joblib.dump(som, outfile)
-	return
 
 
-def load_som(model_name):
+def load_som(fname):
 	'''Load SOM from a .som file'''
 
-	fname = model_name.split('.')[0] + '.som'
-	with open(os.path.join(model_dir, fname), 'wb') as infile:
-		print('loading...?', os.path.join(model_dir, fname))
+	fname = fname + '.som'
+	fpath = os.path.join(model_dir, fname)
+
+	logging.info("Loading SOM: {}".format(fpath))
+
+	with open(fpath, 'wb') as infile:
 		som = joblib.load(infile)
 	return som
 
@@ -364,8 +289,6 @@ def embedding_vectors(model_path, train_docs, test_docs):
         return vect_train_corpus_red, vect_test_corpus_red
 
 
-
-
 @click.command()
 @click.argument('model_path', type=click.Path(exists=True))
 def main(model_path):
@@ -383,7 +306,28 @@ def main(model_path):
 		model_path, train_docs['prep_text'], test_docs['prep_text'])
 
 	# Fit SOM
-	som, som_dim  = tune_som(vect_train_corpus, train_labels, model_tag)
+	idx_mdl = 0
+	for params in param_grid:
+		logger.info("Fitting SOM #{}".format(idx_mdl))
+		# Add input_len to dictionary
+		params.update({'input_len': np.shape(vect_train_corpus)[1]})
+		logger.info("Fitting SOM with hyper-parameters: {}".format(params))
+
+		# Get output file name and check if it already exists
+		som_file_name = som_fname(model_tag, params)
+
+		if check_som_exists(som_file_name, "som"):
+			logging.info("SOM already exists. Skip model fitting for {}".format(som_file_name))
+			if check_som_exists(som_file_name, "viz"):
+				logging.info("SOM plot already exists: {}".format(som_file_name))
+			else:
+				som = load_som(som_file_name)
+				viz_som(som, vect_train_corpus, train_labels, som_file_name, params)
+		else:
+			som = fit_som(som_file_name, vect_train_corpus, params)
+			viz_som(som, vect_train_corpus, train_labels, som_file_name, params)
+
+		idx_mdl += 1
 
 
 if __name__ == '__main__':
@@ -393,6 +337,18 @@ if __name__ == '__main__':
 	# Defining Paths
 	data_file = os.path.join(PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
 	model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
-	out_dir = os.path.join(PROJECT_ROOT, "models", "figures")
+	fig_dir = os.path.join(PROJECT_ROOT, "models", "figures", "som")
+
+	# Hyperparameter grid
+	param_grid = ParameterGrid(
+        {	
+			'x': [16],
+			'y': [16],
+            'sigma': [0.5, 1],
+            'learning_rate': [0.5, 1],
+			'neighborhood_function': ['gaussian'],
+            'n_iter': [100, 500, 1000]
+        }
+    )
 
 	main()

@@ -8,6 +8,8 @@ and generates a U-matrix plot (saved in src/cluster/).
 
 TODO:
 - implement component planes
+- improve u-matrix
+- update docstrings
 
 Examples
 --------
@@ -29,18 +31,13 @@ import numpy as np
 import pandas as pd
 from gensim import models
 from minisom import MiniSom
-from pylab import axis, bone, colorbar, pcolor, plot, show
+from matplotlib import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.patches import RegularPolygon
+from matplotlib.lines import Line2D
 from sklearn.decomposition import TruncatedSVD
 from sklearn.model_selection import ParameterGrid
 from src import PROJECT_ROOT
-
-# from src.visualization.embedding_space import embedding_vectors, read_data
-
-'''
-def load_embeddings():
-
-	return embeddings
-'''
 
 
 def fit_som(som_file_name, vect_train_corpus, som_params):
@@ -95,65 +92,91 @@ def som_fname(model_name, som_params):
 	''' Compile the SOM filename based on its hyper-parameters
 	'''
 	# Get filename based on som_params
-	params_name = "".join([k+str(v) for k, v in som_params.items()])
-	fname = model_name + params_name
+	params_name = "".join(sorted([k+str(v) for k, v in som_params.items()]))
+	fname = model_name + "__" + params_name
 
 	return fname
 
 
-def viz_som(som, data, labels, som_file_name, som_params, subplot_idx=None):
-	''' Plot the U-matrix
-	'''
+def viz_som(som, data, labels, unq_topics, som_file_name):
+	"""Plot the U-matrix
 
+	Args:
+		som ([type]): [description]
+		data ([type]): [description]
+		labels ([type]): [description]
+		unq_topics ([type]): [description]
+		som_file_name ([type]): [description]
+	"""
 	logging.info("Plotting SOM U-matrix: {}".format(som_file_name))
-	
-	bone()
 
-	# Distance map aka U-matrix
-	pcolor(som.distance_map().T)
-	# plt.colorbar()
+	# Position of the neurons on an euclidean plane that reflects the chosen topology
+	xx, yy = som.get_euclidean_coordinates()
+	# Distance map of the weights. Each cell is the normalised sum of the distances between its neighbours
+	umatrix = som.distance_map()
+	# Weights of the neural network
+	weights = som.get_weights()
+	# Quantization error
+	qterror = som.quantization_error(data)
 
-	# Loading labels
-	n_labels = len(labels.unique())
-	target = range(n_labels)
-	labs = {}
-	labels_int = []
-	for i,l in enumerate(labels.unique()):
-		labs[l] = i
-	target = labs
-	
-	# Need the labels list to be numbers and not strings
-	# in order to index the markers
-	labels_int = [labs[n] for n in labels]
-	target = labels_int
+	# Set figure and parameters
+	f = plt.figure(figsize=(10,10))
+	ax = f.add_subplot(111)
+	ax.set_aspect('equal')
+	colormap = plt.get_cmap('Blues')
+	markers = dict(zip(unq_topics, ['o', '+', 'x', 'v', '^', 's', '*']))
+	colors = dict(zip(unq_topics, ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']))
 
-	markers = ['o','s','D','x','o','s','D']
-	colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+	# Iteratively add hexagons
+	for i in range(weights.shape[0]):
+		for j in range(weights.shape[1]):
+			wy = yy[(i, j)] * 2 / np.sqrt(3) * 3 / 4
+			hex = RegularPolygon((xx[(i, j)], wy), 
+								numVertices=6, 
+								radius=.95 / np.sqrt(3),
+								facecolor=colormap(umatrix[i, j]), 
+								alpha=.4, 
+								edgecolor='gray')
+			ax.add_patch(hex)  # Add the hexagonal patch to the axis 
 
-	for cnt, xx in enumerate(data):
-		# For sample xx...
-		# Get winning neuron
-		w = som.winner(xx)
+	# Labelling each unit in the output map
+	for cnt, x in enumerate(data):
+		# getting the winner
+		w = som.winner(x)
+		# place a marker on the winning position for the sample xx
+		wx, wy = som.convert_map_to_euclidean(w) 
+		wy = wy * 2 / np.sqrt(3) * 3 / 4
+		plt.plot(wx, wy, 
+				markers[labels[cnt]], 
+				markerfacecolor='None',
+				markeredgecolor=colors[labels[cnt]], 
+				markersize=12, 
+				markeredgewidth=2)
 
-		# Place a marker on the winning position for this sample...
-		# Index for marker colour and shape
-		mrk_idx = target[cnt]
-		# Offset the markers by an amount between 0.2-0.8 to avoid overlap
-		offset = 0.2 + 0.05*mrk_idx
-		# Marker coordinates
-		x = w[0] + offset
-		y = w[1] + offset
+	xrange = np.arange(weights.shape[0])
+	yrange = np.arange(weights.shape[1])
+	plt.xticks(xrange-.5, xrange)
+	plt.yticks(yrange * 2 / np.sqrt(3) * 3 / 4, yrange)
 
-		plot(x, y,
-			markers[target[cnt]-1],
-			markerfacecolor='None',
-			markeredgecolor=colors[target[cnt]-1],
-			markersize=5,
-			markeredgewidth=2,
-			alpha=0.1)
-	#axis([0,som.weights.shape[0],0,som.weights.shape[1]])
+	# Add distance colorbar to figure
+	divider = make_axes_locatable(plt.gca())
+	ax_cb = divider.new_horizontal(size="5%", pad=0.05)  
+	cb1 = plt.colorbar(cm.ScalarMappable(cmap=colormap), 
+					cax=ax_cb, orientation='vertical', alpha=.4)
+	cb1.ax.get_yaxis().labelpad = 16
+	cb1.ax.set_ylabel('Distance from neurons in the neighbourhood',
+					rotation=270, fontsize=14)
+	plt.gcf().add_axes(ax_cb)
 
-	plt.title(som_file_name)
+	# Add legend to figure
+	legend_elements = [Line2D([0], [0], marker=markers[topic], color=colors[topic], label=topic,
+	 	markerfacecolor='w', markersize=14, linestyle='None', markeredgewidth=2) for topic in unq_topics]
+	ax.legend(handles=legend_elements, bbox_to_anchor=(0, 1.1), loc='upper left', 
+			borderaxespad=0., ncol=4, fontsize=14)
+
+	ax.set_title(f"Embeddings: {som_file_name.split('__')[0]}, Quantization error: {np.round(qterror, 2)}",
+		loc='center', pad=55, fontsize=16)
+	logging.info("Saving SOM U-matrix: {}".format(som_file_name))
 	plt.savefig(os.path.join(fig_dir, som_file_name + '.png'))
 
 
@@ -201,7 +224,7 @@ def load_som(fname):
 
 	logging.info("Loading SOM: {}".format(fpath))
 
-	with open(fpath, 'wb') as infile:
+	with open(fpath, 'rb') as infile:
 		som = joblib.load(infile)
 	return som
 
@@ -322,10 +345,10 @@ def main(model_path):
 				logging.info("SOM plot already exists: {}".format(som_file_name))
 			else:
 				som = load_som(som_file_name)
-				viz_som(som, vect_train_corpus, train_labels, som_file_name, params)
+				viz_som(som, vect_train_corpus, train_labels, unq_topics, som_file_name)
 		else:
 			som = fit_som(som_file_name, vect_train_corpus, params)
-			viz_som(som, vect_train_corpus, train_labels, som_file_name, params)
+			viz_som(som, vect_train_corpus, train_labels, unq_topics, som_file_name)
 
 		idx_mdl += 1
 
@@ -342,12 +365,13 @@ if __name__ == '__main__':
 	# Hyperparameter grid
 	param_grid = ParameterGrid(
         {	
-			'x': [16],
-			'y': [16],
-            'sigma': [0.5, 1],
-            'learning_rate': [0.5, 1],
+			'x': [30],
+			'y': [30],
+            'sigma': [1, 0.5],
+            'learning_rate': [1, 0.5],
 			'neighborhood_function': ['gaussian'],
-            'n_iter': [100, 500, 1000]
+            'n_iter': [1000, 500, 100],
+			'topology': ['hexagonal']
         }
     )
 

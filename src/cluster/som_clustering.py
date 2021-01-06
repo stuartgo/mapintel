@@ -13,218 +13,231 @@ import os
 from sys import exit
 
 import click
+from collections import defaultdict
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
-from minisom import MiniSom
 from matplotlib import cm
+from scipy.spatial import distance_matrix
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.patches import RegularPolygon
-from matplotlib.lines import Line2D
+from sompy.visualization.plot_tools import plot_hex_map
+from sompy.visualization.umatrix import UMatrixView
+from skimage.color import rgb2gray
+from skimage.feature import blob_log
+import sompy
 from src import PROJECT_ROOT
 from src.visualization.embedding_space import embedding_vectors, read_data
 
 
-class MiniSom2(MiniSom):
-	def __init__(self, n_iter, verbose=False, **minisom_kwargs):	
-		super().__init__(**minisom_kwargs)
-		self._n_iter = n_iter
-		self._verbose = verbose
-		self._dist = minisom_kwargs.get('activation_distance', 'euclidean')
-		self._neig = minisom_kwargs.get('neighborhood_function', 'gaussian')
-	
-	# Inherit docstring
-	__doc__ = MiniSom.__doc__
+class UMatrix(UMatrixView):
+    def __init__(self, som, distance2=1, row_normalized=False, show_data=True,
+                 contoor=True, blob=False, labels=False, **MatplotView_kwargs):
+        super().__init__(**MatplotView_kwargs)
+        self.som = som
+        self.distance2 = distance2
+        self.row_normalized = row_normalized
+        self.show_data = show_data
+        self.contoor = contoor
+        self.blob = blob
+        self.labels = labels
 
-	def __str__(self):
-		hyperparams = {
-			'x': len(self._neigx),
-			'y': len(self._neigy),
-			'inplen': self._input_len,
-			'sigma': self._sigma,
-			'lr': self._learning_rate,
-			'neig': self._neig,
-			'topol': self.topology,
-			'dist': self._dist,
-			'niter': self._n_iter
-		}
-		return 'som_'+ ''.join(sorted([k+str(v) for k, v in hyperparams.items()]))
-	
-	def fit(self, X, y=None):
-		"""[summary]
+    def _build_u_matrix(self):
+        return super().build_u_matrix(self.som, distance=self.distance2, row_normalized=self.row_normalized)
 
-		Args:
-			X ([type]): [description]
-			y ([type], optional): [description]. Defaults to None.
-		"""
-		self.train(X, self._n_iter, True, self._verbose)
-	
+    def show(self):
+        # Builds the U-Matrix - each cell is the average distance of a
+        # given unit to its neighbors, where neighbors are units with
+        # distance less than self.distance2
+        umat = self._build_u_matrix()
+        # The mapsize of the codebook (tuple)
+        msz = self.som.codebook.mapsize
+        # Gets the BMU id for each data sample
+        proj = self.som.project_data(self.som.data_raw)
+        # Gets the x and y coordinates of each sample's BMU
+        coord = self.som.bmu_ind_to_xy(proj)[:, :2]
 
-	def u_matrix(self, X, y=None, out_dir=None):
-		"""[summary]
+        # Prepare figure object (self._fig)
+        self.prepare()
+        # set fontsize of the figure title
+        plt.rc('figure', titlesize=self.text_size)
+        colormap = plt.get_cmap('RdYlBu_r')
 
-		Args:
-			X ([type]): [description]
-			y ([type], optional): [description]. Defaults to None.
-		"""
-		# Position of the neurons on an euclidean plane that reflects the chosen topology
-		xx, yy = self.get_euclidean_coordinates()
-		# Distance map of the weights. Each cell is the normalised sum of the distances between its neighbours
-		umatrix = self.distance_map()
-		# Weights of the neural network
-		weights = self.get_weights()
-		# Quantization error
-		qterror = self.quantization_error(X)
+        if self.som.codebook.lattice == "rect":
+            ax = self._fig.add_subplot(111)
+            ax.imshow(umat, cmap=colormap, alpha=1)
 
-		# Set figure and parameters
-		fig = plt.figure(figsize=(10,10))
-		ax = fig.add_subplot(111)
-		ax.set_aspect('equal')
-		colormap = plt.get_cmap('Blues')
-		unq_topics = np.unique(y)
-		markers = dict(zip(unq_topics, ['o', '+', 'x', 'v', '^', 's', '*']))
-		colors = dict(zip(unq_topics, ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']))
+        elif self.som.codebook.lattice == "hexa":
+            # Why hex_shrink=0.5 works? Otherwise, the polygons overlap...
+            ax, cents = plot_hex_map(
+                np.flip(umat, axis=1), fig=self._fig, colormap=colormap, colorbar=False, hex_shrink=0.5)
 
-		# Iteratively add hexagons
-		for i in range(weights.shape[0]):
-			for j in range(weights.shape[1]):
-				wy = yy[(i, j)] * 2 / np.sqrt(3) * 3 / 4
-				hex = RegularPolygon((xx[(i, j)], wy), 
-									numVertices=6, 
-									radius=.95 / np.sqrt(3),
-									facecolor=colormap(umatrix[i, j]), 
-									alpha=.4, 
-									edgecolor='gray')
-				ax.add_patch(hex)  # Add the hexagonal patch to the axis 
+        else:
+            raise ValueError(
+                'lattice argument of SOM object should take either "rect" or "hexa".')
 
-		# Labelling each unit in the output map
-		for cnt, x in enumerate(X):
-			# getting the winner
-			w = self.winner(x)
-			# place a marker on the winning position for the sample xx
-			wx, wy = self.convert_map_to_euclidean(w) 
-			wy = wy * 2 / np.sqrt(3) * 3 / 4
-			plt.plot(wx, wy, 
-					markers[y[cnt]], 
-					markerfacecolor='None',
-					markeredgecolor=colors[y[cnt]], 
-					markersize=12, 
-					markeredgewidth=2)
+        # Add distance colorbar to figure
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(cm.ScalarMappable(cmap=colormap), cax=cax,
+                            orientation='vertical')
 
-		xrange = np.arange(weights.shape[0])
-		yrange = np.arange(weights.shape[1])
-		plt.xticks(xrange-.5, xrange)
-		plt.yticks(yrange * 2 / np.sqrt(3) * 3 / 4, yrange)
+        # TODO: The options below are not working for the hexagonal grid
+        if self.contoor:
+            mn = np.min(umat.flatten())
+            md = np.median(umat.flatten())
+            ax.contour(umat, np.linspace(mn, md, 15), linewidths=0.7,
+                       cmap=plt.cm.get_cmap('Blues'))
 
-		# Add distance colorbar to figure
-		divider = make_axes_locatable(plt.gca())
-		ax_cb = divider.new_horizontal(size="5%", pad=0.05)  
-		cb1 = plt.colorbar(cm.ScalarMappable(cmap=colormap), 
-						cax=ax_cb, orientation='vertical', alpha=.4)
-		cb1.ax.get_yaxis().labelpad = 16
-		cb1.ax.set_ylabel('Distance from neurons in the neighbourhood',
-						rotation=270, fontsize=14)
-		plt.gcf().add_axes(ax_cb)
+        if self.show_data:
+            ax.scatter(coord[:, 1], coord[:, 0], s=2, alpha=1., c='Gray',
+                       marker='o', cmap='jet', linewidths=3, edgecolor='Gray')
+            ax.axis('off')
 
-		# Add legend to figure
-		legend_elements = [Line2D([0], [0], marker=markers[topic], color=colors[topic], label=topic,
-			markerfacecolor='w', markersize=14, linestyle='None', markeredgewidth=2) for topic in unq_topics]
-		ax.legend(handles=legend_elements, bbox_to_anchor=(0, 1.1), loc='upper left', 
-				borderaxespad=0., ncol=4, fontsize=14)
+        if self.labels:
+            if self.labels is True:
+                labels = self.som.build_data_labels()
+            for label, x, y in zip(self.labels, coord[:, 1], coord[:, 0]):
+                ax.annotate(str(label), xy=(x, y),
+                            horizontalalignment='center',
+                            verticalalignment='center')
 
-		ax.set_title(f"Embeddings: {self.__str__()}, Quantization error: {np.round(qterror, 2)}",
-			loc='center', pad=55, fontsize=16)
+        # Adjust image size
+        ratio = float(msz[0])/(msz[0]+msz[1])
+        self._fig.set_size_inches((1-ratio)*15, ratio*15)
+        plt.tight_layout()
+        plt.subplots_adjust(hspace=.00, wspace=.000)
 
-		if out_dir:
-			plt.savefig(os.path.join(out_dir, self.__str__() + '.png'))
-		else:
-			plt.savefig(self.__str__() + '.png')
-	
+        sel_points = list()
+        if self.blob:
+            image = 1 / umat
+            rgb2gray(image)
 
-# def winning_neuron_per_doc(som, vect_train_corpus):
-# 	''' Build a dict with the winning neuron coordinates for each document 
+            # 'Laplacian of Gaussian'
+            blobs = blob_log(image, max_sigma=5, num_sigma=4, threshold=.152)
+            blobs[:, 2] = blobs[:, 2] * np.sqrt(2)
+            plt.imshow(umat, cmap=plt.cm.get_cmap('RdYlBu_r'), alpha=1)
+            sel_points = list()
 
-# 	NB. this is an experimental function, not used in the pipeline right now
-# 	'''
-# 	n_docs = np.shape(vect_train_corpus)[0]
-# 	winner = {}
-# 	winner = {n: som.winner(vect_train_corpus[n]) for n in range(n_docs)}
-# 	return winner
+            for blob in blobs:
+                row, col, r = blob
+                c = plt.Circle((col, row), r, color='red', linewidth=2,
+                               fill=False)
+                ax.add_patch(c)
+                dist = distance_matrix(
+                    coord, np.array([row, col])[np.newaxis, :])
+                sel_point = dist <= r
+                plt.plot(coord[:, 1][sel_point[:, 0]],
+                         coord[:, 0][sel_point[:, 0]], '.r')
+                sel_points.append(sel_point[:, 0])
+
+        plt.show()
+        return sel_points, umat
 
 
 def save_som(som, out_path):
-	"""Save the SOM into a .som file
+    """Save the SOM into a .som file
 
-	Args:
-		som ([type]): [description]
-		out_path ([type]): [description]
-	"""
-	with open(out_path, 'wb') as outfile:
-		joblib.dump(som, outfile)
+    Args:
+            som ([type]): [description]
+            out_path ([type]): [description]
+    """
+    with open(out_path, 'wb') as outfile:
+        joblib.dump(som, outfile)
 
 
 def load_som(inp_path):
-	"""Load SOM from a .som file
+    """Load SOM from a .som file
 
 
-	Args:
-		inp_path ([type]): [description]
+    Args:
+            inp_path ([type]): [description]
 
-	Returns:
-		[type]: [description]
-	"""
-	with open(inp_path, 'rb') as infile:
-		som = joblib.load(infile)
-	return som
+    Returns:
+            [type]: [description]
+    """
+    with open(inp_path, 'rb') as infile:
+        som = joblib.load(infile)
+    return som
 
 
 @click.command()
 @click.argument('model_path', type=click.Path(exists=True))
 def main(model_path):
-	logger = logging.getLogger(__name__)
-	model_tag = os.path.splitext(os.path.basename(model_path))[0]
+    logger = logging.getLogger(__name__)
+    model_tag = os.path.splitext(os.path.basename(model_path))[0]
 
-	logger.info('Reading data...')
+    logger.info('Reading data...')
     # Reading data into memory
-	_, train_docs, test_docs = read_data(data_file)
-	train_labels = train_docs['category']
+    _, train_docs, test_docs = read_data(data_file)
+    train_labels = train_docs['category']
 
-	logger.info('Obtaining document embeddings...')
+    logger.info('Obtaining document embeddings...')
     # Obtain the vectorized corpus
-	vect_train_corpus, _ = embedding_vectors(
+    vect_train_corpus, _ = embedding_vectors(
         model_path, train_docs['prep_text'], test_docs['prep_text'])
 
-	# Define SOM
-	input_len = vect_train_corpus.shape[1]
-	som = MiniSom2(random_seed=0, verbose=True, input_len=input_len, **som_kwargs)
-	
-	# Fit SOM
-	logger.info('Fitting SOM model...')
-	som.fit(vect_train_corpus, train_labels)
+    # This som implementation does not have a random seed parameter
+    # We're going to set it up ourselves
+    np.random.seed(42)
 
-	# Plot and save the U-matrix
-	logger.info('Plotting and saving the U-matrix...')
-	som.u_matrix(vect_train_corpus, train_labels, fig_dir)
+    som = sompy.SOMFactory().build(
+        vect_train_corpus,
+        mapsize=(50, 50),
+        initialization='random',
+        neighborhood='gaussian',
+        training='batch',
+        lattice='hexa'
+    )
+    som.train(n_job=-1, verbose='info',
+              train_rough_len=10, train_finetune_len=10)
 
-	# Save the SOM fitted model
-	logger.info('Saving SOM model...')
-	outpath = os.path.join(model_dir, str(som) + '.som')
-	save_som(som, outpath)
+    # U-matrix of the 50x50 grid
+    _, umat = UMatrix(
+        width=12,
+        height=12,
+        text_size=6,
+        title="U-Matrix",
+        som=som,
+        distance2=1,
+        row_normalized=False,
+        show_data=False,
+        contoor=True
+    ).show()
+    # u = sompy.umatrix.UMatrixView(
+    #     12, 12, 'umatrix', show_axis=True, text_size=8, show_text=True)
+
+    # # Plotting training error history - TODO
+    # plt.plot(np.arange(som._n_iter), history['quantization_error'], label='quantization error')
+    # # plt.plot(np.arange(som._n_iter), history['topographic_error'], label='topographic error')
+    # plt.ylabel('error')
+    # plt.xlabel('iteration index')
+    # plt.legend()
+    # plt.show()
+
+    # # Plot and save the U-matrix - TODO
+    # logger.info('Plotting and saving the U-matrix...')
+    # som.u_matrix(vect_train_corpus, train_labels, fig_dir)
+
+    # # Save the SOM fitted model
+    # logger.info('Saving SOM model...')
+    # outpath = os.path.join(model_dir, str(som) + '.som')
+    # save_som(som, outpath)
 
 
 if __name__ == '__main__':
-	log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-	logging.basicConfig(level=logging.INFO, format=log_fmt)
+    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-	# Defining Paths
-	data_file = os.path.join(PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-	model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
-	fig_dir = os.path.join(PROJECT_ROOT, "models", "figures", "som")
+    # Defining Paths
+    data_file = os.path.join(PROJECT_ROOT, "data",
+                             "processed", "newsapi_docs.csv")
+    model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
+    fig_dir = os.path.join(PROJECT_ROOT, "models", "figures", "som")
 
-	# SOM kwards
-	som_kwargs = dict(
-        x=30, y=30, n_iter=200, learning_rate=1, sigma=1,
-		neighborhood_function='gaussian', topology='hexagonal' 
-    )
+    # # SOM kwards - TODO
+    # som_kwargs = dict(
+    #     x=50, y=50, n_iter=100000, learning_rate=10, sigma=10,
+    # 	neighborhood_function='gaussian', topology='hexagonal'
+    # )
 
-	main()
+    main()

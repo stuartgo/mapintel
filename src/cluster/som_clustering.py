@@ -133,6 +133,18 @@ class UMatrix(UMatrixView):
         plt.show()
         return sel_points, umat
 
+    # def show_interactive(self):
+    #     # Builds the U-Matrix - each cell is the average distance of a
+    #     # given unit to its neighbors, where neighbors are units with
+    #     # distance less than self.distance2
+    #     umat = self._build_u_matrix()
+    #     # The mapsize of the codebook (tuple)
+    #     msz = self.som.codebook.mapsize
+    #     # Gets the BMU id for each data sample
+    #     proj = self.som.project_data(self.som.data_raw)
+    #     # Gets the x and y coordinates of each sample's BMU
+    #     coord = self.som.bmu_ind_to_xy(proj)[:, :2]
+
 
 def save_som(som, out_path):
     """Save the SOM into a .som file

@@ -63,7 +63,7 @@ def predictive_model_score(X_train, y_train, X_test, y_test):
     """
     # Train Logistic Regression
     logit = LogisticRegression(
-        multi_class='multinomial', max_iter=200, n_jobs=-1)
+        multi_class='multinomial', max_iter=200, random_state=0, n_jobs=-1)
     logit.fit(X_train, y_train)
 
     # Predict & evaluate

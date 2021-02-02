@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Builds the cleaned (intermediate) csv file with documents from mongodb.
-Queries the mongodb instance to obtain every document's id, category and text,
-cleanes the text, merges results from both collections and splits documents
-into train and test set. Outputs the documents to "data/interim/newsapi_docs.csv"
+Queries the mongodb instance to obtain every document's id, insertion date,
+category and text, cleanes the text, merges results from both collections, 
+selects documents before a given date and splits documents into train and test set. 
+Outputs the documents to "data/interim/newsapi_docs.csv"
 """
 import logging
 import os
@@ -11,6 +12,7 @@ import sys
 from pathlib import Path
 
 import click
+from datetime import datetime as dt
 import pandas as pd
 from dotenv import find_dotenv, load_dotenv
 from pymongo import MongoClient
@@ -20,13 +22,14 @@ from src.data.text_preprocessing import join_results, results_cleaner
 
 @click.command()
 @click.argument('test_size', type=click.FLOAT, default=0.2)
-def main(test_size):
+@click.argument('date_lim', type=click.STRING, default='01-12-2020')
+def main(test_size, date_lim):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
     logger.info(
-        f'Making final data set from raw data. Test size: {test_size}.')
+        f'Making final data set from raw data. Test size: {test_size}. Limit date: {date_lim}')
 
     collection_list = db.list_collection_names()
     for col in collection_list:
@@ -38,6 +41,12 @@ def main(test_size):
         {  # project fields
             '$project': {
                 '_id': 1,
+                'insert_date': {
+                    '$dateToString': {
+                        'format': '%Y-%m-%dT%H:%M:%S', 
+                        'date': {'$toDate': '$_id'}
+                    }
+                },
                 'category': 1,
                 'text': {
                     '$concat': [
@@ -62,9 +71,14 @@ def main(test_size):
         prep_results.extend(clean_results)
     logger.info('Joining documents from both collections...')
     join_results_list = join_results(prep_results)
+
+    # Get documents before the date limit
+    join_results_list = list(filter(
+        lambda x: dt.fromisoformat(x['insert_date']) < dt.strptime(date_lim, '%d-%m-%Y'), join_results_list))
+
     # Split articles into train and test
     output_results_train, output_results_test = train_test_split(
-        join_results_list, test_size=test_size)
+        join_results_list, test_size=test_size, random_state=0)
 
     logger.info(
         f'Saving {len(output_results_train) + len(output_results_test)} documents as csv...')

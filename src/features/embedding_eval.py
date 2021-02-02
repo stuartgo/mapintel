@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 
 def log_loss_score(X, y):
     """Given a dataset of N documents and their categories, evaluates the document embeddings 
-     vectors by classifying whether each of the N(N−1)/2 pairs of documents belongs to the 
-     same category or not.
+    vectors by classifying whether each of the N(N−1)/2 pairs of documents belongs to the
+    same category or not.
     Applies min-max scaling over the cosine similarity of each pair of documents and 
-     then uses it as the predicted value for computing the binary cross-entropy cost across
-     all N(N−1)/2 pairs of documents.
+    then uses it as the predicted value for computing the binary cross-entropy cost across
+    all N(N−1)/2 pairs of documents.
 
     Args:
         X (array-like, sparse matrix): Documents' embedding vectors
@@ -49,7 +49,7 @@ def log_loss_score(X, y):
 
 def predictive_model_score(X_train, y_train, X_test, y_test):
     """Evaluates the document embeddings by applying a LogisticRegression 
-     classifier on top and predicting the documents' categories.
+    classifier on top and predicting the documents' categories.
 
     Args:
         X_train (array-like, sparse matrix): Training data embeddings
@@ -63,7 +63,7 @@ def predictive_model_score(X_train, y_train, X_test, y_test):
     """
     # Train Logistic Regression
     logit = LogisticRegression(
-        multi_class='multinomial', max_iter=200, n_jobs=-1)
+        multi_class='multinomial', max_iter=200, random_state=0, n_jobs=-1)
     logit.fit(X_train, y_train)
 
     # Predict & evaluate
@@ -75,11 +75,11 @@ def predictive_model_score(X_train, y_train, X_test, y_test):
 def evaluate_inferred_vectors(model, train_docs):
     """Evaluates the inferred vectors by comparing with the fitted ones. 
     For each element in train_docs, infer the embedding vector, compute the
-     cosine similarity with the fitted embedding vectors and extract 
-     self-similarity rank (i.e. position at which fitted vector is the most 
-     similar to inferred vector). Obtains the distribution of self-similiraty 
-     rank. Optimally we want as much documents to be the most similar with
-     themselves.
+    cosine similarity with the fitted embedding vectors and extract
+    self-similarity rank (i.e. position at which fitted vector is the most
+    similar to inferred vector). Obtains the distribution of self-similiraty
+    rank. Optimally we want as much documents to be the most similar with
+    themselves.
 
     NOTE: AS IT IS RIGHT NOW, THIS FUNCTION ONLY WORKS IN DOC2VEC PIPELINE
 
@@ -109,7 +109,7 @@ def evaluate_inferred_vectors(model, train_docs):
 
 def compare_documents(base_doc_id, base_doc_rep, sims, compare_corpus):
     """Compare a base document with the most similar, second most similar, 
-     median and least similar document from a corpus of documents.
+    median and least similar document from a corpus of documents.
 
     Args:
         base_doc_id (int): id of the base document
@@ -137,8 +137,8 @@ def compare_documents(base_doc_id, base_doc_rep, sims, compare_corpus):
 def export_results(model_outputs, out_path):
     """Exports the model_outputs of each embedding model to out_path.
     If the output file already exists, it will preserve model outputs that only
-     exist there and concatenate model_outputs, otherwise it will create 
-     the output file with just model_outputs.
+    exist there and concatenate model_outputs, otherwise it will create
+    the output file with just model_outputs.
 
     Args:
         model_outputs (Pandas DataFrame): DataFrame with model name in index

@@ -8,12 +8,12 @@ import re
 from collections import defaultdict
 
 import pandas as pd
-from joblib import load
-from sklearn.metrics.pairwise import cosine_similarity
 from src import PROJECT_ROOT
-from src.features.embedding_eval import (compare_documents, export_results,
-                                         log_loss_score,
+from src.features.embedding_eval import (export_results, log_loss_score,
                                          predictive_model_score)
+from src.features.embedding_extractor import (embeddings_generator,
+                                              format_embedding_files,
+                                              read_data)
 
 
 def main():
@@ -21,61 +21,31 @@ def main():
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=[
-                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
-    logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
+    _, train_docs, test_docs = read_data(data_file)
 
-    logger.info('Formatting data...')
-    # Formatting data
-    all_docs = df.loc[~df['prep_text'].isna()]
-    train_docs = all_docs.loc[all_docs['split'] == 'train']
-    test_docs = all_docs.loc[all_docs['split'] == 'test']
-    logger.info(
-        f'{train_docs.shape[0]} documents from train set out of {df.shape[0]} documents')
-    del df
-
-    # Loading fitted models
-    logger.info('Loading fitted models...')
-    model_instances = [load(file) for file in model_files]
+    # Create embeddings generator
+    embedding_dict = format_embedding_files(embedding_files)
+    gen = embeddings_generator(embedding_dict)
 
     # Creating objects to store data inside loop
     models_out = defaultdict(lambda: [])
-
     # Creating constants (invariable across loop iterations)
-    # random test doc to evaluate distances
-    test_doc_eval = test_docs.sample(1)
+    train_targets = train_docs['category']
+    test_targets = test_docs['category']
 
-    # Evaluating fitted models
-    for model in model_instances:
-        modelname = re.sub(' ', '', str(model))
-        logger.info(f'Evaluating fitted {modelname} model...')
-
-        # Get document vectors
-        train_vecs = model.transform(train_docs['prep_text'])
-        test_vecs = model.transform(test_docs['prep_text'])
-
+    # Evaluating embeddings
+    for modelname, train_vecs, test_vecs in gen:
+        logger.info(f'Evaluating embeddings of {modelname} model...')
         # Predictive downstream task (i.e. classifying news topics)
-        test_scores, _, _ = predictive_model_score(train_vecs,
-                                                   train_docs['category'], test_vecs, test_docs['category'])
+        test_scores, _, _ = predictive_model_score(
+            train_vecs, train_targets, test_vecs, test_targets)
         models_out[modelname].append(test_scores)
         print("Model %s predictive score: %f\n" % (modelname, test_scores))
 
         # Log-loss of predicting whether pairs of observations belong to the same category
-        cost = log_loss_score(test_vecs, test_docs['category'].tolist())
+        cost = log_loss_score(test_vecs, test_targets.to_list())
         models_out[modelname].append(cost)
         print("Model %s log-loss: %f\n" % (modelname, cost))
-
-        # Get cosine similarity between random test doc and train docs
-        train_vectors = model.transform(train_docs['prep_text'])
-        inferred_unknown_vector = model.transform(test_doc_eval['prep_text'])
-        sims = cosine_similarity(inferred_unknown_vector, train_vectors)[0]
-        sims = sorted(list(zip(train_docs.index, sims)),
-                      reverse=True, key=lambda x: x[1])
-
-        # Do close documents seem more related than distant ones?
-        print("Do close documents seem more related than distant ones?")
-        compare_documents(
-            test_doc_eval.index[0], test_doc_eval['text'].iloc[0], sims, train_docs['text'])
         print("-----------------------------------------------------------------------------------------")
 
     # Exporting results
@@ -92,10 +62,10 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
-    model_files = [os.path.join(model_dir, f) for f in os.listdir(
-        model_dir) if re.search(".*Vectorizer\.joblib$", f)]
+    embedding_dir = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
+    embedding_files = [os.path.join(embedding_dir, f) for f in os.listdir(
+        embedding_dir) if "Vectorizer" in f]
     out_path = os.path.join(PROJECT_ROOT, "models",
-                            "embedding_predictive_scores.csv")
+        "embedding_predictive_scores.csv")
 
     main()

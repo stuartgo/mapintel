@@ -1,7 +1,8 @@
 """
 Fits a set of Doc2vec models to the preprocessed data in 
 "data/processed/newsapi_docs.csv" and saves the fitted models for 
-posterior use in "models/saved_models"
+posterior use in "models/saved_models and the embedding vectors in
+"models/saved_embeddings"
 """
 import collections
 import logging
@@ -9,9 +10,10 @@ import multiprocessing
 import os
 from string import punctuation
 
-import pandas as pd
+import numpy as np
 from gensim import models
 from src import PROJECT_ROOT
+from src.features.embedding_extractor import read_data, save_embeddings
 
 # https://radimrehurek.com/gensim/auto_examples/tutorials/run_doc2vec_lee.html
 # https://radimrehurek.com/gensim/models/doc2cvec.html
@@ -23,21 +25,14 @@ def main():
 
     logger.info('Reading data...')
     # Reading data into memory
-    df = pd.read_csv(data_file, names=[
-                     'id', 'col', 'category', 'text', 'split', 'prep_text'])
-    logger.info(f'Read data has a size of {df.memory_usage().sum()//1000}Kb')
+    _, train_docs, test_docs = read_data(data_file)
 
-    logger.info('Formatting data...')
-    # Formatting data from DataFrame to Named Tuple for doc2vec training
+    # Transforming DataFrame to list of namedtuples
     train_docs = [
         NewsDocument([tag], row['id'], row['col'],
                      row['category'], row['prep_text'].split())
-        for tag, (_, row) in enumerate(df.iterrows())
-        if (row['split'] == 'train') and (row['prep_text'] is not None)
+        for tag, (_, row) in enumerate(train_docs.iterrows())
     ]
-    logger.info('Percentage of documents from train set: {0:.2f}%'.format(
-        (len(train_docs)/df.shape[0])*100))
-    del df
 
     # Doc2Vec models
     assert models.doc2vec.FAST_VERSION > -1,\
@@ -47,15 +42,30 @@ def main():
         model.build_vocab(train_docs)
         logger.info("%s vocabulary scanned & state initialized" % model)
 
-    # Training and saving the models
     for model in simple_models:
         logger.info("Training %s..." % model)
+        # Training the model
         model.train(train_docs, total_examples=len(
             train_docs), epochs=model.epochs)
+
         logger.info("Saving %s..." % model)
+        # Saving the fitted model
         model_name = str(model).lower().translate(
             str.maketrans('', '', punctuation))
-        model.save(os.path.join(output_dir, f"{model_name}.model"))
+        model.save(os.path.join(output_dir_models, f"{model_name}.model"))
+
+        logger.info("Saving document embeddings...")
+        # Saving the embeddings from the train docs
+        vect_train_corpus = np.vstack(
+            [model.docvecs[i] for i in range(len(train_docs))])
+        save_embeddings(
+            os.path.join(output_dir_embeddings, f"train_{model_name}.npy"), vect_train_corpus)
+
+        # Saving the embeddings from the test docs
+        vect_test_corpus = np.vstack(
+            [model.infer_vector(i) for i in test_docs['prep_text'].str.split()])
+        save_embeddings(
+            os.path.join(output_dir_embeddings, f"test_{model_name}.npy"), vect_test_corpus)
 
 
 if __name__ == '__main__':
@@ -65,7 +75,9 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    output_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
+    output_dir_models = os.path.join(PROJECT_ROOT, "models", "saved_models")
+    output_dir_embeddings = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
+
 
     # Hyperparameter setting
     common_kwargs = dict(

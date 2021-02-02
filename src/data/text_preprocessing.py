@@ -106,10 +106,11 @@ def join_results(results_list):
         value = holder.setdefault(result['text'], [])  # each key is unique
         value.append(result['_id'])
         value.append(result['col'])
+        value.append(result['insert_date'])
         value.append(result['category'])
     # Reformat into list of dictionaries
-    join_results_list = [{'id': v[0], 'col': v[1],
-                          'category': v[2], 'text': k} for k, v in holder.items()]
+    join_results_list = [{'id': v[0], 'col': v[1], 'insert_date': v[2],
+                        'category': v[3], 'text': k} for k, v in holder.items()]
     return join_results_list
 
 
@@ -261,7 +262,7 @@ class CorpusPreprocess(BaseEstimator, TransformerMixin):
             nltk.data.find('tokenizers/punkt')
         except LookupError:
             nltk.download('punkt')
-
+        
         # Word tokenizer
         corpus = [word_tokenize(doc, language=self.language) for doc in docs]
 

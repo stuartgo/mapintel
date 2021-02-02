@@ -82,12 +82,12 @@ def main():
         test_scores, _, _ = predictive_model_score(
             train_vecs, train_targets, test_vecs, test_targets)
         models_out[modelname].append(test_scores)
-        print("Model %s predictive score: %f\n" % (modelname, test_scores))
+        logger.info("Model %s predictive score: %f\n" % (modelname, test_scores))
 
         # Log-loss of predicting whether pairs of observations belong to the same category
         cost = log_loss_score(test_vecs, test_targets)
         models_out[modelname].append(cost)
-        print("Model %s log-loss: %f\n" % (modelname, cost))
+        logger.info("Model %s log-loss: %f\n" % (modelname, cost))
         print("-----------------------------------------------------------------------------------------")
 
     # Exporting results

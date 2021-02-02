@@ -28,7 +28,9 @@ from sklearn.model_selection import ParameterGrid
 from src import PROJECT_ROOT
 from src.cluster.som_clustering import (MiniSom2, check_som_exists, load_som,
                                         save_som)
-from src.visualization.embedding_space import embedding_vectors, read_data
+from src.features.embedding_extractor import (embeddings_generator,
+                                              format_embedding_files,
+                                              read_data)
 
 
 def check_som_exists(fname, type):
@@ -59,20 +61,27 @@ def check_som_exists(fname, type):
 
 
 @click.command()
-@click.argument('model_path', type=click.Path(exists=True))
-def main(model_path):
+@click.argument('embeddings_file', type=click.Path(exists=True))
+def main(embeddings_file):
 	logger = logging.getLogger(__name__)
-	model_tag = os.path.splitext(os.path.basename(model_path))[0]
+
+	split, model_tag = os.path.splitext(os.path.basename(embeddings_file))[0].split("_")
 
 	logger.info('Reading data...')
-    # Reading data into memory
-	_, train_docs, test_docs = read_data(data_file)
+	# Reading data into memory
+	# Assert we are working with train corpus
+	if split == "train":
+		_, train_docs, _ = read_data(data_file)
+	else:
+		raise ValueError("For clustering, use the train set embedding vectors.")
+
 	train_labels = train_docs['category']
 
 	logger.info('Obtaining document embeddings...')
-    # Obtain the vectorized corpus
-	vect_train_corpus, _ = embedding_vectors(
-        model_path, train_docs['prep_text'], test_docs['prep_text'])
+	# Obtain the vectorized corpus
+	embedding_dict = format_embedding_files([embeddings_file])
+	gen = embeddings_generator(embedding_dict)
+	_, vect_train_corpus = list(gen)[0]
 	input_len = vect_train_corpus.shape[1]
 
 	# Iterate over grid

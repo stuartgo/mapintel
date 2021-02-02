@@ -10,23 +10,24 @@ which pre-defined function to use.
 
 import logging
 import os
-from sys import exit
+from collections import defaultdict
 
 import click
-from collections import defaultdict
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
+import sompy
 from matplotlib import cm
-from scipy.spatial import distance_matrix
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from sompy.visualization.plot_tools import plot_hex_map
-from sompy.visualization.umatrix import UMatrixView
+from scipy.spatial import distance_matrix
 from skimage.color import rgb2gray
 from skimage.feature import blob_log
-import sompy
+from sompy.visualization.plot_tools import plot_hex_map
+from sompy.visualization.umatrix import UMatrixView
 from src import PROJECT_ROOT
-from src.visualization.embedding_space import embedding_vectors, read_data
+from src.features.embedding_extractor import (embeddings_generator,
+                                              format_embedding_files,
+                                              read_data)
 
 
 class UMatrix(UMatrixView):
@@ -160,7 +161,6 @@ def save_som(som, out_path):
 def load_som(inp_path):
     """Load SOM from a .som file
 
-
     Args:
             inp_path ([type]): [description]
 
@@ -173,20 +173,27 @@ def load_som(inp_path):
 
 
 @click.command()
-@click.argument('model_path', type=click.Path(exists=True))
-def main(model_path):
+@click.argument('embeddings_file', type=click.Path(exists=True))
+def main(embeddings_file):
     logger = logging.getLogger(__name__)
-    model_tag = os.path.splitext(os.path.basename(model_path))[0]
+
+    split, model_tag = os.path.splitext(os.path.basename(embeddings_file))[0].split("_")
 
     logger.info('Reading data...')
     # Reading data into memory
-    _, train_docs, test_docs = read_data(data_file)
+    # Assert we are working with train corpus
+    if split == "train":
+        _, train_docs, _ = read_data(data_file)
+    else:
+        raise ValueError("For clustering, use the train set embedding vectors.")
+
     train_labels = train_docs['category']
 
     logger.info('Obtaining document embeddings...')
     # Obtain the vectorized corpus
-    vect_train_corpus, _ = embedding_vectors(
-        model_path, train_docs['prep_text'], test_docs['prep_text'])
+    embedding_dict = format_embedding_files([embeddings_file])
+    gen = embeddings_generator(embedding_dict)
+    _, vect_train_corpus = list(gen)[0]
 
     # This som implementation does not have a random seed parameter
     # We're going to set it up ourselves
@@ -213,10 +220,18 @@ def main(model_path):
         distance2=1,
         row_normalized=False,
         show_data=False,
-        contoor=True
+        contoor=False
     ).show()
     # u = sompy.umatrix.UMatrixView(
     #     12, 12, 'umatrix', show_axis=True, text_size=8, show_text=True)
+        
+    # UMAT = u.show(
+    #     som, 
+    #     distance2=1, 
+    #     row_normalized=False, 
+    #     show_data=False, 
+    #     contooor=False # Visualize isomorphic curves
+    # )
 
     # # Plotting training error history - TODO
     # plt.plot(np.arange(som._n_iter), history['quantization_error'], label='quantization error')

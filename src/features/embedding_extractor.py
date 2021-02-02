@@ -74,7 +74,7 @@ def embeddings_generator(embeddings):
             elif not embeddings[model]['test']:
                 yield model, load_npz(embeddings[model]['train'])
             else:
-                yield model, load_npz(embeddings[model]['train']), np.load(embeddings[model]['test'])
+                yield model, load_npz(embeddings[model]['train']), load_npz(embeddings[model]['test'])
         else:
             if not embeddings[model]['train']:
                 yield model, np.load(embeddings[model]['test'])

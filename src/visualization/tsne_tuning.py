@@ -8,19 +8,21 @@ hyperparameter configurations of the embeddings of that model.
 Outputs a figure of the 2D embedding space for each hyperparameter
 setting.
 """
+import glob
 import logging
 import os
 from pathlib import Path
 
-import glob
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 from sklearn.model_selection import ParameterGrid
-from src.features.embedding_extractor import (read_data,
+from src import PROJECT_ROOT
+from src.features.embedding_extractor import (embeddings_generator,
                                               format_embedding_files,
-                                              embeddings_generator)
+                                              read_data)
+from src.visualization.embedding_space import embedding_vectors, read_data
 
 
 def main(embeddings_file):
@@ -83,12 +85,11 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
-    embeddings_dir = os.path.join(project_dir, "models", "saved_embeddings")
-    out_dir = os.path.join(project_dir, "models", "figures", "tse_tuning")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
+    embeddings_dir = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
+    out_dir = os.path.join(PROJECT_ROOT, "models", "figures", "tse_tuning")
 
     # Check if out_dir exists. If it doesn't then create the directory
     Path(out_dir).mkdir(parents=True, exist_ok=True)

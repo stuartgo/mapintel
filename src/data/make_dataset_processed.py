@@ -6,8 +6,6 @@ outputs the same preprocessed documents to "data/processed/newsapi_docs.csv"
 """
 import logging
 import os
-import sys
-from pathlib import Path
 from string import punctuation
 
 import pandas as pd
@@ -15,6 +13,7 @@ from joblib import dump
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from src.data.text_preprocessing import CorpusPreprocess
+from src import PROJECT_ROOT
 
 
 def main():
@@ -52,12 +51,11 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
-    inp_file = os.path.join(project_dir, "data", "interim", 'newsapi_docs.csv')
-    out_file = os.path.join(project_dir, "data",
+    # Defining Paths
+    inp_file = os.path.join(PROJECT_ROOT, "data", "interim", 'newsapi_docs.csv')
+    out_file = os.path.join(PROJECT_ROOT, "data",
                             "processed", 'newsapi_docs.csv')
-    out_fitted = os.path.join(project_dir, "models",
+    out_fitted = os.path.join(PROJECT_ROOT, "models",
                               "saved_models", "CorpusPreprocess.joblib")
 
     main()

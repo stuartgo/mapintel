@@ -14,15 +14,14 @@ Set of document embeddings evaluated:
 import io
 import json
 import logging
-import re
 import os
-from pathlib import Path
 
-from joblib import load
 import numpy as np
 import senteval
 from gensim import models
+from joblib import load
 from sklearn.decomposition import TruncatedSVD
+from src import PROJECT_ROOT
 from wordfreq import word_frequency
 
 
@@ -339,22 +338,21 @@ if __name__ == "__main__":
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir and set Paths
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     PATH_TO_DATA = os.path.join(
-        project_dir, "src", "senteval", "data")
+        PROJECT_ROOT, "src", "senteval", "data")
     GLOVE_FILE = os.path.join(
-        project_dir, "data", "external", "glove.840B.300d.txt")
+        PROJECT_ROOT, "data", "external", "glove.840B.300d.txt")
     FAST_FILE = os.path.join(
-        project_dir, "data", "external", "crawl-300d-2M.vec")
+        PROJECT_ROOT, "data", "external", "crawl-300d-2M.vec")
     WORD2VEC_FILE = os.path.join(
-        project_dir, "data", "external", "GoogleNews-vectors-negative300.bin.gz")
+        PROJECT_ROOT, "data", "external", "GoogleNews-vectors-negative300.bin.gz")
     TFIDF_FILE = os.path.join(
-        project_dir, "models", "saved_models", "TfidfVectorizer.joblib")
+        PROJECT_ROOT, "models", "saved_models", "TfidfVectorizer.joblib")
     BOW_FILE = os.path.join(
-        project_dir, "models", "saved_models", "CountVectorizer.joblib")
+        PROJECT_ROOT, "models", "saved_models", "CountVectorizer.joblib")
     OUTPUT_FILE = os.path.join(
-        project_dir, "models", "senteval_results.json")
+        PROJECT_ROOT, "models", "senteval_results.json")
 
     # Available tasks
     # ['CR', 'MR', 'MPQA', 'SUBJ', 'SST2', 'SST5', 'TREC', 'MRPC', 'SNLI',

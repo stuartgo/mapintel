@@ -2,19 +2,18 @@
 Evaluates the BOW and TF-IDF embeddings in "models/saved_models" and outputs/
 appends the predictive scores to "models/embedding_predictive_scores.csv"
 """
-from collections import defaultdict
 import logging
 import os
 import re
-from pathlib import Path
+from collections import defaultdict
 
 import pandas as pd
-from src.features.embedding_extractor import (read_data,
+from src import PROJECT_ROOT
+from src.features.embedding_eval import (export_results, log_loss_score,
+                                         predictive_model_score)
+from src.features.embedding_extractor import (embeddings_generator,
                                               format_embedding_files,
-                                              embeddings_generator)
-from src.features.embedding_eval import (export_results,
-                                         predictive_model_score,
-                                         log_loss_score)
+                                              read_data)
 
 
 def main():
@@ -60,14 +59,13 @@ if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
-    # Finding project_dir
-    project_dir = Path(__file__).resolve().parents[2]
+    # Defining Paths
     data_file = os.path.join(
-        project_dir, "data", "processed", "newsapi_docs.csv")
-    embedding_dir = os.path.join(project_dir, "models", "saved_embeddings")
+        PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
+    embedding_dir = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
     embedding_files = [os.path.join(embedding_dir, f) for f in os.listdir(
         embedding_dir) if "Vectorizer" in f]
-    out_path = os.path.join(project_dir, "models",
-                            "embedding_predictive_scores.csv")
+    out_path = os.path.join(PROJECT_ROOT, "models",
+        "embedding_predictive_scores.csv")
 
     main()

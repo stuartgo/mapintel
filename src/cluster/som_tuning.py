@@ -1,63 +1,31 @@
 '''
 Self-Organising Maps
 
-Fit a SOM for a given model.
+Fit a SOM for a given embedding vector space.
 
-Produces a .som file (saved in models/saved_models/)
-and generates a U-matrix plot (saved in src/cluster/).
-
-TODO:
-- improve u-matrix
-- update docstrings
-- add multiprocessing option to MiniSom2
-- change decay_function function parameter
-- implement the unfolding and fine-tuning training phases (maybe as a decay_function)
+Produces a .som file and generates a U-matrix plot.
 
 Examples
 --------
 >>> # Fit a map for a given model, and save resulting SOM model
 >>> # in same directory, with same filename, but .som extension
->>> python som.py ../../models/saved_models/TfidfVectorizer.joblib
+>>> python src/som/som_tuning.py models/saved_embeddings/train_doc2vecdmcd100n5w5mc2t12.npy
 '''
 
 import logging
 import os
 
 import click
+import numpy as np
+import sompy
 from sklearn.model_selection import ParameterGrid
 from src import PROJECT_ROOT
-from src.cluster.som_clustering import (MiniSom2, check_som_exists, load_som,
-                                        save_som)
+from src.cluster.som_clustering import (check_som_exists, 
+									load_som,
+									save_som)
 from src.features.embedding_extractor import (embeddings_generator,
                                               format_embedding_files,
                                               read_data)
-
-
-def check_som_exists(fname, type):
-	"""Check if SOM exists before fitting it
-
-	Args:
-		fname ([type]): [description]
-		type ([type]): [description]
-
-	Raises:
-		ValueError: [description]
-
-	Returns:
-		[type]: [description]
-	"""
-	if type == "som":
-		fpath = os.path.join(model_dir, fname + '.som')
-	elif type == "viz":
-		fpath = os.path.join(fig_dir, fname + '.png')
-	else:
-		raise ValueError("type can only take 'viz' or 'som' values.")
-
-	# Check path existence
-	if os.path.exists(fpath):
-		return True
-	else:
-		return False
 
 
 @click.command()
@@ -82,38 +50,75 @@ def main(embeddings_file):
 	embedding_dict = format_embedding_files([embeddings_file])
 	gen = embeddings_generator(embedding_dict)
 	_, vect_train_corpus = list(gen)[0]
-	input_len = vect_train_corpus.shape[1]
 
 	# Iterate over grid
 	for idx_mdl, params in enumerate(param_grid):
 		logger.info(f"Fitting SOM #{idx_mdl}")
 		logger.info("Fitting SOM with hyper-parameters: {}".format(params))
 
-		# Define SOM
-		som = MiniSom2(random_seed=0, verbose=True, input_len=input_len, **params)
+		train_keys = ['train_rough_len', 'train_finetune_len']
+		som_params = {k: v for k, v in params.items() if k not in train_keys}
+		train_params = {k: v for k, v in params.items() if k in train_keys}
 
-		if check_som_exists(str(som), "som"):
-			logger.info("SOM model {} already exists in disk...".format(str(som)))
-			if check_som_exists(str(som), "viz"):
-				logger.info("SOM figure {} already exists in disk...".format(str(som)))
+		# output file name
+		outname = "som" + "".join(map(str, params.values()))
+		outname = outname.translate(str.maketrans('', '', ' ,()'))
+		outfigpath = os.path.join(fig_dir, outname + '.png')
+		outsompath = os.path.join(model_dir, outname + '.som')
+
+		# Setting random seed
+		np.random.seed(42)
+
+		# Define SOM
+		som = sompy.SOMFactory().build(
+        vect_train_corpus,
+        **som_params
+		)
+
+		if check_som_exists(outname, "som", model_dir):
+			logger.info("SOM model {} already exists in disk...".format(outname))
+			if check_som_exists(outname, "viz", fig_dir):
+				logger.info("SOM figure {} already exists in disk...".format(outname))
 			else:
 				# Loading the SOM model
 				logger.info('Loading SOM model...')
-				som = load_som(os.path.join(model_dir, str(som) + '.som'))
+				som = load_som(os.path.join(model_dir, outname + '.som'))
 				# Plot and save the U-matrix
 				logger.info('Plotting and saving the U-matrix...')
-				som.u_matrix(vect_train_corpus, train_labels, fig_dir)
+				u = sompy.umatrix.UMatrixView(
+					width=7,
+        			height=7,
+        			text_size=6,
+					title="U-Matrix",
+				)
+				u.show(
+					som,
+					distance=2, 
+				)
+				u.save(outfigpath)
 		else:
 			# Fit SOM
 			logger.info('Fitting SOM model...')
-			som.fit(vect_train_corpus, train_labels)
+			som.train(n_job=-1, 
+				verbose='info',
+				**train_params
+			)
 			# Plot and save the U-matrix
 			logger.info('Plotting and saving the U-matrix...')
-			som.u_matrix(vect_train_corpus, train_labels, fig_dir)
+			u = sompy.umatrix.UMatrixView(
+				width=7,
+				height=7,
+				text_size=6,
+				title="U-Matrix",
+			)
+			u.show(
+				som,
+				distance=2, 
+			)
+			u.save(outfigpath)
 			# Save the SOM fitted model
 			logger.info('Saving SOM model...')
-			outpath = os.path.join(model_dir, str(som) + '.som')
-			save_som(som, outpath)
+			save_som(som, outsompath)
 
 
 if __name__ == '__main__':
@@ -128,13 +133,13 @@ if __name__ == '__main__':
 	# Hyperparameter grid
 	param_grid = ParameterGrid(
         {	
-			'x': [30],
-			'y': [30],
-            'sigma': [1, 0.5],
-            'learning_rate': [1, 0.5],
-			'neighborhood_function': ['gaussian'],
-            'n_iter': [1000, 500, 100],
-			'topology': ['hexagonal']
+			'mapsize': [(50,50)],
+            'initialization': ['random','pca'],
+			'neighborhood': ['gaussian'],
+            'training': ['batch'],
+			'lattice': ['hexa'],
+			'train_rough_len': [50, 100],
+			'train_finetune_len': [50, 100]
         }
     )
 

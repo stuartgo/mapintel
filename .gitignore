@@ -6,6 +6,7 @@ models/saved_embeddings/
 models/figures/
 vec4ir/
 senteval/
+sompy/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -20,7 +20,7 @@ import numpy as np
 import sompy
 from sklearn.model_selection import ParameterGrid
 from src import PROJECT_ROOT
-from src.cluster.som_clustering import (check_som_exists, 
+from src.som.som_clustering import (check_som_exists, 
 									load_som,
 									save_som)
 from src.features.embedding_extractor import (embeddings_generator,

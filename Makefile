@@ -1,16 +1,15 @@
-.PHONY: all data features evaluation clean lint requirements sync_data_to_s3 sync_data_from_s3 aws_set_accesskeys aws_set_lambdavars aws_update_lambda
+.PHONY: all data features evaluation clean lint aws_set_lambdavars aws_set_lambdafun create_environment requirements test_environment
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
-# SHELL:=/bin/bash
+SHELL:=/bin/bash
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
+# BUCKET = [OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')
 PROFILE = default
 PROJECT_NAME = mapintel
 PYTHON_INTERPRETER = python3
-FOLDERS = data/external data/interim data/processed data/raw models/saved_models
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -23,10 +22,7 @@ endif
 #################################################################################
 
 ## Build the project
-all: directories data features evaluation
-
-## Build Necessary Directory Structure
-directories: $(FOLDERS)
+all: data features evaluation
 
 ## Make Dataset
 data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
@@ -49,10 +45,8 @@ lint:
 ## Set AWS lambda environment variables
 aws_set_lambdavars: .env mongodb_insertion/get_lambda_vars.py
 ifeq (default,$(PROFILE))
-	cd mongodb_insertion && \
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
 else
-	cd mongodb_insertion && \
 	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py) --profile $(PROFILE)
 endif
 
@@ -75,30 +69,37 @@ endif
 	rm -rf python_package; \
 	rm -rf newsapi_mongodb.zip
 
-## Upload Data to S3
-sync_data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
-else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
-endif
+## Download the necessary pre-trained embeddings
+pretrain_embeddings: data/external/GoogleNews-vectors-negative300.bin data/external/glove.840B.300d data/external/crawl-300d-2M.vec
 
-## Download Data from S3
-sync_data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
-else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
-endif
+## Download SentEval's transfer tasks dataset
+transfer_tasks: src/senteval
+	cd src/senteval/data/downstream && ./get_transfer_data.bash
+
+# ## Upload Data to S3
+# sync_data_to_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync data/ s3://$(BUCKET)/data/
+# else
+# 	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+# endif
+
+# ## Download Data from S3
+# sync_data_from_s3:
+# ifeq (default,$(PROFILE))
+# 	aws s3 sync s3://$(BUCKET)/data/ data/
+# else
+# 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+# endif
 
 ## Set up python interpreter environment
 create_environment:
 ifeq (True,$(HAS_CONDA))
-		@echo ">>> Detected conda, creating conda environment."
+	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create --name $(PROJECT_NAME) python=3.7 --no-default-packages
 else
-	conda create --name $(PROJECT_NAME) python=2.7
+	conda create --name $(PROJECT_NAME) python=2.7 --no-default-packages
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
@@ -111,8 +112,11 @@ endif
 
 ## Install Python Dependencies
 requirements: test_environment
+ifeq (True,$(HAS_CONDA))
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
-	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	# $(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	conda env update --name $(PROJECT_NAME) --file environment.yml
+endif
 
 ## Test python environment is setup correctly
 test_environment:
@@ -122,39 +126,44 @@ test_environment:
 # PROJECT RULES                                                                 #
 #################################################################################
 
-# Creates folders (used with order-only-prerequisites)
-$(FOLDERS):
-	mkdir -p $@
-
-.env: 
+.env:
 	@echo ">>> .env file wasn't detected at root directory. Make sure to include there the environment variables specified in README"
 	@false
 
-data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env | data/interim
+data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env
 	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py
 
-# This rule can have some problems when running a parallel make
-data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv | data/processed models/saved_models
+data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv
 	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
 
-# This rule can have some problems when running a parallel make
-models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/doc2vec.py
 
-# This rule can have some problems when running a parallel make
-models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib | models/saved_models
+models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer.py
 
 # Double-colon rules provide a mechanism for cases in which the method used to update a target differs depending on which prerequisite files caused the update
 models/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py
 
-# Double-colo rule
+# Double-colon rule
 models/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py models/saved_models/doc2vec*
 	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 
+data/external/GoogleNews-vectors-negative300.bin:
+	@echo "--- Downloading Word2vec embeddings ---"
+	wget -cP data/external/ https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz && gzip -d data/external/GoogleNews-vectors-negative300.bin.gz
+
+data/external/glove.840B.300d:
+	@echo "--- Downloading GloVe embeddings ---"
+	curl -Lo data/external/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip && unzip data/external/glove.840B.300d.zip -d data/external && rm -f data/external/glove.840B.300d.zip
+
+data/external/crawl-300d-2M.vec:
+	@echo "--- Downloading FastText embeddings ---"
+	curl -Lo data/external/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip && unzip data/external/crawl-300d-2M.vec.zip -d data/external && rm -f data/external/crawl-300d-2M.vec.zip
+
 #################################################################################
-# Self Documenting Commands                                                     #
+# Self Documenting Commands                                                     #models
 #################################################################################
 
 .DEFAULT_GOAL := help

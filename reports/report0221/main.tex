@@ -1,0 +1,142 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+\usepackage{float}
+% \usepackage{graphicx}
+\usepackage[authoryear]{natbib}
+\usepackage{hyperref}
+% \usepackage{authblk}
+\usepackage[margin=1in]{geometry}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.12}
+\PrerenderUnicode{ü}
+
+\title{Mapintel Project Report}
+\author{David Silva, Prof. Fernando Bação}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	Briefly summarize your previous work, goals and objectives, what you have accomplished, and future work. (100 words max) If you have a question, please use the help menu (``?'') on the top bar to search for help or ask us a question.
+\end{abstract}
+\section*{Introduction}
+The Mapintel project aims at providing \textit{Agência para o Investimento e Comércio Externo de Portugal} (AICEP) with a Competitive Intelligence (CI) tool to explore up to date articles from a myriad of national and international news sources, allowing for a new and interactive way of discovering information. 
+
+CI is concerned with gathering and analyzing information on any aspect of the business environment (competition, customers, legal framework, etc.) needed to support executives in strategic planning and decision-making. AICEP’s mission is to promote Portuguese exports and to secure foreign direct investment, playing a major role in the economic development and job creation in Portugal. CI is a key component of AICEP’s activity, which requires keeping track of current affairs and sift through the endless flow of news about markets, trade, industries, countries and politics.
+
+In this project we look to answer the research question: \textbf{What aspects does a document exploration system require to extract meaningful information from a continuous flow of text documents?} We use Natural Language Processing and Machine Learning algorithms to represent and analyze the text documents, particularly we use document embedding models such as Paragraph Vector \citep{Le2014} to represent the documents in a vector space which encodes the semantics of each document and Self-Organizing Maps (SOM) \citep{Kohonen1982} to explore and visualize the different segments of documents in that space.
+% In this project we look to answer the specific question: How can a visual exploration tool be produced to extract information from a continuous flow of text documents?
+
+\section*{Literature Review}
+% Themes: embedding documents (BOW, TF-IDF, Doc2vec, BERT, sBERT), systems for organizing and exploring large set of documents - done!, visualize a set of examples in a multi-dimensional space (SOM, t-SNE)
+% Introduction: The introduction should clearly establish the focus and purpose of the literature review.
+% Body: Summarize and synthesize, Analyze and interpret, Critically evaluate, Write in well-structured paragraphs
+% Conclusion: summarize the key findings you have taken from the literature and emphasize their significance.
+Gathering relevant information from large resource collections has been a constant need for several tasks. Information Retrieval (IR) is the process responsible for dealing with this need through efficient searching of information.
+
+\citet{Ji2019} proposes a system for visual exploration of neural document embeddings to gain insights into the underlying embedding space and to promote the utilization in prevalent IR applications. t-SNE \citep{Van2008} is used to project the high-dimensional data onto a 2D surface. This technique is able to capture both local and global structure from the high-dimensional data in an efficient and reliable way. In this work, the documents are embedded using the Paragraph Vector model \citep{Le2014}. The system visualizes neural document embeddings as a configurable document map and enables guidance and reasoning, facilitates to explore the neural embedding space, identifies salient neural dimensions (semantic features) per task and domain interest and supports advisable feature selection (semantic analysis) along with instant visual feedback to promote IR performance. Overall, the system provides users with insights and confidence in neural document embeddings given their black-box nature.
+
+\citet{Lafia2019} uses SOM and Latent Dirichlet Allocation (LDA) \citep{Blei2003} to convey the relatedness of research themes in a multidisciplinary university library. LDA is a generative probabilistic model of a corpus. The basic idea is that documents are represented as random mixtures over latent topics, where each topic is characterized by a distribution over words. That said, each document is embedded in a vector space of N dimensions, corresponding to the number of topics selected. SOM produces a landscape for exploring the topic space and provides users with an overview of the document collection and the ability to navigate (discover items of interest), change the level of detail, select individual documents and discover relationships between documents.
+
+\citet{KASKI1998} presents the WEBSOM system - a system that organizes a textual document collection using a SOM-based graphical
+map display that provides an overview of the collection and facilitates interactive browsing. \citet{Kohonen2013} revisits the topic and provides some enhancements. Here, the documents are represented with a TF-IDF weighting \citep{KAREN1972} and a random projection is used to reduce the dimensionality of the vector space, while preserving the similarity structure between documents. A SOM is constructed and each document is mapped into the node that best represents it. This provides exploring, searching and filtering capabilities. For example, when a node in the map is clicked, the titles of the corresponding documents and eventually some additional information such as descriptive words are presented. Also, the map is described by an automatic annotation procedure explained in \citet{Lagus1999}, which helps to understand the semantics encoded in each map region. The user can also perform queries either using a set of keywords or a descriptive sentence. The query is then mapped into the reduced vector space and matched with the most similar documents and/or nodes. A zooming feature is also present which allows the user to explore specific regions of the map with finer detail.
+
+\citet{Henriques2012} proposes the GeoSOM suite, a tool for geographic knowledge discovery using SOM. This tool is designed to integrate geographic information and aspatial variables in order to assist the geographic analyst's objectives and needs. The tool provides several dynamically linked views of the data consisting of a geographic map, a u-matrix, component plate plots, hit-map plots, parallel coordinate plots, boxplots and histograms. These views and their connection allows for an interactive exploration of the data.
+% Discuss what is already known about your research area. Connect your objectives with what is already known and explain what additional contribution you intend to make. Make sure to add APA formatted in-text citations like this \citep{tennekes_first_1972}. If you mention the author(s) in your sentence, you can simply give the year of publication. For example, \citet{tennekes_first_1972} wrote an excellent book on turbulence. You can find it online \href{https://newcatalog.library.cornell.edu/catalog/8325020}{here}. As you are reviewing literature, you may find a need to write equations. A graphical tool for generating \LaTeX \ equations can be found \href{www.hostmath.com}{here}. Part of writing equations can include referring to obscure symbols and Greek letters. A tool for doing that visually (by drawing) can be found \href{http://detexify.kirelabs.org/classify.html}{here}.
+
+\section*{Methods}
+The methodology adopted in this project can be summarized by Figure \ref{Methodology}. First, we set up a data collection process to automatically absorb the continuous flow of news articles, then some pre-processing was applied to the data to make it usable by the embedding models and imp  rove the quality of the produced document vectors. A SOM was applied to build a two-dimensional grid that is able to represent the multi-dimensional input space and therefore, the properties and relationships of the articles. Finally, a document exploration interface was built to provide the user the ability to explore and query the articles. The code developed for the project can be accessed at \href{https://github.com/DavidSilva98/mapintel_project}{github.com/DavidSilva98/mapintel\_project}.
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.7]{./figures/methodology}
+	\caption{Methodology}
+	\label{Methodology}
+\end{figure}
+\subsection*{Data Collection}
+In this project we decided to focus on how NLP and particularly sentence embeddings could help in organizing, exploring and retrieving text documents. Since the objective is to explore news articles, we used a REST API \footnote{\href{https://newsapi.org/}{newsapi.org}} to continuously retrieve English articles from multiple international sources several times a day. The API calls are performed through the AWS Lambda service \footnote{A serverless compute service that lets you run code without provisioning or managing servers} and the articles, as well as their metadata, are stored using the MongoDB Atlas cloud database service \footnote{A fully-managed cloud database service}. One particularly useful feature of the metadata is the category of the article. This can be one of the following: business, entertainment, general, health, science, sports or technology. It is important to note that the API we are using imposes some limitations that affect the data collection such as the articles being provided with 1 hour delay, having a maximum of 100 requests per day and the content of the article being truncated to 200 characters. We also developed a simple Optical Character Recognition (OCR) pipeline using the Tesseract OCR engine \footnote{\href{https://github.com/tesseract-ocr/tesseract}{github.com/tesseract-ocr/tesseract}}. The purpose of this pipeline was to integrate internal documents from AICEP in our application, however we haven't focused on these documents so far.
+\subsection*{Data Cleaning and Pre-processing}
+After loading the document corpus from the database, we concatenated the title, description and content fields in order to obtain longer and more informative documents. We proceed to clean the documents by removing non-textual patterns such as URLs and HTML tags and by removing non-English articles which are still present despite the filter applied previously. We split the document corpus into train and test set to allow for downstream unbiased performance assessments. A pre-process pipeline is applied on both corpora \footnote{Note: the pipeline is fitted only on the train set to avoid data leakage} to reduce the dimensionality of the vocabulary. The pipeline consists of removing stop words (very frequent words that are irrelevant), lowering the letter's case, removing accents and punctuation, applying stemming \footnote{Term normalization process that removes the morphological and inflectional endings from words} and removing words that appear in just one document or in more than 90\% of the documents.
+\subsection*{Document Embeddings}
+Once the corpus is pre-processed, we encoded each document as a single vector of information. Here we used several approaches and compared them using a standardized evaluation design. As a baseline we used a Bag-of-Words (BOW) approach \citep{Harris1954}, which represents each document as a token histogram of the top 10000 most frequent tokens. We also used a Term Frequency - Inverse Document-Frequency (TF-IDF) approach \citep{KAREN1972} which tries to adjust for the fact that some words appear more frequently in general by offsetting each token frequency with the number of documents that contain the token. In these 10000 tokens, we included n-grams containing one to three words so word order information could be included in the embedding. We also used the proposed models by \citet{Le2014}, namely the Distributed Memory Model of Paragraph Vectors (PV-DM) and the Distributed Bag of Words version of Paragraph Vector (PV-DBOW), to learn continuous distributed fixed-length vector representations from variable-length pieces of text. These models are trained on the task of predicting words in a paragraph by looking at the context of the target word, which is encoded in the words and paragraph vectors. These vectors are the parameters of the model and are adjusted using stochastic gradient descent and backpropagation. One of the disadvantages of these methods is that to infer the embeddings of new documents, the model needs to train them which can be a problem when dealing with user queries. 
+\subsubsection*{Model Evaluation}
+To evaluate the quality of each approach, we used the corresponding embeddings and categories of each document in various tasks, similarly to some of the ones in \citet{Conneau2018}. One of the approaches was training a logistic regression model using the embedding vectors of the train corpus to predict the article category. The accuracy of the classifier on the test corpus was used to evaluate the embeddings as the model is kept constant over the different approaches. We realized that, even though the model is kept constant, we cannot control for the interactions between each feature set and the logistic regression, which means the scores obtained don't completely isolate the embeddings performance. For this reason, a second task was proposed which consisted in classifying whether each unique test document pair belonged to the same category, based solely on their cosine similarity. The cosine similarities were converted to a range between 0 and 1 using the min-max transformation and the average binary cross-entropy over all unique pairs of documents was obtained. We also looked at the t-SNE projections of the embeddings to visualize how well they captured the semantics of the documents. Our hope was that if some semantic properties were captured, the embedding vectors would have been grouped by their categories. In the results section we will analyze how the different embedding models produced different evaluations.
+\subsection*{Self-Organizing Map}
+After comparing the several embedding models, the SOM model was applied on the train embeddings of the best performing model using a fork of the SOMPY package \citep{Moosavi2014}. The grid is composed of regular hexagons as they are "visually much more illustrative and accurate, and are recommended" \citep{Kohonen2013}. Also, we selected the lengths of the horizontal and vertical dimensions of the grid to comply with the relation of the two largest principal components, while providing enough nodes to adequately represent the details and clusters of the input space. The oblong regular arrays have the advantage over the square ones of guaranteeing faster and safer convergence in learning. The nodes were initialized as a regular, two-dimensional sequence of vectors taken along a hyperplane spanned by the two largest principal components of the input space, providing faster ordering and convergence \citep{Kohonen2001}. Finally, we relied on the minimization of the quantization error (the mean distance of every data point to the corresponding best-matching unit) to select the remaining hyper-parameters of the model.
+\subsection*{Document Exploration Interface}
+We extracted the fitted codebook matrix and we utilized it to build a U-matrix \citep{Ultsch1993} to visualize the structures of the high-dimensional input space. By adding an interactive component to this visualization, we were able to encode several details and information within each unit of the matrix such as the distance from its neighbor units, the number of observations allocated to it and also some aggregated information from these observations. We also used the approach in \citet{Lagus1999} to characterize regions of the U-matrix by optimal positioning of descriptive keywords. These words function as landmarks i.e. navigational cues that help in maintaining a sense of location during the exploration of the map. Finally, we integrated the remaining components of the interface such as the search bar, a pane to preview the articles retrieved by the query and some more dynamic components to facilitate the user interaction.
+
+% Explain the techniques you have used to acquire additional data and insights. Reserve fine detail for the Manual at the end of the report, but use this section to give an overview with enough detail for the reader to understand your Results and Analysis. Describe your apparatus, and have a justification for every decision you made and every parameter you chose in the design of the apparatus. Be especially careful to detail the conditions your experiments were conducted under, as this information is especially important for interpreting your results
+
+% Below, some example sections are given. Sectioning the report is meant to keep similar information together.  Continue making sections as necessary, or delete sections if you do not need them. Feel free to add subsubsections to further delineate the information. For example, under the Experimental Apparatus section below, the EStaRS team might consider having sections such as "Filter Design" and "Filter Fabrication".
+
+% \subsection*{Experimental Apparatus}
+% Explain your apparatus setup using enough detail such that future teams can recreate your apparatus. Make sure to explain why you built it this way.
+% \begin{itemize}
+% 	\item Design (calculations, constraints)
+% 	\item Schematic (label parts)
+% 	\item Image (from lab; label parts)
+% 	\item Materials (dimensions, materials)
+% 	\item Complications in construction
+% 	\item If already constructed: write a brief summary of important constraints, include any revisions to apparatus, also reference the prior report where construction is described
+% \end{itemize}
+
+% \subsection*{Procedure }
+% Discuss your experimental procedure. How did you run your experiment? What were you testing? What were the values of relevant parameters?
+
+\section* {Results}
+Present an observation (results), then explain what happened (analysis).  Each paragraph should focus on one aspect of your results. In that same paragraph, you should interpret that result.
+In other words, there should not be two distinct paragraphs, but instead one paragraph containing one result and the interpretation and analysis of this result. Here are some guiding questions for results and analysis:
+
+When describing your results, present your data, using the guidelines below:
+\begin{itemize}
+	\item What happened? What did you find?
+	\item Show your experimental data in a professional way. Refer to \href{https://confluence.cornell.edu/display/AGUACLARA/Grammar+Guidelines+for+Reports}{Grammar Guidelines for Reports} for details on formatting. Be sure to reference figures before they appear in your paper (see Figure \ref{Frog}). Be sure to do the same for tables (see Table \ref{Table}). For a good tool for making tables, go to \href{www.tablesgenerator.com}{tablesgenerator.com}.
+\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.1]{./figures/frog}
+	\caption{Captions go beneath figures.}
+	\label{Frog}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\caption{Captions go above tables.}
+	\begin{tabular}{| l | c | c |}
+		\hline
+		Parameter          & Symbol   & Value                 \\ \hline
+		Residence Time     & $\theta$ & 90 s                  \\ \hline
+		Hydraulic Gradient & $G$      & 500 $\mathrm{s^{-1}}$ \\
+		\hline
+	\end{tabular}
+	\label{Table}
+\end{table}
+
+After describing a particular result, within a paragraph, go on to connect your work to fundamental physics/chemistry/statics/fluid mechanics, or whatever field is appropriate. Analyze your results and compare with theoretical expectations; or, if you have not yet done the experiments, describe your expectations based on established knowledge. Include implications of your results. How will your results influence the design of AguaClara plants? If possible provide clear recommendations for design changes that should be adopted. Show your experimental data in a professional way using the following guidelines:
+\begin{itemize}
+	\item Why did you get those results/data?
+	\item Did these results line up with expectations?
+	\item What went wrong?
+	\item If the data do not support your hypothesis, is there another hypothesis that describes your new data?
+\end{itemize}
+
+\section*{Discussion}
+Study comparison with other studies. What were the limitations?
+
+\section*{Conclusions}
+Explain what you have learned and how that influences your next steps. Why does what you discovered matter to AguaClara?
+Make sure that you defend your conclusions. (this is conclusions, not opinions!)
+
+\section*{Future Work}
+Describe your plan of action for the next several weeks of research. Detail the next steps for this team. How can AguaClara use what you discovered for future projects? Your suggestions for challenges for future teams are most welcome. Should research in this area continue?
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+\end{document}

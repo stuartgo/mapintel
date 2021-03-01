@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     # SOM kwargs
     som_build_kwargs = dict(
-        mapsize=(50, 50),
+        mapsize=None,
         initialization='pca',
         neighborhood='gaussian',
         training='batch',

@@ -133,9 +133,12 @@ if __name__ == '__main__':
 	# Hyperparameter grid
 	param_grid = ParameterGrid(
         {	
-			'mapsize': [(50,50)],
-            'initialization': ['random','pca'],
-			'neighborhood': ['gaussian'],
+			'mapsize': [None],  # TODO: As it is now, None gives back a fixed 
+								# number of nodes. We might want to increase the
+								# number of nodes while preserving the relationship 
+								# of the Principal Component sizes
+            'initialization': ['pca'],
+			'neighborhood': ['gaussian', 'bubble'],
             'training': ['batch'],
 			'lattice': ['hexa'],
 			'train_rough_len': [50, 100],

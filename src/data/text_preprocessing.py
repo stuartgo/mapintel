@@ -7,10 +7,12 @@ import unicodedata
 from collections import defaultdict
 
 from bs4 import BeautifulSoup
+from langdetect import detect
 from nltk import word_tokenize
 import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted
+
 
 # TODO: coordinate roles of results_cleaner and CorpusPreprocess (remove overlap)
 # TODO: tokenize numbers and other word types to reduce vocabulary
@@ -64,7 +66,6 @@ def _detect_non_english(text):
         return True
     return False
 
-
 def results_cleaner(agg_results):
     """Cleans the results of the aggregation pipeline mongodb query by
      applying _detect_non_english and _text_cleaner
@@ -78,11 +79,11 @@ def results_cleaner(agg_results):
     remove_idx = []
     # Iterate over results: apply _detect_non_english and _text_cleaner
     for i, r in enumerate(agg_results):
-        if _detect_non_english(r['text']):
+        if detect(r['text']) != 'en' or _detect_non_english(r['text']):
             remove_idx.append(i)
             continue
         r['text'] = _text_cleaner(r['text'])
-    # Remove articles with cjk characters
+    # Remove non-english articles or articles with cjk characters 
     for ix in sorted(remove_idx, reverse=True):
         del agg_results[ix]
     return agg_results

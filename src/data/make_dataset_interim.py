@@ -2,7 +2,7 @@
 """
 Builds the cleaned (intermediate) csv file with documents from mongodb.
 Queries the mongodb instance to obtain every document's id, insertion date,
-category and text, cleanes the text, merges results from both collections, 
+category and text, cleans the text, merges results from both collections, 
 selects documents before a given date and splits documents into train and test set. 
 Outputs the documents to "data/interim/newsapi_docs.csv"
 """
@@ -21,14 +21,15 @@ from src import PROJECT_ROOT
 
 @click.command()
 @click.argument('test_size', type=click.FLOAT, default=0.2)
-@click.argument('date_lim', type=click.STRING, default='01-12-2020')
-def main(test_size, date_lim):
+@click.argument('date_max', type=click.STRING, default=dt.now().strftime("%d-%m-%Y"))
+@click.argument('date_min', type=click.STRING, default='01-03-2021')
+def main(test_size, date_max, date_min):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
     logger.info(
-        f'Making final data set from raw data. Test size: {test_size}. Limit date: {date_lim}')
+        f'Making final data set from raw data. Test size: {test_size}. Dates between {date_min} and {date_max}.')
 
     collection_list = db.list_collection_names()
     for col in collection_list:
@@ -71,9 +72,9 @@ def main(test_size, date_lim):
     logger.info('Joining documents from both collections...')
     join_results_list = join_results(prep_results)
 
-    # Get documents before the date limit
+    # Get documents between date_min and date_max
     join_results_list = list(filter(
-        lambda x: dt.fromisoformat(x['insert_date']) < dt.strptime(date_lim, '%d-%m-%Y'), join_results_list))
+        lambda x: dt.strptime(date_min, '%d-%m-%Y') < dt.fromisoformat(x['insert_date']) <= dt.strptime(date_max, '%d-%m-%Y'), join_results_list))
 
     # Split articles into train and test
     output_results_train, output_results_test = train_test_split(

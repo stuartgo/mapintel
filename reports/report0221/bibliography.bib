@@ -289,4 +289,72 @@
   number = {11}
 }
 
+@book{murphy2012,
+  title = {Machine Learning: A Probabilistic Perspective},
+  shorttitle = {Machine Learning},
+  author = {Murphy, Kevin P.},
+  year = {2012},
+  publisher = {{MIT press}},
+}
 
+@article{mikolov2013,
+  title = {Efficient {{Estimation}} of {{Word Representations}} in {{Vector Space}}},
+  author = {Mikolov, Tomas and Chen, Kai and Corrado, Greg and Dean, Jeffrey},
+  year = {2013},
+  month = sep,
+  abstract = {We propose two novel model architectures for computing continuous vector representations of words from very large data sets. The quality of these representations is measured in a word similarity task, and the results are compared to the previously best performing techniques based on different types of neural networks. We observe large improvements in accuracy at much lower computational cost, i.e. it takes less than a day to learn high quality word vectors from a 1.6 billion words data set. Furthermore, we show that these vectors provide state-of-the-art performance on our test set for measuring syntactic and semantic word similarities.},
+  archiveprefix = {arXiv},
+  eprint = {1301.3781},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/XRZF2YA4/Mikolov et al. - 2013 - Efficient Estimation of Word Representations in Ve.pdf;/home/dsilva/Zotero/storage/4JYJF748/1301.html},
+  journal = {arXiv:1301.3781 [cs]},
+  keywords = {Computer Science - Computation and Language},
+  primaryclass = {cs}
+}
+
+@article{vaswani2017,
+  title = {Attention {{Is All You Need}}},
+  author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+  year = {2017},
+  month = dec,
+  abstract = {The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data.},
+  archiveprefix = {arXiv},
+  eprint = {1706.03762},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/8ULXIGGK/Vaswani et al. - 2017 - Attention Is All You Need.pdf;/home/dsilva/Zotero/storage/LUEA3YPW/1706.html},
+  journal = {arXiv:1706.03762 [cs]},
+  keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning},
+  primaryclass = {cs}
+}
+
+@article{devlin2019,
+  title = {{{BERT}}: {{Pre}}-Training of {{Deep Bidirectional Transformers}} for {{Language Understanding}}},
+  shorttitle = {{{BERT}}},
+  author = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+  year = {2019},
+  month = may,
+  abstract = {We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers. As a result, the pre-trained BERT model can be fine-tuned with just one additional output layer to create state-of-the-art models for a wide range of tasks, such as question answering and language inference, without substantial task-specific architecture modifications. BERT is conceptually simple and empirically powerful. It obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5\% (7.7\% point absolute improvement), MultiNLI accuracy to 86.7\% (4.6\% absolute improvement), SQuAD v1.1 question answering Test F1 to 93.2 (1.5 point absolute improvement) and SQuAD v2.0 Test F1 to 83.1 (5.1 point absolute improvement).},
+  archiveprefix = {arXiv},
+  eprint = {1810.04805},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/ADUJ2UGJ/Devlin et al. - 2019 - BERT Pre-training of Deep Bidirectional Transform.pdf;/home/dsilva/Zotero/storage/YYX753IC/1810.html},
+  journal = {arXiv:1810.04805 [cs]},
+  keywords = {Computer Science - Computation and Language},
+  primaryclass = {cs}
+}
+
+@article{reimers2019,
+  title = {Sentence-{{BERT}}: {{Sentence Embeddings}} Using {{Siamese BERT}}-{{Networks}}},
+  shorttitle = {Sentence-{{BERT}}},
+  author = {Reimers, Nils and Gurevych, Iryna},
+  year = {2019},
+  month = aug,
+  abstract = {BERT (Devlin et al., 2018) and RoBERTa (Liu et al., 2019) has set a new state-of-the-art performance on sentence-pair regression tasks like semantic textual similarity (STS). However, it requires that both sentences are fed into the network, which causes a massive computational overhead: Finding the most similar pair in a collection of 10,000 sentences requires about 50 million inference computations (\textasciitilde 65 hours) with BERT. The construction of BERT makes it unsuitable for semantic similarity search as well as for unsupervised tasks like clustering. In this publication, we present Sentence-BERT (SBERT), a modification of the pretrained BERT network that use siamese and triplet network structures to derive semantically meaningful sentence embeddings that can be compared using cosine-similarity. This reduces the effort for finding the most similar pair from 65 hours with BERT / RoBERTa to about 5 seconds with SBERT, while maintaining the accuracy from BERT. We evaluate SBERT and SRoBERTa on common STS tasks and transfer learning tasks, where it outperforms other state-of-the-art sentence embeddings methods.},
+  archiveprefix = {arXiv},
+  eprint = {1908.10084},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/CSWIAXV5/Reimers and Gurevych - 2019 - Sentence-BERT Sentence Embeddings using Siamese B.pdf;/home/dsilva/Zotero/storage/PIPH6M4G/1908.html},
+  journal = {arXiv:1908.10084 [cs]},
+  keywords = {Computer Science - Computation and Language},
+  primaryclass = {cs}
+}

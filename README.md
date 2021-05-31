@@ -60,8 +60,6 @@ Project Organization
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
     │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
     ├── models             <- Trained and serialized models, model predictions, model summaries
     |   |                     and other model outputs
     │   ├── ocr_outputs
@@ -74,8 +72,6 @@ Project Organization
     │
     ├── mongodb_insertion  <- AWS lambda function package and related scripts. Used by AWS lambda
     │                         for regular insertion of NewsAPI articles into MongoDB database.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
     │   └── figures        <- Generated graphics and figures to be used in reporting

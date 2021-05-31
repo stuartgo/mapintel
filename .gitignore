@@ -1,4 +1,5 @@
 # Custom
+notebooks/mlruns
 mongodb_insertion/python_package
 mongodb_insertion/newsapi_mongodb.zip
 models/saved_models/

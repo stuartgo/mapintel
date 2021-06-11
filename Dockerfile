@@ -6,7 +6,7 @@ COPY ./requirements.txt /workspace
 RUN apt-get update && apt-get install -y git && \
     rm -rf /var/lib/apt/lists/*
 RUN conda install -c conda-forge hdbscan && \
-    python3 -m pip install -r /workspace/app_requirements.txt
+    python3 -m pip install -r /workspace/requirements.txt
 
 # Set jupyter notebook theme
 RUN jt -t onedork -fs 95 -tfs 11 -nfs 115 -cellw 88% -T && \

@@ -8,6 +8,7 @@ models/figures/
 vec4ir/
 senteval/
 sompy/
+api/backups
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

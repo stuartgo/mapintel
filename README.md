@@ -80,29 +80,27 @@ Project Organization
     │                         generated with `pip freeze > requirements.txt`
     │
     ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   ├── make_dataset_interim.py
-    │   │   ├── make_dataset_processed.py
-    │   │   └── text_preprocessing.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   ├── doc2vec.py
-    │   │   ├── doc2vec_eval.py
-    │   │   ├── vectorizer.py
-    │   │   ├── vectorizer_eval.py
-    │   │   └── embedding_eval.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   └── senteval_evaluation.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── embedding_space.py
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+    └── src                <- Source code for use in this project.
+        ├── __init__.py    <- Makes src a Python module
+        │
+        ├── data           <- Scripts to download or generate data
+        │   ├── make_dataset_interim.py
+        │   ├── make_dataset_processed.py
+        │   └── text_preprocessing.py
+        │
+        ├── features       <- Scripts to turn raw data into features for modeling
+        │   ├── doc2vec.py
+        │   ├── doc2vec_eval.py
+        │   ├── vectorizer.py
+        │   ├── vectorizer_eval.py
+        │   └── embedding_eval.py
+        │
+        ├── models         <- Scripts to train models and then use trained models to make
+        │   │                 predictions
+        │   └── senteval_evaluation.py
+        │
+        └── visualization  <- Scripts to create exploratory and results oriented visualizations
+            └── embedding_space.py
 
 
 --------

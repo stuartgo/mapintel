@@ -42,33 +42,6 @@ clean:
 lint:
 	flake8 src
 
-## Set AWS lambda environment variables
-aws_set_lambdavars: .env mongodb_insertion/get_lambda_vars.py
-ifeq (default,$(PROFILE))
-	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py)
-else
-	aws lambda update-function-configuration --function-name newsapi_mongodb --environment $(shell $(PYTHON_INTERPRETER) mongodb_insertion/get_lambda_vars.py) --profile $(PROFILE)
-endif
-
-## Set AWS lambda function
-aws_set_lambdafun: mongodb_insertion/lambda_function.py
-	cd mongodb_insertion && \
-	pip install --target ./python_package newsapi-python==0.2.6 pymongo==3.11.0 dnspython==1.16.0
-	cd mongodb_insertion/python_package && \
-	zip -r9 ../newsapi_mongodb.zip .
-	cd mongodb_insertion && \
-	zip -g newsapi_mongodb.zip lambda_function.py
-ifeq (default,$(PROFILE))
-	cd mongodb_insertion && \
-	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip
-else
-	cd mongodb_insertion && \
-	aws lambda update-function-code --function-name newsapi_mongodb --zip-file fileb://newsapi_mongodb.zip --profile $(PROFILE)
-endif
-	cd mongodb_insertion && \
-	rm -rf python_package; \
-	rm -rf newsapi_mongodb.zip
-
 ## Download the necessary pre-trained embeddings
 pretrain_embeddings: data/external/GoogleNews-vectors-negative300.bin data/external/glove.840B.300d data/external/crawl-300d-2M.vec
 

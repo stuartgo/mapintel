@@ -60,8 +60,8 @@ Project Organization
     │   ├── processed      <- The final, canonical data sets for modeling.
     │   └── raw            <- The original, immutable data dump.
     │
-    ├── models             <- Trained and serialized models, model predictions, model summaries
-    |   |                     and other model outputs
+    ├── outputs             <- Trained and serialized models, model predictions, model summaries
+    |   |                     and other outputs
     │   ├── ocr_outputs
     │   ├── figures
     │   └── saved_models

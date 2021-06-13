@@ -125,8 +125,8 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(PROJECT_ROOT, "data",
                              "processed", "newsapi_docs.csv")
-    model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
-    fig_dir = os.path.join(PROJECT_ROOT, "models", "figures", "som")
+    model_dir = os.path.join(PROJECT_ROOT, "outputs", "saved_models")
+    fig_dir = os.path.join(PROJECT_ROOT, "outputs", "figures", "som")
 
     # SOM kwargs
     som_build_kwargs = dict(

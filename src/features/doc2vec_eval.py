@@ -1,6 +1,6 @@
 """
-Evaluates the doc2vec embeddings in "models/saved_embeddings" and
-outputs/appends the predictive scores to "models/embedding_predictive_scores.csv"
+Evaluates the doc2vec embeddings in "outputs/saved_embeddings" and
+outputs/appends the predictive scores to "outputs/embedding_predictive_scores.csv"
 """
 import logging
 import os
@@ -104,10 +104,10 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    embedding_dir = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
+    embedding_dir = os.path.join(PROJECT_ROOT, "outputs", "saved_embeddings")
     embedding_files = [os.path.join(embedding_dir, f) for f in os.listdir(
         embedding_dir) if "doc2vec" in f]
-    out_path = os.path.join(PROJECT_ROOT, "models",
+    out_path = os.path.join(PROJECT_ROOT, "outputs",
         "embedding_predictive_scores.csv")
 
     # Data structure for holding data for each document

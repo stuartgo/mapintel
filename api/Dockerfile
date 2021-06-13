@@ -11,11 +11,11 @@ RUN wget --no-check-certificate https://dl.xpdfreader.com/xpdf-tools-linux-4.03.
 RUN apt-get install libpoppler-cpp-dev pkg-config -y --fix-missing
 
 # install packages
-COPY requirements.txt /home/user/
+COPY ./api/requirements.txt /home/user/
 RUN pip install -r requirements.txt
 
 # Copy API code
-COPY . /home/user/api
+COPY ./api /home/user/api
 
 EXPOSE 8000
 

@@ -1,8 +1,8 @@
 """
 Fits a set of Doc2vec models to the preprocessed data in 
 "data/processed/newsapi_docs.csv" and saves the fitted models for 
-posterior use in "models/saved_models and the embedding vectors in
-"models/saved_embeddings"
+posterior use in "outputs/saved_models and the embedding vectors in
+"outputs/saved_embeddings"
 """
 import collections
 import logging
@@ -75,8 +75,8 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    output_dir_models = os.path.join(PROJECT_ROOT, "models", "saved_models")
-    output_dir_embeddings = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
+    output_dir_models = os.path.join(PROJECT_ROOT, "outputs", "saved_models")
+    output_dir_embeddings = os.path.join(PROJECT_ROOT, "outputs", "saved_embeddings")
 
 
     # Hyperparameter setting

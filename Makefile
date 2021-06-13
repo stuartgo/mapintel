@@ -25,13 +25,13 @@ endif
 all: data features evaluation
 
 ## Make Dataset
-data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
+data: data/interim/newsapi_docs.csv data/processed/newsapi_docs.csv outputs/saved_models/CorpusPreprocess.joblib
 
 ## Make Embeddings
-features: models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib models/saved_models/doc2vec*
+features: outputs/saved_models/CountVectorizer.joblib outputs/saved_models/TfidfVectorizer.joblib outputs/saved_models/doc2vec*
 
 ## Make Embeddings Evaluation
-evaluation: models/embedding_predictive_scores.csv
+evaluation: outputs/embedding_predictive_scores.csv
 
 ## Delete all compiled Python files
 clean:
@@ -133,21 +133,21 @@ test_environment:
 data/interim/newsapi_docs.csv: src/data/make_dataset_interim.py .env
 	$(PYTHON_INTERPRETER) src/data/make_dataset_interim.py
 
-data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv
+data/processed/newsapi_docs.csv outputs/saved_models/CorpusPreprocess.joblib: src/data/make_dataset_processed.py data/interim/newsapi_docs.csv
 	$(PYTHON_INTERPRETER) src/data/make_dataset_processed.py
 
-models/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
+outputs/saved_models/doc2vec*: src/features/doc2vec.py data/processed/newsapi_docs.csv outputs/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/doc2vec.py
 
-models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv models/saved_models/CorpusPreprocess.joblib
+outputs/saved_models/CountVectorizer.joblib outputs/saved_models/TfidfVectorizer.joblib: src/features/vectorizer.py data/processed/newsapi_docs.csv outputs/saved_models/CorpusPreprocess.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer.py
 
 # Double-colon rules provide a mechanism for cases in which the method used to update a target differs depending on which prerequisite files caused the update
-models/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py models/saved_models/CountVectorizer.joblib models/saved_models/TfidfVectorizer.joblib
+outputs/embedding_predictive_scores.csv:: src/features/vectorizer_eval.py outputs/saved_models/CountVectorizer.joblib outputs/saved_models/TfidfVectorizer.joblib
 	$(PYTHON_INTERPRETER) src/features/vectorizer_eval.py
 
 # Double-colon rule
-models/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py models/saved_models/doc2vec*
+outputs/embedding_predictive_scores.csv:: src/features/doc2vec_eval.py outputs/saved_models/doc2vec*
 	$(PYTHON_INTERPRETER) src/features/doc2vec_eval.py
 
 data/external/GoogleNews-vectors-negative300.bin:

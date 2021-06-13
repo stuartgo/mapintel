@@ -7,7 +7,6 @@ import json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-backups_dir = './api/backups'
 
 
 def _text_cleaner(text):
@@ -118,7 +117,7 @@ def documents_cleaner(documents):
     return dicts
 
 
-def main():
+def clean_backups(backups_dir):
     # Check there is documents to load
     backups = os.listdir(backups_dir)
     if len(list(backups)) == 0:
@@ -143,4 +142,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    backups_dir = '../data/backups'
+    clean_backups(backups_dir)

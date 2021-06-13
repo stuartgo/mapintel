@@ -9,7 +9,7 @@ Examples
 --------
 >>> # Fit a map for a given model, and save resulting SOM model
 >>> # in same directory, with same filename, but .som extension
->>> python src/som/som_tuning.py models/saved_embeddings/train_doc2vecdmcd100n5w5mc2t12.npy
+>>> python src/som/som_tuning.py outputs/saved_embeddings/train_doc2vecdmcd100n5w5mc2t12.npy
 '''
 
 import logging
@@ -127,8 +127,8 @@ if __name__ == '__main__':
 
 	# Defining Paths
 	data_file = os.path.join(PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-	model_dir = os.path.join(PROJECT_ROOT, "models", "saved_models")
-	fig_dir = os.path.join(PROJECT_ROOT, "models", "figures", "som")
+	model_dir = os.path.join(PROJECT_ROOT, "outputs", "saved_models")
+	fig_dir = os.path.join(PROJECT_ROOT, "outputs", "figures", "som")
 
 	# Hyperparameter grid
 	param_grid = ParameterGrid(

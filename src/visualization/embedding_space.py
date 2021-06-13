@@ -11,7 +11,7 @@ Outputs a figure of the 2D embedding space for the passed document embeddings.
 Examples
 --------
 >>> # Pass a .model file as a positional argument to the script
->>> python src/visualization/embedding_space.py models/saved_embeddings/test_CountVectorizer.npz
+>>> python src/visualization/embedding_space.py outputs/saved_embeddings/test_CountVectorizer.npz
 """
 
 import logging
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    out_dir = os.path.join(PROJECT_ROOT, "models", "figures")
+    out_dir = os.path.join(PROJECT_ROOT, "outputs", "figures")
 
     # Set maximum dimensionality to apply direct t-SNE
     max_dim = 100

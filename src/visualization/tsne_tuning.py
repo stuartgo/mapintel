@@ -88,8 +88,8 @@ if __name__ == '__main__':
     # Defining Paths
     data_file = os.path.join(
         PROJECT_ROOT, "data", "processed", "newsapi_docs.csv")
-    embeddings_dir = os.path.join(PROJECT_ROOT, "models", "saved_embeddings")
-    out_dir = os.path.join(PROJECT_ROOT, "models", "figures", "tse_tuning")
+    embeddings_dir = os.path.join(PROJECT_ROOT, "outputs", "saved_embeddings")
+    out_dir = os.path.join(PROJECT_ROOT, "outputs", "figures", "tse_tuning")
 
     # Check if out_dir exists. If it doesn't then create the directory
     Path(out_dir).mkdir(parents=True, exist_ok=True)

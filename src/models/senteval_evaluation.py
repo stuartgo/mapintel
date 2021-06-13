@@ -348,11 +348,11 @@ if __name__ == "__main__":
     WORD2VEC_FILE = os.path.join(
         PROJECT_ROOT, "data", "external", "GoogleNews-vectors-negative300.bin.gz")
     TFIDF_FILE = os.path.join(
-        PROJECT_ROOT, "models", "saved_models", "TfidfVectorizer.joblib")
+        PROJECT_ROOT, "outputs", "saved_models", "TfidfVectorizer.joblib")
     BOW_FILE = os.path.join(
-        PROJECT_ROOT, "models", "saved_models", "CountVectorizer.joblib")
+        PROJECT_ROOT, "outputs", "saved_models", "CountVectorizer.joblib")
     OUTPUT_FILE = os.path.join(
-        PROJECT_ROOT, "models", "senteval_results.json")
+        PROJECT_ROOT, "outputs", "senteval_results.json")
 
     # Available tasks
     # ['CR', 'MR', 'MPQA', 'SUBJ', 'SST2', 'SST5', 'TREC', 'MRPC', 'SNLI',

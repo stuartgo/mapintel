@@ -55,7 +55,7 @@ if __name__ == '__main__':
     inp_file = os.path.join(PROJECT_ROOT, "data", "interim", 'newsapi_docs.csv')
     out_file = os.path.join(PROJECT_ROOT, "data",
                             "processed", 'newsapi_docs.csv')
-    out_fitted = os.path.join(PROJECT_ROOT, "models",
+    out_fitted = os.path.join(PROJECT_ROOT, "outputs",
                               "saved_models", "CorpusPreprocess.joblib")
 
     main()

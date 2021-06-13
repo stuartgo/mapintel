@@ -5,11 +5,11 @@ WORKDIR /home/user
 RUN apt-get update && apt-get install -y curl git pkg-config cmake
 
 # install as a package
-COPY requirements.txt /home/user/
+COPY ./ui/requirements.txt /home/user/
 RUN pip install -r requirements.txt
 
 # copy UI code
-COPY . /home/user/ui
+COPY ./ui /home/user/ui
 
 EXPOSE 8501
 

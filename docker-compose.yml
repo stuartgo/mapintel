@@ -2,9 +2,9 @@ version: "3.8"
 services:
     api:
         build:
-            context: api
+            context: .
             # dockerfile: Dockerfile
-            dockerfile: DockerfileGPU  # Utilize the GPU to improve indexing and search
+            dockerfile: api/DockerfileGPU  # Utilize the GPU to improve indexing and search
         ports:
             - 8000:8000
         restart: always  # The policy always restarts the container until its removal
@@ -22,8 +22,8 @@ services:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
     ui:
         build:
-            context: ui
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: ui/Dockerfile
         ports:
             - 8501:8501
         environment:

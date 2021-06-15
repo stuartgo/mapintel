@@ -6,7 +6,7 @@ The project aims to explore new solutions in the area of text mining, more speci
 Usage
 ------------
 
-The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, such as NEWSAPIKEY, MONGOUSERNAME, MONGOPASSWORD and MONGODB. Each variable should be stored as a key-value pair e.g. *NEWSAPIKEY = "value_here"*. This file isn't versioned and therefore should be created by each user.
+The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, primarly NEWSAPIKEY. Each variable should be stored as a key-value pair e.g. *NEWSAPIKEY = "value_here"*. This file isn't versioned and therefore should be created by each user.
 
 A conda environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. The Makefile can be used to create the environment using conda `make create_environment`. **The conda environment should be active before running any command related with the project (use `conda activate mapintel` for this purpose)**. After activating the environment, install the necessary dependencies with `make requirements`.
 
@@ -39,22 +39,16 @@ A python environment should also be created to execute the code. A requirements.
 
     Evaluates the Doc2vec embeddings and outputs the category predictive scores
 
-MongoDB access
-------------
-Accessing the MongoDB database requires a username and password. To access the database with pymongo you can use the following expression: `pymongo.MongoClient(f"mongodb+srv://{MONGOUSERNAME}:{MONGOPASSWORD}@newsapi-mongodb.e2na5.mongodb.net/{MONGODB}?retryWrites=true&w=majority")`, where MONGOUSERNAME, MONGOPASSWORD and MONGODB are variables with the username, password and database values respectively. These variables can be placed in the **.env file** and then imported as environment variables.
-
-AWS Lambda setup
-------------
-To set up the AWS Lambda service you can use `make aws_set_lambdavars` to define the environment variables and `make aws_set_lambdafun` to deploy the lambda function and all necessary dependencies.
-The scheduler trigger and the eventual destinations need to be set up manually. 
-
 Project Organization
 ------------
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
     ├── .env               <- Stores your secrets and config variables
+    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
+    │                         generated with `pip freeze > requirements.txt`
     ├── data
+    |   ├── backups        <- Backups of NewsAPI documents.
     │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
     │   ├── processed      <- The final, canonical data sets for modeling.
@@ -62,22 +56,22 @@ Project Organization
     │
     ├── outputs             <- Trained and serialized models, model predictions, model summaries
     |   |                     and other outputs
-    │   ├── ocr_outputs
-    │   ├── figures
+    │   ├── figures
+    │   ├── ocr
+    |   ├── saved_embeddings
     │   └── saved_models
     │
     ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
     │                         the creator's initials, and a short `-` delimited description, e.g.
     │                         `1.0-jqp-initial-data-exploration`.
     │
-    ├── mongodb_insertion  <- AWS lambda function package and related scripts. Used by AWS lambda
-    │                         for regular insertion of NewsAPI articles into MongoDB database.
-    │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
     │   └── figures        <- Generated graphics and figures to be used in reporting
     │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
+    ├── api                <- Api based on FastAPI that connects the database with the rest of the
+    |                         application.
+    ├── ui                 <- Ui based on Streamlit that allows searching and exploration of news
+    |                         articles.
     │
     ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
     └── src                <- Source code for use in this project.

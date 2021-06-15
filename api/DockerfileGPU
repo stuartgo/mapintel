@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y python3.7 python3.7-dev python3.7-distu
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
+# Copy backups
+COPY ./data/backups/ /home/user/data/backups
+
 # Set default Python version
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
 RUN update-alternatives --set python3 /usr/bin/python3.7

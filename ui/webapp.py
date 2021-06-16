@@ -1,27 +1,46 @@
-import sys
+from datetime import date, timedelta
 import streamlit as st
 from utils import feedback_doc, retrieve_doc, upload_doc
 
 # Init variables
 default_question = "Stock Market News"
 umap_sample_size = 10000
+only_umap = True
+filters = []
 
 # Set page configuration
-st.set_page_config(layout="wide")
+st.set_page_config(layout="centered")
 
-# UI search bar and sidebar
+# Title
 st.write("# Mapintel App")
-st.sidebar.header("Options")
-top_k_reader = st.sidebar.slider("Number of displayed documents", min_value=1, max_value=20, value=10, step=1)
-top_k_retriever = st.sidebar.slider("Number of candidate documents", min_value=1, max_value=200, value=100, step=1)
-debug = st.sidebar.checkbox("Show debug info")
 
-st.sidebar.write("## File Upload:")
-data_file = st.sidebar.file_uploader("", type=["pdf", "txt", "docx"])
-# Upload file
-if data_file:
-    raw_json = upload_doc(data_file)
-    st.sidebar.write(raw_json['status'])
+# UI sidebar
+with st.sidebar:
+    st.header("Options")
+    with st.beta_expander("Query Options"):
+        end_of_week = date.today() + timedelta(6 - date.today().weekday())
+        filter_test = st.slider(
+            "Date range", 
+            value=(date(2020,1,1), end_of_week),
+            step=timedelta(7), 
+            format="DD-MM-YY"
+        )
+        # filter_test = st.date_input(  # A different alternative
+        #     "Date range",
+        #     value=(date(2020,1,1), end_of_week),
+        # )
+
+    with st.beta_expander("Results Options"):
+        top_k_reader = st.slider("Number of displayed documents", min_value=1, max_value=20, value=10, step=1)
+        top_k_retriever = st.slider("Number of candidate documents", min_value=1, max_value=200, value=100, step=1)
+        debug = st.checkbox("Show debug info")
+
+    st.write("## File Upload:")
+    data_file = st.file_uploader("", type=["pdf", "txt", "docx"])
+    # Upload file
+    if data_file:
+        raw_json = upload_doc(data_file)
+        st.write(raw_json['status'])
 
 # Search bar
 question = st.text_input(label="Please provide your query:", value=default_question)
@@ -29,10 +48,9 @@ question = st.text_input(label="Please provide your query:", value=default_quest
 # Plot view
 from os.path import join, abspath, dirname, pardir
 import pickle
-import numpy as np
-from streamlit_bokeh_events import streamlit_bokeh_events
 from ui_components import umap_page, umatrix_page
-from vis_components import umap_plot, umatrix_plot, umatrix_cluster_plot
+from bokeh.io import curdoc
+curdoc().theme = 'dark_minimal'  # set dark theme
 
 OUTPUTS_PATH = join(dirname(abspath(__file__)), pardir, 'outputs', 'ui_outputs')
 
@@ -57,15 +75,19 @@ color_vars = {
     'Technology': 'technology',
 }
 
-# Define columns for plots
-col1, col2 = st.beta_columns(2)
-with col1:
-    st.subheader("U-matrix")
-    umatrix_page(bmus, df, color_vars)  # Get umatrix
-with col2:
+if only_umap:
     st.subheader("UMAP")
-    for i in range(6): st.text("")  # add spacing after subheadin to align the plots
     umap_page(df[:umap_sample_size], projections[:umap_sample_size])  # Get umap
+else:
+    # Define columns for plots
+    col1, col2 = st.beta_columns(2)
+    with col1:
+        st.subheader("U-matrix")
+        umatrix_page(bmus, df, color_vars)  # Get umatrix
+    with col2:
+        st.subheader("UMAP")
+        for i in range(6): st.text("")  # add spacing after subheadin to align the plots
+        umap_page(df[:umap_sample_size], projections[:umap_sample_size])  # Get umap
 
 
 st.write("___")
@@ -76,7 +98,14 @@ with st.spinner(
     "Do you want to optimize speed or accuracy? \n"
     "Check out the docs: https://haystack.deepset.ai/docs/latest/optimizationmd "
 ):
-    results, raw_json = retrieve_doc(question, top_k_reader=top_k_reader, top_k_retriever=top_k_retriever)
+    if len(filters) == 0:
+        filters = None
+    results, raw_json = retrieve_doc(
+        query=question, 
+        filters=filters,
+        top_k_reader=top_k_reader, 
+        top_k_retriever=top_k_retriever
+    )
 
 st.write("## Retrieved answers:")
 
@@ -86,7 +115,7 @@ raw_json_feedback = ""
 
 for result in results:
     # Define columns for answer text and image
-    col1, mid, col2 = st.beta_columns([6, 1, 3])
+    col1, _, col2 = st.beta_columns([6, 1, 3])
     with col1:
         st.write(result["answer"])
     with col2:
@@ -115,7 +144,7 @@ for result in results:
     "**Relevance:** ", result["relevance"], "**Source:** ", result["source"], "**Published At:** ", result["publishedat"]
 
     # Define columns for feedback buttons
-    button_col1, button_col2, button_col3 = st.beta_columns([1, 1, 8])
+    button_col1, button_col2, _ = st.beta_columns([1, 1, 8])
     if button_col1.button("👍", key=(result["answer"] + str(count)), help="Relevant document"):
         raw_json_feedback = feedback_doc(
             question, result["answer"], result["document_id"], 1, "true", "true"

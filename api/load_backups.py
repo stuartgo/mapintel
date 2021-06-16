@@ -12,6 +12,7 @@ from config import PIPELINE_YAML_PATH, INDEXING_NU_PIPELINE_NAME
 logger = logging.getLogger(__name__)
 
 try:
+    logger.info("Loading Indexing Pipeline from yaml file.")
     INDEXING_PIPELINE = CustomPipeline.load_from_yaml(Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME)
 except KeyError:
     logger.info("Indexing Pipeline not found in the YAML configuration. News Upload API will not be available.")

@@ -19,7 +19,8 @@ router = APIRouter()
 
 class Request(BaseModel):
     query: str
-    filters: Optional[Dict[str, Optional[Union[str, List[str]]]]] = None
+    filters: Optional[List[dict]] = None
+    match: Optional[List[dict]] = None
     top_k_retriever: Optional[int]
     top_k_reader: Optional[int]
 
@@ -51,22 +52,7 @@ def query(request: Request):
 def _process_request(pipeline, request) -> Response:
     start_time = time.time()
 
-    filters = {}
-    if request.filters:
-        # TODO: filters don't work in haystack with the knn search provided by ODElasticsearch
-        # This can be implemented as it is shown to be possible in the article below:
-        # https://opendistro.github.io/for-elasticsearch/blog/odfe-updates/2020/04/Building-k-Nearest-Neighbor-(k-NN)-Similarity-Search-Engine-with-Elasticsearch/
-        logger.warning('Haystack doesn\'t support filters on knn similarity search yet. See https://github.com/deepset-ai/haystack/issues/1139 for further information.')
-
-        # # put filter values into a list and remove filters with null value
-        # for key, values in request.filters.items():
-        #     if values is None:
-        #         continue
-        #     if not isinstance(values, list):
-        #         values = [values]
-        #     filters[key] = values
-
-    result = pipeline.run(query=request.query, filters=filters, 
+    result = pipeline.run(query=request.query, filters=request.filters, match=request.match,
         top_k_retriever=request.top_k_retriever, top_k_reader=request.top_k_reader)
 
     end_time = time.time()

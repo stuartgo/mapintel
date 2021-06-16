@@ -1,9 +1,15 @@
 """
 See https://github.com/deepset-ai/haystack/issues/955 for further context
 """
-from typing import List, Optional
+import logging
+import numpy as np
+from typing import List, Optional, Dict
+from copy import deepcopy
 from haystack import Document
 from haystack.reader.base import BaseReader
+from haystack.document_store.elasticsearch import OpenDistroElasticsearchDocumentStore
+
+logger = logging.getLogger(__name__)
 
 
 class CrossEncoderReRanker(BaseReader):
@@ -102,3 +108,102 @@ class CrossEncoderReRanker(BaseReader):
 
     def predict_batch(self, query_doc_list: List[dict], top_k: Optional[int] = None,  batch_size: Optional[int] = None):
         raise NotImplementedError("Batch prediction not yet available in CrossEncoderReRanker.")
+
+
+class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore):
+    def query_by_embedding(self,
+                            query_emb: np.ndarray,
+                            filters: Optional[List[dict]] = None,
+                            match: Optional[List[dict]] = None,
+                            top_k: int = 10,
+                            index: Optional[str] = None,
+                            return_embedding: Optional[bool] = None) -> List[Document]:
+            """
+            Find the document that is most similar to the provided `query_emb` by using a vector similarity metric.
+            :param query_emb: Embedding of the query (e.g. gathered from DPR)
+            :param filters: Optional filters to narrow down the search space. Follows Open Distro for 
+            Elasticsearch syntax: https://opendistro.github.io/for-elasticsearch-docs/docs/elasticsearch/bool/. Example: 
+                [
+                    {
+                        "terms": {
+                            "author": [
+                                "Alan Silva", 
+                                "Mark Costa",
+                            ]
+                        }
+                    },
+                    {
+                        "range": {
+                            "timestamp": {
+                                "gte": "01-01-2021",
+                                "lt": "01-06-2021" 
+                            }
+                        }
+                    }
+                ]
+            :param match: Optional matching criteria to return results that match a term in the specified field.
+            A list of dictionaries where the key is a field of the database and the value is the term you want to match.
+            Example:
+                [
+                    {
+                        "text": "Movies" 
+                    },
+                    {   
+                        "text": "Cinema"
+                    }
+                ]
+            :param top_k: How many documents to return
+            :param index: Index name for storing the docs and metadata
+            :param return_embedding: To return document embedding
+            :return:
+            """
+            if index is None:
+                index = self.index
+
+            if return_embedding is None:
+                return_embedding = self.return_embedding
+
+            if not self.embedding_field:
+                raise RuntimeError("Please specify arg `embedding_field` in ElasticsearchDocumentStore()")
+            else:
+                # +1 in similarity to avoid negative numbers (for cosine sim)
+                body = {
+                    "size": top_k,
+                    "query": {
+                        "bool": {
+                            "must": [
+                                self._get_vector_similarity_query(query_emb, top_k)
+                            ]
+                        }
+                    }
+                }
+                if filters:
+                    body["query"]["bool"]["filter"] = filters
+
+                if match:
+                    match_clause = [{"match": i} for i in match]
+                    body["query"]["bool"]["should"] = match_clause
+
+                excluded_meta_data: Optional[list] = None
+
+                if self.excluded_meta_data:
+                    excluded_meta_data = deepcopy(self.excluded_meta_data)
+
+                    if return_embedding is True and self.embedding_field in excluded_meta_data:
+                        excluded_meta_data.remove(self.embedding_field)
+                    elif return_embedding is False and self.embedding_field not in excluded_meta_data:
+                        excluded_meta_data.append(self.embedding_field)
+                elif return_embedding is False:
+                    excluded_meta_data = [self.embedding_field]
+
+                if excluded_meta_data:
+                    body["_source"] = {"excludes": excluded_meta_data}
+
+                logger.debug(f"Retriever query: {body}")
+                result = self.client.search(index=index, body=body, request_timeout=300)["hits"]["hits"]
+
+                documents = [
+                    self._convert_es_hit_to_document(hit, adapt_score_for_embedding=True, return_embedding=return_embedding)
+                    for hit in result
+                ]
+                return documents

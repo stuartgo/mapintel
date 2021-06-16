@@ -114,7 +114,6 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
     def query_by_embedding(self,
                             query_emb: np.ndarray,
                             filters: Optional[List[dict]] = None,
-                            match: Optional[List[dict]] = None,
                             top_k: int = 10,
                             index: Optional[str] = None,
                             return_embedding: Optional[bool] = None) -> List[Document]:
@@ -139,17 +138,6 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                                 "lt": "01-06-2021" 
                             }
                         }
-                    }
-                ]
-            :param match: Optional matching criteria to return results that match a term in the specified field.
-            A list of dictionaries where the key is a field of the database and the value is the term you want to match.
-            Example:
-                [
-                    {
-                        "text": "Movies" 
-                    },
-                    {   
-                        "text": "Cinema"
                     }
                 ]
             :param top_k: How many documents to return
@@ -179,10 +167,6 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                 }
                 if filters:
                     body["query"]["bool"]["filter"] = filters
-
-                if match:
-                    match_clause = [{"match": i} for i in match]
-                    body["query"]["bool"]["should"] = match_clause
 
                 excluded_meta_data: Optional[list] = None
 

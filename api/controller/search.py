@@ -20,7 +20,6 @@ router = APIRouter()
 class Request(BaseModel):
     query: str
     filters: Optional[List[dict]] = None
-    match: Optional[List[dict]] = None
     top_k_retriever: Optional[int]
     top_k_reader: Optional[int]
 
@@ -52,7 +51,7 @@ def query(request: Request):
 def _process_request(pipeline, request) -> Response:
     start_time = time.time()
 
-    result = pipeline.run(query=request.query, filters=request.filters, match=request.match,
+    result = pipeline.run(query=request.query, filters=request.filters,
         top_k_retriever=request.top_k_retriever, top_k_reader=request.top_k_reader)
 
     end_time = time.time()

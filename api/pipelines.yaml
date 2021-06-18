@@ -16,7 +16,7 @@ components:    # define all the building-blocks for Pipeline
     type: EmbeddingRetriever
     params:
       document_store: DocumentStore    # params can reference other components defined in the YAML
-      embedding_model: msmarco-distilbert-base-v2    # https://www.sbert.net/examples/applications/semantic-search/README.html
+      embedding_model: data/external/msmarco-distilbert-base-v2    # https://www.sbert.net/examples/applications/semantic-search/README.html
       model_format: sentence_transformers
       top_k: 100
   - name: Reader    # custom-name for the component; helpful for visualization & debugging

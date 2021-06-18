@@ -2,10 +2,13 @@ FROM python:3.7.4-stretch
 
 WORKDIR /home/user
 
-RUN apt-get update && apt-get install -y curl git pkg-config cmake
+RUN apt-get update && apt-get install -y curl git pkg-config cmake wget
 
 # Copy backups
 COPY ./data/backups/ /home/user/data/backups
+
+# Copy external
+COPY ./data/external/ /home/user/data/external
 
 # Install PDF converter
 RUN wget --no-check-certificate https://dl.xpdfreader.com/xpdf-tools-linux-4.03.tar.gz && \

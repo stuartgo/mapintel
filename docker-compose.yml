@@ -10,7 +10,6 @@ services:
         restart: always  # The policy always restarts the container until its removal
         depends_on:
             - odfe-node1
-            # - odfe-node2
         networks:
             - odfe-net
         secrets:
@@ -20,6 +19,9 @@ services:
                 reservations:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
+        volumes:  
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
     ui:
         build:
             context: .
@@ -30,6 +32,10 @@ services:
             - API_ENDPOINT=http://api:8000
         networks:
             - odfe-net
+        volumes:  
+            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container. Comment when not needed!
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
     odfe-node1:
         image: amazon/opendistro-for-elasticsearch:1.13.2
         container_name: odfe-node1
@@ -42,71 +48,9 @@ services:
             - 9200:9200
         networks:
             - odfe-net
-    # pytorch-gpu:
-    #     build:
-    #         context: .
-    #         dockerfile: Dockerfile
-    #     container_name: pytorch-gpu
-    #     ports:
-    #         - 8888:8888
-    #     volumes:
-    #         - ./:/workspace  # specify a host path to create a bind mount
-    #     networks:
-    #         - odfe-net
-    #     deploy:
-    #         resources:
-    #             reservations:
-    #                 devices:
-    #                     - capabilities: [gpu]
-    # odfe-node1:
-    #     image: amazon/opendistro-for-elasticsearch:1.13.2
-    #     container_name: odfe-node1
-    #     environment:
-    #         - cluster.name=odfe-cluster
-    #         - node.name=odfe-node1
-    #         - discovery.seed_hosts=odfe-node1,odfe-node2
-    #         - cluster.initial_master_nodes=odfe-node1,odfe-node2
-    #         - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
-    #         - "ES_JAVA_OPTS=-Xms2g -Xmx2g" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
-    #     ulimits:
-    #         memlock:
-    #             soft: -1
-    #             hard: -1
-    #         nofile:
-    #             soft: 65536 # maximum number of open files for the Elasticsearch user, set to at least 65536 on modern systems
-    #             hard: 65536
-    #     volumes:
-    #         - odfe-data1:/usr/share/elasticsearch/data
-    #     ports:
-    #         - 9200:9200
-    #         # - 9600:9600 # required for Performance Analyzer
-    #     networks:
-    #         - odfe-net
-    # odfe-node2:
-    #     image: amazon/opendistro-for-elasticsearch:1.13.2
-    #     container_name: odfe-node2
-    #     environment:
-    #         - cluster.name=odfe-cluster
-    #         - node.name=odfe-node2
-    #         - discovery.seed_hosts=odfe-node1,odfe-node2
-    #         - cluster.initial_master_nodes=odfe-node1,odfe-node2
-    #         - bootstrap.memory_lock=true
-    #         - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
-    #     ulimits:
-    #         memlock:
-    #             soft: -1
-    #             hard: -1
-    #         nofile:
-    #             soft: 65536
-    #             hard: 65536
-    #     volumes:
-    #         - odfe-data2:/usr/share/elasticsearch/data
-    #     networks:
-    #         - odfe-net
 
 volumes: # Creating volumes by specifying them under the top-level volumes section
     odfe-data1: # empty entries will be created according to the "platform's default configuration"
-    # odfe-data2:
 
 networks: # Creating networkS by specifying them under the top-level networks section
     odfe-net:

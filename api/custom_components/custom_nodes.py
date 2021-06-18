@@ -3,11 +3,12 @@ See https://github.com/deepset-ai/haystack/issues/955 for further context
 """
 import logging
 import numpy as np
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Generator, Union
 from copy import deepcopy
 from haystack import Document
 from haystack.reader.base import BaseReader
 from haystack.document_store.elasticsearch import OpenDistroElasticsearchDocumentStore
+from elasticsearch.helpers import scan
 
 logger = logging.getLogger(__name__)
 
@@ -191,3 +192,128 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                     for hit in result
                 ]
                 return documents
+
+    def get_all_documents(
+        self,
+        index: Optional[str] = None,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+        return_embedding: Optional[bool] = None,
+        embedding_field: Optional[str] = None,
+        only_documents_without_embedding: bool = False,
+        batch_size: int = 10_000,
+    ) -> List[Document]:
+        """
+        Get documents from the document store.
+
+        If only_documents_without_embedding=True, then it only retrieves the documents in the 
+        index without a value in the embedding_field (defaults to self.embedding_field).
+
+        :param index: Name of the index to get the documents from. If None, the
+                      DocumentStore's default index (self.index) will be used.
+        :param filters: Optional filters to narrow down the documents to return.
+                        Example: {"name": ["some", "more"], "category": ["only_one"]}
+        :param return_embedding: Whether to return the document embeddings.
+        :param embedding_field: field to consider when looking for document without embedding.
+                                Defaults to self.embedding_field.
+        :param only_documents_without_embedding: whether or not to return only documents without embedding in 
+                                                 embedding_field.
+        :param batch_size: When working with large number of documents, batching can help reduce memory footprint.
+        """
+        result = self.get_all_documents_generator(
+            index=index, 
+            filters=filters, 
+            return_embedding=return_embedding,
+            embedding_field=embedding_field,
+            only_documents_without_embedding=only_documents_without_embedding,
+            batch_size=batch_size
+        )
+        documents = list(result)
+        return documents
+
+    def get_all_documents_generator(
+        self,
+        index: Optional[str] = None,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+        return_embedding: Optional[bool] = None,
+        embedding_field: Optional[str] = None,
+        only_documents_without_embedding: bool = False,
+        batch_size: int = 10_000,
+    ) -> Generator[Document, None, None]:
+        """
+        Get documents from the document store without an embedding. 
+        
+        Under-the-hood, documents are fetched in batches from the
+        document store and yielded as individual documents. This method can be used to iteratively process
+        a large number of documents without having to load all documents in memory.
+
+        If only_documents_without_embedding=True, then it only retrieves the documents in the 
+        index without a value in the embedding_field.
+        
+        :param index: Name of the index to get the documents from. If None, the
+                      DocumentStore's default index (self.index) will be used.
+        :param filters: Optional filters to narrow down the documents to return.
+                        Example: {"name": ["some", "more"], "category": ["only_one"]}
+        :param return_embedding: Whether to return the document embeddings.
+        :param embedding_field: field to consider when looking for document without embedding.
+                                Defaults to self.embedding_field.
+        :param only_documents_without_embedding: whether or not to return only documents without embedding in 
+                                                 embedding_field.
+        :param batch_size: When working with large number of documents, batching can help reduce memory footprint.
+        """
+
+        if index is None:
+            index = self.index
+
+        if return_embedding is None:
+            return_embedding = self.return_embedding
+        
+        result = self._get_all_documents_in_index(
+            index=index, 
+            filters=filters, 
+            batch_size=batch_size, 
+            embedding_field=embedding_field,
+            only_documents_without_embedding=only_documents_without_embedding
+        )
+        for hit in result:
+            document = self._convert_es_hit_to_document(hit, return_embedding=return_embedding)
+            yield document
+
+    def _get_all_documents_in_index(
+        self,
+        index: str,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+        batch_size: int = 10_000,
+        only_documents_without_embedding: bool = False,
+        embedding_field: Optional[str] = None
+    ) -> Generator[dict, None, None]:
+        """
+        Return all documents in a specific index in the document store.
+        If only_documents_without_embedding=True, then it only retrieves
+        the documents in the index without a value in the embedding_field.
+        """
+        body: dict = {"query": {"bool": {}}}
+
+        if embedding_field is None:
+            embedding_field = self.embedding_field
+
+        if filters:
+            # To not disrupt any of the code of Haystack we can accept both
+            # the old filters format or the new format. The following if-else
+            # clause deals with the operations for the right format.
+            if isinstance(filters, dict):
+                filter_clause = []
+                for key, values in filters.items():
+                    filter_clause.append(
+                        {
+                            "terms": {key: values}
+                        }
+                    )
+                body["query"]["bool"]["filter"] = filter_clause
+            else:
+                body["query"]["bool"]["filter"] = filters
+
+        if only_documents_without_embedding:
+            body['query']['bool']['must_not'] = [{"exists": {"field": embedding_field}}]
+
+        result = scan(self.client, query=body, index=index, size=batch_size, scroll="1d")
+        yield from result

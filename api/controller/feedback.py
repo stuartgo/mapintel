@@ -4,15 +4,11 @@ from typing import Dict, Union, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from api.controller.search import PIPELINE
+from api.controller.search import document_store
 
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
-
-# TODO make this generic for other pipelines with different naming
-retriever = PIPELINE.get_node(name="Retriever")
-document_store = retriever.document_store if retriever else None
 
 
 # TODO: Change the haystack.schema.Label so we don't need to pass is_correct_document (redundant).

@@ -25,7 +25,6 @@ except KeyError:
 # Getting NewsAPI key and establish connection to NewsAPI
 load_dotenv("/run/secrets/dotenv-file")  # hard-coded: path to secret passed through docker-compose
 NEWSAPIKEY = os.environ.get("NEWSAPIKEY")
-news_client = newsapi.NewsApiClient(api_key=NEWSAPIKEY)
 
 
 class Response(BaseModel):
@@ -35,6 +34,9 @@ class Response(BaseModel):
 @router.post("/news-upload", response_model=Response)
 def news_upload():
     try:
+        # Open NewsApi connection
+        news_client = newsapi.NewsApiClient(api_key=NEWSAPIKEY)
+
         if not INDEXING_PIPELINE:
             raise HTTPException(status_code=501, detail="Indexing Pipeline is not configured.")
         

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from api.custom_components.custom_pipe import CustomPipeline
@@ -36,19 +37,17 @@ class Response(BaseModel):
     answers: List[Answer]
 
 
-class Request_binary(BaseModel):
+class Request_generator(BaseModel):
     filters: Optional[List[dict]] = None
-    sample_size: Optional[float] = None
+    batch_size: Optional[int] = None
 
 
-class Answer_binary(BaseModel):
-    answer: Optional[str]
-    document_id: Optional[str] = None
-    meta: Optional[Dict[str, Optional[Union[str, List]]]]
+class Request_count(BaseModel):
+    filters: Optional[List[dict]] = None
 
 
-class Response_binary(BaseModel):
-    answers: List[Answer_binary]
+class Response_count(BaseModel):
+    num_documents: int
 
 
 PIPELINE = CustomPipeline.load_from_yaml(Path(PIPELINE_YAML_PATH), pipeline_name=QUERY_PIPELINE_NAME)
@@ -67,28 +66,36 @@ def query(request: Request):
         return result
 
 
-@router.post("/query-binary", response_model=Response_binary)
-def query_binary(request: Request_binary):
-        result = document_store.get_all_documents(
-            filters=request.filters
-        )
-        # Sampling the results
-        if request.sample_size:
-            if request.sample_size == 0:
-                pass
-            elif request.sample_size < 1:
-                result = sample(result, int(request.sample_size * len(result)))
-            elif request.sample_size < len(result):
-                result = sample(result, int(request.sample_size))  
-        answers = [
+@router.get("/all-docs-generator")
+def all_docs_generator(request: Request_generator):
+    result_generator = document_store.get_all_documents_generator(
+        filters=request.filters,
+        return_embedding=False,
+        batch_size=request.batch_size
+    )
+    # Define answers generator (adds procedures to the previous generator)
+    answers = _encoded_results(result_generator)
+    return StreamingResponse(answers)
+
+
+@router.get("/doc-count", response_model=Response_count)
+def doc_count(request: Request_count):
+    num_docs = document_store.get_document_count(filters=request.filters)
+    return {"num_documents": num_docs}
+
+
+def _encoded_results(results):
+    """https://github.com/encode/starlette/issues/419#issuecomment-470077657"""
+    for idx, doc in enumerate(results):
+        if idx > 0:
+            yield "#SEP#"  # delimiter
+        yield json.dumps(
             {
                 'answer': doc.text,
                 'document_id': doc.id,
                 'meta': doc.meta
             }
-            for doc in result
-        ]
-        return {"answers": answers}
+        )
 
 
 def _process_request(pipeline, request) -> Response:

@@ -26,6 +26,7 @@ class Request_query(BaseModel):
 
 class Response_query(BaseModel):
     status: str
+    query_text: Optional[str]
     query_umap: Optional[List[float]]
 
 
@@ -68,7 +69,7 @@ def umap_query(request: Request_query):
         # call umap.transform() to obtain the 2 dimensional representation of the query
         logger.info("Obtaining the UMAP embedding of the query.")
         query_umap = umap.transform(X)
-        return {'status': 'Success', 'query_umap': query_umap[0].tolist()}
+        return {'status': 'Success', 'query_text': request.query, 'query_umap': query_umap[0].tolist()}
             
 
 # TODO: Fine-tune the UMAP model!

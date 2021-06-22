@@ -114,7 +114,7 @@ class CrossEncoderReRanker(BaseReader):
 class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore):
     def query_by_embedding(self,
                             query_emb: np.ndarray,
-                            filters: Optional[List[dict]] = None,
+                            filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
                             top_k: int = 10,
                             index: Optional[str] = None,
                             return_embedding: Optional[bool] = None) -> List[Document]:
@@ -167,7 +167,7 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                     }
                 }
                 if filters:
-                    body["query"]["bool"]["filter"] = filters
+                    body = self._filter_adapter(body, filters)
 
                 excluded_meta_data: Optional[list] = None
 
@@ -192,6 +192,28 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                     for hit in result
                 ]
                 return documents
+    
+    def get_document_count(
+        self, 
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+        index: Optional[str] = None,
+        only_documents_without_embedding: bool = False
+    ) -> int:
+        """
+        Return the number of documents in the document store.
+        """
+        index = index or self.index
+
+        body: dict = {"query": {"bool": {}}}
+        if only_documents_without_embedding:
+            body['query']['bool']['must_not'] = [{"exists": {"field": self.embedding_field}}]
+
+        if filters:
+            body = self._filter_adapter(body, filters)
+        
+        result = self.client.count(index=index, body=body)
+        count = result["count"]
+        return count
 
     def get_all_documents(
         self,
@@ -297,23 +319,35 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
             embedding_field = self.embedding_field
 
         if filters:
-            # To not disrupt any of the code of Haystack we can accept both
-            # the old filters format or the new format. The following if-else
-            # clause deals with the operations for the right format.
-            if isinstance(filters, dict):
-                filter_clause = []
-                for key, values in filters.items():
-                    filter_clause.append(
-                        {
-                            "terms": {key: values}
-                        }
-                    )
-                body["query"]["bool"]["filter"] = filter_clause
-            else:
-                body["query"]["bool"]["filter"] = filters
+            body = self._filter_adapter(body, filters)
 
         if only_documents_without_embedding:
             body['query']['bool']['must_not'] = [{"exists": {"field": embedding_field}}]
 
         result = scan(self.client, query=body, index=index, size=batch_size, scroll="1d")
         yield from result
+
+    def _filter_adapter(
+        self,
+        query_body: dict,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+    ) -> dict:
+        # To not disrupt any of the code of Haystack we can accept both
+        # the old filters format or the new format. The following if-else
+        # clause deals with the operations for the right format.
+        if isinstance(filters, dict):
+            filter_clause = []
+            for key, values in filters.items():
+                if type(values) != list:
+                    raise ValueError(
+                        f'Wrong filter format for key "{key}": Please provide a list of allowed values for each key. '
+                        'Example: {"name": ["some", "more"], "category": ["only_one"]} ')
+                filter_clause.append(
+                    {
+                        "terms": {key: values}
+                    }
+                )
+            query_body["query"]["bool"]["filter"] = filter_clause
+        else:
+            query_body["query"]["bool"]["filter"] = filters
+        return query_body

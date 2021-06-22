@@ -51,4 +51,4 @@ def umatrix_page(bmus, df, color_vars):
     else:
         mask = np.zeros(df.shape[0]).astype(bool)
 
-    return mask, event_result
+    return mask

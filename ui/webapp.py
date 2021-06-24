@@ -15,10 +15,13 @@ from utils import (
 )
 
 # TODO: A problem with the application is that when setting the slider value the query
-# will execute even if we didn't finish selecting the value we want. Can we make a rule 
-# like: If the slider value hasn't changed in 2 seconds, then execute the query?
+# will execute even if we didn't finish selecting the value we want. A temporary solution
+# is to wrap the sliders inside a form component. The ideal solution would be to create
+# a custom slider component that only updates the value when we release the mouse.
 # TODO: When selecting a point in the UMAP, show the KNN points highlighted on the plot
 # and the listed below (the action of selecting the point will call the query endpoint)
+# TODO: Create a function to parse the query and allow search operators like "term" to
+# restrict the query to documents that contain "term"
 
 # Init variables
 default_question = "Stock Market News"
@@ -38,52 +41,53 @@ st.write("# Mapintel App")
 # UI sidebar
 with st.sidebar:
     st.header("Options:")
-    st.write("Global Options")
-    end_of_week = date.today() + timedelta(6 - date.today().weekday())
-    _, mid, _ = st.beta_columns([1, 10, 1])
-    with mid:  # Use columns to avoid slider labels being off-window
-        filter_date = st.slider(
-            "Date range", 
-            value=(date(2020,1,1), end_of_week),
-            step=timedelta(7), 
-            format="DD-MM-YY"
-        )
-    with st.beta_expander("Query Options"):
-        # TODO: remove hard encoding of unique categories. When creating the topic modeling endpoint, 
-        # put the unique categories in the results and pass it here
-        unique_categories = ['Business', 'Entertainment', 'General', 'Health', 'Science', 'Sports', 'Technology']
-        filter_category = st.multiselect(
-            "Category",
-            options = unique_categories
-        )        
-    with st.beta_expander("Results Options"):
-        top_k_reader = st.slider(
-            "Number of returned documents",
-            min_value=1, 
-            max_value=20, 
-            value=10, 
-            step=1
-        )
-        top_k_retriever = st.slider(
-            "Number of candidate documents", 
-            min_value=1, 
-            max_value=200, 
-            value=100, 
-            step=1
-        )
-        if debug_mode:
-            debug = st.checkbox("Show debug info")
-        else:
-            debug = None
-    with st.beta_expander("Visualization Options"):
-        umap_perc = st.slider(
-            "Percentage of documents displayed", 
-            min_value=1, 
-            max_value=100, 
-            value=1, 
-            step=1, 
-            help="Display a randomly sampled percentage of the documents to improve performance"
-        )
+    with st.form(key="options_form"):
+        end_of_week = date.today() + timedelta(6 - date.today().weekday())
+        _, mid, _ = st.beta_columns([1, 10, 1])
+        with mid:  # Use columns to avoid slider labels being off-window
+            filter_date = st.slider(
+                "Date range", 
+                value=(date(2020,1,1), end_of_week),
+                step=timedelta(7), 
+                format="DD-MM-YY"
+            )
+        with st.beta_expander("Query Options"):
+            # TODO: remove hard encoding of unique categories. When creating the topic modeling endpoint, 
+            # put the unique categories in the results and pass it here
+            unique_categories = ['Business', 'Entertainment', 'General', 'Health', 'Science', 'Sports', 'Technology']
+            filter_category = st.multiselect(
+                "Category",
+                options = unique_categories
+            )        
+        with st.beta_expander("Results Options"):
+            top_k_reader = st.slider(
+                "Number of returned documents",
+                min_value=1, 
+                max_value=20, 
+                value=10, 
+                step=1
+            )
+            top_k_retriever = st.slider(
+                "Number of candidate documents", 
+                min_value=1, 
+                max_value=200, 
+                value=100, 
+                step=1
+            )
+            if debug_mode:
+                debug = st.checkbox("Show debug info")
+            else:
+                debug = None
+        with st.beta_expander("Visualization Options"):
+            umap_perc = st.slider(
+                "Percentage of documents displayed", 
+                min_value=1, 
+                max_value=100, 
+                value=1, 
+                step=1, 
+                help="Display a randomly sampled percentage of the documents to improve performance"
+            )
+        st.form_submit_button(label='Submit')
     st.header("File Upload:")
     data_file = st.file_uploader("", type=["pdf", "txt", "docx"])
     # Upload file

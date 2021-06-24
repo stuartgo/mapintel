@@ -178,11 +178,10 @@ for result in results:
     with col1:
         st.write(result["answer"])
     with col2:
-        # TODO: resolve issue of document_placeholder.png not showing
         if result['image_url'] is not None:
             image_url = result['image_url']
         else:
-            image_url = 'document_placeholder.png'
+            image_url = 'http://www.jennybeaumont.com/wp-content/uploads/2015/03/placeholder.gif'
 
         if result['url'] is not None:
             st.markdown(

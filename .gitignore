@@ -1,11 +1,7 @@
 # Custom
-notebooks/mlruns
-mongodb_insertion/python_package
-mongodb_insertion/newsapi_mongodb.zip
-outputs/
-vec4ir/
-senteval/
+experiments/notebooks/mlruns/
 sompy/
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

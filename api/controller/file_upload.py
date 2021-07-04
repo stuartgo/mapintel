@@ -43,6 +43,12 @@ def file_upload(
     split_overlap: Optional[int] = Form(None),
     split_respect_sentence_boundary: Optional[bool] = Form(False)  # Set to False temporarly because of unresolved issue https://github.com/deepset-ai/haystack/issues/1038
 ):
+    """File Upload endpoint.
+
+    Receives a document as input from any file type, extracts its text content, 
+    preprocesses it, gets the corresponding embeddings and adds it to the document
+    store.
+    """
     if not INDEXING_PIPELINE:
         raise HTTPException(status_code=501, detail="Indexing Pipeline is not configured.")
     try:

@@ -74,11 +74,6 @@ def string_cleaner(text):
 
 
 def documents_cleaner(documents):
-    """[summary]
-
-    Args:
-        documents (list of dicts): [description]
-    """
     # Cleaning the documents
     logger.info("Cleaning the documents.")
     dicts=[]

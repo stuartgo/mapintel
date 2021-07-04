@@ -27,12 +27,17 @@ class FilterRequest(BaseModel):
 
 @router.post("/feedback")
 def user_feedback(feedback: ExtractiveQAFeedback):
+    """Feedback endpoint.
+
+    Writes the feedback labels of responses to a query into the document store. 
+    """
     document_store.write_labels([{"origin": "user-feedback", **feedback.dict()}])
 
 
 @router.post("/eval-feedback")
 def eval_extractive_qa_feedback(filters: FilterRequest = None):
-    """
+    """Eval Feedback endpoint.
+
     Return basic accuracy metrics based on the user feedback.
     Which ratio of documents was relevant?
     You can supply filters in the request to only use a certain subset of labels.

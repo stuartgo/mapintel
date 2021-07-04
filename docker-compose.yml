@@ -3,8 +3,7 @@ services:
     api:
         build:
             context: .
-            # dockerfile: Dockerfile
-            dockerfile: api/DockerfileGPU  # Utilize the GPU to improve indexing and search
+            dockerfile: api/Dockerfile  # Utilize the GPU to improve indexing and search
         ports:
             - 8000:8000
         restart: always  # The policy always restarts the container until its removal
@@ -22,10 +21,30 @@ services:
         volumes:  
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
+    api-cpu:
+        build:
+            context: .
+            dockerfile: api/DockerfileCPU
+        profiles:
+            - api-cpu  # uses cpu over gpu if profile set that way
+        ports:
+            - 8000:8000
+        restart: always  # The policy always restarts the container until its removal
+        depends_on:
+            - odfe-node1
+        networks:
+            - odfe-net
+        secrets:
+            - dotenv-file
+        volumes:  
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
     ui:
         build:
             context: .
             dockerfile: ui/Dockerfile
+        profiles:
+            - ui
         ports:
             - 8501:8501
         environment:
@@ -33,7 +52,43 @@ services:
         networks:
             - odfe-net
         volumes:  
-            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container. Comment when not needed!
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
+    ui-dev:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-dev
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api:8000
+        networks:
+            - odfe-net
+        volumes:  
+            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
+    experiments:
+        build:
+            context: .
+            dockerfile: experiments/Dockerfile
+        profiles:
+            - experiments
+        ports:
+            - 9999:9999
+        networks:
+            - odfe-net
+        secrets:
+            - dotenv-file
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - capabilities: [gpu]  # Enable container to use gpu resources from host
+        volumes:
+            - ./experiments:/home/user/experiments
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
     odfe-node1:
@@ -52,7 +107,7 @@ services:
 volumes: # Creating volumes by specifying them under the top-level volumes section
     odfe-data1: # empty entries will be created according to the "platform's default configuration"
 
-networks: # Creating networkS by specifying them under the top-level networks section
+networks: # Creating networks by specifying them under the top-level networks section
     odfe-net:
 
 secrets:

@@ -33,6 +33,11 @@ class Response(BaseModel):
 
 @router.post("/news-upload", response_model=Response)
 def news_upload():
+    """News Upload endpoint.
+
+    Gets latest news from NewsAPI and respective metadata, cleans the documents 
+    and runs them through the indexing pipeline to be stored in the database.
+    """
     try:
         # Open NewsApi connection
         news_client = newsapi.NewsApiClient(api_key=NEWSAPIKEY)

@@ -61,6 +61,12 @@ concurrency_limiter = RequestLimiter(4)
 
 @router.post("/query", response_model=Response)
 def query(request: Request):
+    """Query endpoint.
+
+    Performs a query on the document store based on semantic search and approximate 
+    nearest neighbors. Also, applies boolean filters to the documents before performing
+    semantic search.
+    """
     with concurrency_limiter.run():
         result = _process_request(PIPELINE, request)
         return result
@@ -68,6 +74,14 @@ def query(request: Request):
 
 @router.get("/all-docs-generator")
 def all_docs_generator(request: Request_generator):
+    """All Docs Generator endpoint.
+
+    Returns a Streaming Response consisting of a generator that iterates over the 
+    document store, given a set of boolean filters. The documents aren't iterated in order
+    as can be confirmed in: https://elasticsearch-py.readthedocs.io/en/v7.11.0/helpers.html#elasticsearch.helpers.scan.
+    This generator can be used to obtain random samples of the document store without
+    having to hold all documents in memory.
+    """
     result_generator = document_store.get_all_documents_generator(
         filters=request.filters,
         return_embedding=False,
@@ -80,6 +94,11 @@ def all_docs_generator(request: Request_generator):
 
 @router.get("/doc-count", response_model=Response_count)
 def doc_count(request: Request_count):
+    """Doc Count endpoint.
+    
+    Gets the number of documents in the document store that satisfy a particular
+    boolean filter.
+    """
     num_docs = document_store.get_document_count(filters=request.filters)
     return {"num_documents": num_docs}
 

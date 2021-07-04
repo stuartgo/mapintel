@@ -1,5 +1,7 @@
 .PHONY: all data features evaluation clean lint aws_set_lambdavars aws_set_lambdafun create_environment requirements test_environment
 
+# TODO: UPDATE MAKEFILE OR DELETE IF NOT NEEDED ANYMORE (CURRENTLY NOT WORKING)
+
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################

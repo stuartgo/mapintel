@@ -1,0 +1,8 @@
+farm-haystack==0.8.0
+sentence-transformers==1.1.1
+newsapi-python==0.2.6
+beautifulsoup4==4.9.1
+langdetect==1.0.8
+python-dotenv==0.14.0
+umap-learn==0.5.1
+tqdm

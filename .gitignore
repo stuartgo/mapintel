@@ -1,12 +1,7 @@
 # Custom
-mongodb_insertion/python_package
-mongodb_insertion/newsapi_mongodb.zip
-models/saved_models/
-models/saved_embeddings/
-models/figures/
-vec4ir/
-senteval/
+experiments/notebooks/mlruns/
 sompy/
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

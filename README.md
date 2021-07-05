@@ -1,102 +1,61 @@
-Mapintel
-==============================
+# Mapintel
 
 The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.
 
-Usage
-------------
+## Usage
 
-The project requires the existence of a **.env file** under the root of the project. This file holds all the private variables necessary for the execution of the code, primarly NEWSAPIKEY. Each variable should be stored as a key-value pair e.g. *NEWSAPIKEY = "value_here"*. This file isn't versioned and therefore should be created by each user.
+Some components of the project require the existence of a **.env file** under the root folder of the project. This file holds all the private variables necessary for executing parts of the code. Because of its private nature, the file isn't versioned and needs to be created by the user. All variables should be stored as key-value pairs e.g. *VARIABLE_NAME = "variable_value"*. Below is a list of the existing variables and how each affects the project:
 
-A conda environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. The Makefile can be used to create the environment using conda `make create_environment`. **The conda environment should be active before running any command related with the project (use `conda activate mapintel` for this purpose)**. After activating the environment, install the necessary dependencies with `make requirements`.
+- NEWSAPIKEY: Holds the key for using the API to obtain the updated news-articles. A News API key can be obtained by [creating an account](https://newsapi.org/register) with News API. 
 
-A News API key can be obtained by simply [registering](https://newsapi.org/register) an account with News API.
+You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. To launch the Mapintel UI application, run the following command from the root folder of the Mapintel repository:
+```
+docker-compose --profile ui up
+```
+To launch the Experiments container, run the following command from the root folder of the Mapintel repository:
+```
+docker-compose --profile experiments up
+```
 
-A python environment should also be created to execute the code. A requirements.txt and a environment.yml file can be found on the project's root for this purpose. The Makefile can be used to create the environment `make create_environment` and to install the necessary dependencies `make requirements`.
+If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains al,l the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
 
+The project makes use of a CUDA-enabled GPU to improve its performance. Making the project compatible without this resource is something we intend to provide in the future. Any contributions in this aspect are appreciated.
 
-**The Makefile can be used to run the project:**
+Further usage information is present in the README files inside the *api*, *experiments* and *ui* folders.
 
-- `make all` will ensure the .env file exists, create all necessary directories, the dataset files, the model dumps and the evaluation scores file. Make sure the conda environment is active before running the command.
+## Project Organization
 
-**Alternatively, the scripts below can be executed in the following order, given the .env and the necessary directories exist:**
-1. *src/data/make_dataset_interim.py*
-
-    Builds the cleaned (intermediate) csv file with documents from mongodb
-2. *src/data/make_dataset_processed.py*
-
-    Builds the processed (model ready) csv file with preprocessed documents
-3. *src/features/vectorizer.py*
-
-    Fits a BOW and a TF-IDF model to the preprocessed data and saves the fitted models for posterior use at models/saved_models
-4. *src/features/doc2vec.py*
-
-    Fits a set of Doc2vec models to the preprocessed data and saves the fitted models for posterior use at models/saved_models
-5. *src/features/vectorizer_eval.py*
-
-    Evaluates the BOW and TF-IDF embeddings and outputs the category predictive scores
-6. *src/features/doc2vec_eval.py*
-
-    Evaluates the Doc2vec embeddings and outputs the category predictive scores
-
-Project Organization
-------------
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── .env               <- Stores your secrets and config variables
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    ├── data
-    |   ├── backups        <- Backups of NewsAPI documents.
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── outputs             <- Trained and serialized models, model predictions, model summaries
-    |   |                     and other outputs
-    │   ├── figures
-    │   ├── ocr
-    |   ├── saved_embeddings
-    │   └── saved_models
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── api                <- API based on FastAPI that connects the database with the rest of the application
+    |
+    ├── data               <- Stores any data produced and used by the project
+    |   |
+    |   ├── backups        <- Backups of NewsAPI documents
+    │   ├── external       <- Data from third party sources
+    │   ├── interim        <- Intermediate data that has been transformed
+    │   ├── processed      <- The final, canonical data sets for modeling
+    │   └── raw            <- The original, immutable data dump
+    |
+    ├── experiments        <- Performs experiments using data from the Open Distro for Elasticsearch instance
+    |   |
+    │   ├── notebooks      <- Jupyter notebooks: each with an experimental purpose described in the first cell
+    |   ├── src            <- Source code for use in experiments
+    |   └── setup.py       <- Makes src pip installable (pip install -e .) so src can be imported
+    |
+    ├── outputs            <- Trained and serialized models, model predictions, model summaries and other outputs
+    |   |
+    │   ├── figures        <- Figures resulting from experiments
+    │   ├── ocr            <- Optical Character Recognition ouptuts
+    |   ├── saved_embeddings    <- Saved document embeddings 
+    │   └── saved_models   <- Saved machine learning models
     │
     ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
+    |   |
     │   └── figures        <- Generated graphics and figures to be used in reporting
+    |
+    ├── ui                 <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
     │
-    ├── api                <- Api based on FastAPI that connects the database with the rest of the
-    |                         application.
-    ├── ui                 <- Ui based on Streamlit that allows searching and exploration of news
-    |                         articles.
-    │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
-    └── src                <- Source code for use in this project.
-        ├── __init__.py    <- Makes src a Python module
-        │
-        ├── data           <- Scripts to download or generate data
-        │   ├── make_dataset_interim.py
-        │   ├── make_dataset_processed.py
-        │   └── text_preprocessing.py
-        │
-        ├── features       <- Scripts to turn raw data into features for modeling
-        │   ├── doc2vec.py
-        │   ├── doc2vec_eval.py
-        │   ├── vectorizer.py
-        │   ├── vectorizer_eval.py
-        │   └── embedding_eval.py
-        │
-        ├── models         <- Scripts to train models and then use trained models to make
-        │   │                 predictions
-        │   └── senteval_evaluation.py
-        │
-        └── visualization  <- Scripts to create exploratory and results oriented visualizations
-            └── embedding_space.py
-
-
---------
-
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+    ├── .env               <- Stores your secrets and config variables
+    ├── docker-compose.yml <- The docker-compose file for reproducing the analysis environment using containers
+    ├── LICENSE
+    ├── README.md          <- The top-level README for developers using this project
+    └── requirements.txt   <- The requirements file for locally reproducing the analysis environment

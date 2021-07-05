@@ -51,8 +51,8 @@ batch_size = 60000
 def umap_query(request: Request_query):
     """UMAP Query endpoint.
 
-    Loads the fitted model and calls transform() on the embedding of the query 
-    value and returns the resulting 2 dimensional umap embeddings.
+    Loads the fitted UMAP model and calls transform() on the embedding of the query 
+    string and returns the resulting 2 dimensional UMAP embeddings.
     """
     with concurrency_limiter.run():
         # Load fitted UMAP
@@ -82,7 +82,7 @@ def umap_training(request: Request_training):
     model under outputs/saved_models. Note: this mode requires a considerable 
     amount of allocated memory to be performed.
 
-    Inserts the 2 dimensional embeddings of each document in the document store 
+    The 2 dimensional embeddings of each document are inserted in the document store 
     under the umap field. These 2 dimensional embeddings can be then obtained 
     through the search-binary endpoint, where we can specify any filter or get a random
     sample (see https://stackoverflow.com/questions/25887850/random-document-in-elasticsearch).
@@ -104,10 +104,10 @@ def umap_training(request: Request_training):
 def umap_inference():
     """UMAP Inference endpoint.
 
-    Loads the fitted model and calls transform() on any document in the database 
+    Loads the fitted UMAP model and calls transform() on any document in the database 
     that doesn't have a 2 dimensional embedding.
 
-    Inserts the 2 dimensional embeddings of each document in the document store 
+    The 2 dimensional embeddings of each document are inserted in the document store 
     under the umap field. These 2 dimensional embeddings can be then obtained 
     through the search-binary endpoint, where we can specify any filter or get a random
     sample (see https://stackoverflow.com/questions/25887850/random-document-in-elasticsearch).

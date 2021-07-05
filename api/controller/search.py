@@ -76,8 +76,8 @@ def query(request: Request):
 def all_docs_generator(request: Request_generator):
     """All Docs Generator endpoint.
 
-    Returns a Streaming Response consisting of a generator that iterates over the 
-    document store, given a set of boolean filters. The documents aren't iterated in order
+    Returns a Streaming Response consisting of a generator that iterates over the document store,
+    given a set of boolean filters. The documents aren't iterated in any particular order
     as can be confirmed in: https://elasticsearch-py.readthedocs.io/en/v7.11.0/helpers.html#elasticsearch.helpers.scan.
     This generator can be used to obtain random samples of the document store without
     having to hold all documents in memory.

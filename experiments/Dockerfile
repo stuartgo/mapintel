@@ -29,6 +29,7 @@ RUN cd experiments && pip3 install -r requirements.txt
 RUN pip3 install -e git+https://github.com/DavidSilva98/SOMPY.git#egg=SOMPY
 
 # Add Tini (What is advantage of Tini? https://github.com/krallin/tini/issues/8)
+# Also is advised by jupyter notebook docs https://jupyter-notebook.readthedocs.io/en/stable/public_server.html#docker-cmd
 ENV TINI_VERSION v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini

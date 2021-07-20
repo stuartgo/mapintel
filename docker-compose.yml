@@ -51,9 +51,6 @@ services:
             - API_ENDPOINT=http://api:8000
         networks:
             - odfe-net
-        volumes:  
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
     ui-dev:
         build:
             context: .
@@ -68,8 +65,6 @@ services:
             - odfe-net
         volumes:  
             - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
     experiments:
         build:
             context: .

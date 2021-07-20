@@ -444,3 +444,50 @@
   keywords = {business intelligence from social media,competitive intelligence,content analysis,text mining},
   series = {{{MOCR}}\_{{AND}} '11}
 }
+
+@article{malkov2018,
+  title = {Efficient and Robust Approximate Nearest Neighbor Search Using {{Hierarchical Navigable Small World}} Graphs},
+  author = {Malkov, Yu A. and Yashunin, D. A.},
+  year = {2018},
+  month = aug,
+  abstract = {We present a new approach for the approximate K-nearest neighbor search based on navigable small world graphs with controllable hierarchy (Hierarchical NSW, HNSW). The proposed solution is fully graph-based, without any need for additional search structures, which are typically used at the coarse search stage of the most proximity graph techniques. Hierarchical NSW incrementally builds a multi-layer structure consisting from hierarchical set of proximity graphs (layers) for nested subsets of the stored elements. The maximum layer in which an element is present is selected randomly with an exponentially decaying probability distribution. This allows producing graphs similar to the previously studied Navigable Small World (NSW) structures while additionally having the links separated by their characteristic distance scales. Starting search from the upper layer together with utilizing the scale separation boosts the performance compared to NSW and allows a logarithmic complexity scaling. Additional employment of a heuristic for selecting proximity graph neighbors significantly increases performance at high recall and in case of highly clustered data. Performance evaluation has demonstrated that the proposed general metric space search index is able to strongly outperform previous opensource state-of-the-art vector-only approaches. Similarity of the algorithm to the skip list structure allows straightforward balanced distributed implementation.},
+  archiveprefix = {arXiv},
+  eprint = {1603.09320},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/X2MQEFIW/Malkov and Yashunin - 2018 - Efficient and robust approximate nearest neighbor .pdf;/home/dsilva/Zotero/storage/P5KKSX5L/1603.html},
+  journal = {arXiv:1603.09320 [cs]},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition,Computer Science - Data Structures and Algorithms,Computer Science - Information Retrieval,Computer Science - Social and Information Networks},
+  primaryclass = {cs}
+}
+
+@article{bajaj2018,
+  title = {{{MS MARCO}}: {{A Human Generated MAchine Reading COmprehension Dataset}}},
+  shorttitle = {{{MS MARCO}}},
+  author = {Bajaj, Payal and Campos, Daniel and Craswell, Nick and Deng, Li and Gao, Jianfeng and Liu, Xiaodong and Majumder, Rangan and McNamara, Andrew and Mitra, Bhaskar and Nguyen, Tri and Rosenberg, Mir and Song, Xia and Stoica, Alina and Tiwary, Saurabh and Wang, Tong},
+  year = {2018},
+  month = oct,
+  abstract = {We introduce a large scale MAchine Reading COmprehension dataset, which we name MS MARCO. The dataset comprises of 1,010,916 anonymized questions---sampled from Bing's search query logs---each with a human generated answer and 182,669 completely human rewritten generated answers. In addition, the dataset contains 8,841,823 passages---extracted from 3,563,535 web documents retrieved by Bing---that provide the information necessary for curating the natural language answers. A question in the MS MARCO dataset may have multiple answers or no answers at all. Using this dataset, we propose three different tasks with varying levels of difficulty: (i) predict if a question is answerable given a set of context passages, and extract and synthesize the answer as a human would (ii) generate a well-formed answer (if possible) based on the context passages that can be understood with the question and passage context, and finally (iii) rank a set of retrieved passages given a question. The size of the dataset and the fact that the questions are derived from real user search queries distinguishes MS MARCO from other well-known publicly available datasets for machine reading comprehension and question-answering. We believe that the scale and the real-world nature of this dataset makes it attractive for benchmarking machine reading comprehension and question-answering models.},
+  archiveprefix = {arXiv},
+  eprint = {1611.09268},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/GWRZSQ6M/Bajaj et al. - 2018 - MS MARCO A Human Generated MAchine Reading COmpre.pdf;/home/dsilva/Zotero/storage/6KBI773E/1611.html},
+  journal = {arXiv:1611.09268 [cs]},
+  keywords = {Computer Science - Computation and Language,Computer Science - Information Retrieval},
+  primaryclass = {cs}
+}
+
+@article{nogueira2020a,
+  title = {Passage {{Re}}-Ranking with {{BERT}}},
+  author = {Nogueira, Rodrigo and Cho, Kyunghyun},
+  year = {2020},
+  month = apr,
+  abstract = {Recently, neural models pretrained on a language modeling task, such as ELMo (Peters et al., 2017), OpenAI GPT (Radford et al., 2018), and BERT (Devlin et al., 2018), have achieved impressive results on various natural language processing tasks such as question-answering and natural language inference. In this paper, we describe a simple re-implementation of BERT for query-based passage re-ranking. Our system is the state of the art on the TREC-CAR dataset and the top entry in the leaderboard of the MS MARCO passage retrieval task, outperforming the previous state of the art by 27\% (relative) in MRR@10. The code to reproduce our results is available at https://github.com/nyu-dl/dl4marco-bert},
+  archiveprefix = {arXiv},
+  eprint = {1901.04085},
+  eprinttype = {arxiv},
+  file = {/home/dsilva/Zotero/storage/VIB9A7BZ/Nogueira and Cho - 2020 - Passage Re-ranking with BERT.pdf;/home/dsilva/Zotero/storage/HRA2DF28/1901.html},
+  journal = {arXiv:1901.04085 [cs]},
+  keywords = {Computer Science - Computation and Language,Computer Science - Information Retrieval,Computer Science - Machine Learning},
+  primaryclass = {cs}
+}
+

@@ -4,9 +4,6 @@ WORKDIR /home/user
 
 RUN apt-get update && apt-get install -y curl git pkg-config cmake
 
-# Copy outputs
-COPY ./outputs/ui_outputs/ /home/user/outputs/ui_outputs/
-
 # install as a package
 COPY ./ui/requirements.txt /home/user/
 RUN pip install -r requirements.txt

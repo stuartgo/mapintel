@@ -16,13 +16,13 @@ components:    # define all the building-blocks for Pipeline
     type: EmbeddingRetriever
     params:
       document_store: DocumentStore    # params can reference other components defined in the YAML
-      embedding_model: data/external/msmarco-distilbert-base-v2    # https://www.sbert.net/examples/applications/semantic-search/README.html
+      embedding_model: sentence-transformers/msmarco-distilbert-base-v4    # https://www.sbert.net/examples/applications/semantic-search/README.html
       model_format: sentence_transformers
       top_k: 100
   - name: Reader    # custom-name for the component; helpful for visualization & debugging
     type: CrossEncoderReRanker    # Haystack Class name for the component
     params:
-      cross_encoder: cross-encoder/ms-marco-TinyBERT-L-6
+      cross_encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
       top_k: 10
   - name: TextFileConverter
     type: TextConverter

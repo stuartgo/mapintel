@@ -30,7 +30,7 @@ def retrieve_doc(query, filters=None, top_k_reader=10, top_k_retriever=100):
     for i in range(len(answers)):
         answer = answers[i]["answer"]
         if answer:
-            relevance = round(answers[i]["score"] * 100, 2)
+            relevance = round(answers[i]["score"], 1)
             meta_source = answers[i]["meta"].get("source", None)
             meta_publishedat = answers[i]["meta"].get("publishedat", None)
             meta_topic = answers[i]["meta"].get("category", None) 

@@ -19,8 +19,9 @@ RUN wget --no-check-certificate https://dl.xpdfreader.com/xpdf-tools-linux-4.03.
 RUN apt-get install libpoppler-cpp-dev pkg-config -y --fix-missing
 
 # Install packages
+# Install pytorch with gpu support
 RUN pip3 install numpy scipy Cython
-RUN pip3 install torch==1.7.1+cu110 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip3 install torch==1.9.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 # Install faiss separately as building latest versions can cause trouble with swig
 RUN pip3 install faiss-cpu==1.7.0
 

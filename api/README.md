@@ -39,7 +39,7 @@ The API consists of 4 modules: search, feedback, upload, and umap. Each module i
 
 Just run
 ```
-docker-compose up
+docker-compose --profile api up
 ``` 
 in the root folder of the Mapintel repository. This will start two containers (Open Distro for Elasticsearch, FastAPI application).
 You can check the API documentation and try its endpoints at `https://localhost:8000/docs`. 
@@ -66,6 +66,6 @@ response_raw = requests.post(url, json=req).json()
 
 If you want to interact with the API through the UI application, you can run
 ```
-docker-compose --profile ui up
+docker-compose --profile api --profile ui up
 ``` 
 in the root folder of the Mapintel repository.

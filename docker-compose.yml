@@ -4,6 +4,8 @@ services:
         build:
             context: .
             dockerfile: api/Dockerfile  # Utilize the GPU to improve indexing and search
+        profiles:
+            - api
         ports:
             - 8000:8000
         restart: always  # The policy always restarts the container until its removal
@@ -21,30 +23,32 @@ services:
         volumes:  
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
-    api-cpu:
-        build:
-            context: .
-            dockerfile: api/DockerfileCPU
-        profiles:
-            - api-cpu  # uses cpu over gpu if profile set that way
-        ports:
-            - 8000:8000
-        restart: always  # The policy always restarts the container until its removal
-        depends_on:
-            - odfe-node1
-        networks:
-            - odfe-net
-        secrets:
-            - dotenv-file
-        volumes:  
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+    # api-cpu:
+    #     build:
+    #         context: .
+    #         dockerfile: api/DockerfileCPU
+    #     profiles:
+    #         - api-cpu  # uses cpu over gpu if profile set that way
+    #     ports:
+    #         - 8000:8000
+    #     restart: always  # The policy always restarts the container until its removal
+    #     depends_on:
+    #         - odfe-node1
+    #     networks:
+    #         - odfe-net
+    #     secrets:
+    #         - dotenv-file
+    #     volumes:  
+    #         - ./data:/home/user/data
+    #         - ./outputs:/home/user/outputs
     ui:
         build:
             context: .
             dockerfile: ui/Dockerfile
         profiles:
             - ui
+        depends_on:
+            - api
         ports:
             - 8501:8501
         environment:
@@ -57,6 +61,8 @@ services:
             dockerfile: ui/Dockerfile
         profiles:
             - ui-dev
+        depends_on:
+            - api
         ports:
             - 8501:8501
         environment:
@@ -71,6 +77,8 @@ services:
             dockerfile: experiments/Dockerfile
         profiles:
             - experiments
+        depends_on:
+            - odfe-node1
         ports:
             - 9999:9999
         networks:

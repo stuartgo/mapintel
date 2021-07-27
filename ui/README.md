@@ -10,7 +10,7 @@ This is a streamlit-based UI application for interactive semantic searching and 
 
 Just run
 ```
-docker-compose --profile ui up
+docker-compose --profile api --profile ui up
 ``` 
 in the root folder of the Mapintel repository. This will start three containers (Open Distro for Elasticsearch, FastAPI application, UI application).
 You can find the UI application at `https://localhost:8501`

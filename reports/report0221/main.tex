@@ -45,6 +45,7 @@ In this paper, we explore how state-of-the-art NLP techniques, particularly docu
 
 % Map out your paper: brief overview of the rest of the paper (not necessary if following IMRaD format)
 
+% THIS SECTION NEEDS TO BE REFACTORED. WE NEED TO WRITE ABOUT "Computational approach for content-based image retrieval of K-similar images from brain MR image database" PAPER
 \section*{Related Work}
 % Introduction: The introduction should clearly establish the focus and purpose of the literature review.
 We review methods that facilitate the environment scanning task by abstracting and visually summarizing large collections of documents. To situate our contribution, we first complete the review of systems for exploring and gathering intelligence from a text corpus. We then describe the document embedding, dimensionality reduction, and data visualization techniques used to design these systems. 
@@ -62,7 +63,6 @@ We review methods that facilitate the environment scanning task by abstracting a
 \citep{lafia2021a} proposes a method for modeling and mapping topics from bibliometric data and build a web application based on this method. They also perform a user evaluation of the topic map. The map produced allows users to read a body of research "at a distance", while providing multiple levels of detail of the topics that represent the documents. They also incorporate a time dimension, allowing users to understand the evolution of the topics over time. They compare both non-negative matrix factorization (NMF) \citep{lee1999} and LDA for discovering the underlying topics in the data and obtaining vector representations of the documents. For visualizing these documents, they compare both t-SNE and UMAP. The best performing configuration uses NMF with t-SNE. To allow for different detail levels, the authors produce two maps: a coarse map of 9 topics that gives a general overview of the topics within the data and a detailed map of 36 topics that captures more specific research themes. The web application consists of an interactive dashboard that allows users to explore the map of documents.
 
 % Conclusion: summarize the key findings you have taken from the literature and emphasize their significance.
-% TODO
 
 % \section*{Literature Review}
 % % This paragraph talks about IR 
@@ -215,42 +215,64 @@ The map provides a means to explore the news articles and the different semantic
 
 \section* {Results}
 % Mention how many documents we are working with at the moment (also mention the selection procedure for this sample - data range)
-Present an observation (results), then explain what happened (analysis).  Each paragraph should focus on one aspect of your results. In that same paragraph, you should interpret that result.
-In other words, there should not be two distinct paragraphs, but instead one paragraph containing one result and the interpretation and analysis of this result. Here are some guiding questions for results and analysis:
 
-When describing your results, present your data, using the guidelines below:
-\begin{itemize}
-	\item What happened? What did you find?
-	\item Show your experimental data in a professional way. Refer to \href{https://confluence.cornell.edu/display/AGUACLARA/Grammar+Guidelines+for+Reports}{Grammar Guidelines for Reports} for details on formatting. Be sure to reference figures before they appear in your paper (see Figure \ref{Frog}). Be sure to do the same for tables (see Table \ref{Table}). For a good tool for making tables, go to \href{www.tablesgenerator.com}{tablesgenerator.com}.
-\end{itemize}
+Display the UMAP plot and analyze it.
 
-\begin{figure}[H]
-	\centering
-	\includegraphics[scale=0.1]{./figures/frog}
-	\caption{Captions go beneath figures.}
-	\label{Frog}
-\end{figure}
+Apply Top2Vec and analyze the distribution of the topics in the UMAP and the corresponding clusters and compare them with the real categories. Check if the true labels are captured by the clusters i.e. if the clusters contain all the points of a category without containing other categories' points.
 
-\begin{table}[H]
-	\centering
-	\caption{Captions go above tables.}
-	\begin{tabular}{| l | c | c |}
-		\hline
-		Parameter          & Symbol   & Value                 \\ \hline
-		Residence Time     & $\theta$ & 90 s                  \\ \hline
-		Hydraulic Gradient & $G$      & 500 $\mathrm{s^{-1}}$ \\
-		\hline
-	\end{tabular}
-	\label{Table}
-\end{table}
+% We could fine-tune the SBERT embeddings.
 
-After describing a particular result, within a paragraph, go on to connect your work to fundamental physics/chemistry/statics/fluid mechanics, or whatever field is appropriate. Analyze your results and compare with theoretical expectations; or, if you have not yet done the experiments, describe your expectations based on established knowledge. Include implications of your results. How will your results influence the design of AguaClara plants? If possible provide clear recommendations for design changes that should be adopted. Show your experimental data in a professional way using the following guidelines:
-\begin{itemize}
-	\item Why did you get those results/data?
-	\item Did these results line up with expectations?
-	\item What went wrong?
-	\item If the data do not support your hypothesis, is there another hypothesis that describes your new data?
-\end{itemize}
+% We could fine-tune the UMAP embeddings.
+
+% We can evaluate the Query pipeline in terms of the relevancy of the results and the time it takes to return the documents.
+
+% We can do some ablation study on the importance of the re-ranker in the Query pipeline.
+
+% How does the system support questions commonly posed by CI analysts?
+
+% How do the CI analysts interpret the topics and relationships shown in the maps?
+
+
+% Our methods address the question of how to systematically elicit and represent the major topics of a complex, interdisciplinary body of research at multiple levels of detail that show their similarities and evolution over time. We produce maps of research documents located in a continuous topic space, which exhibit topical proximity in regions and capture multiple levels of detail over periods of time. We explore whether and how these maps of research topics support the institutional assessment of an interdisciplinary body of research.
+
+% Present an observation (results), then explain what happened (analysis).  Each paragraph should focus on one aspect of your results. In that same paragraph, you should interpret that result.
+% In other words, there should not be two distinct paragraphs, but instead one paragraph containing one result and the interpretation and analysis of this result. 
+
+% Here are some guiding questions for results and analysis:
+
+% When describing your results, present your data, using the guidelines below:
+% \begin{itemize}
+% 	\item What happened? What did you find?
+% 	\item Show your experimental data in a professional way. Refer to \href{https://confluence.cornell.edu/display/AGUACLARA/Grammar+Guidelines+for+Reports}{Grammar Guidelines for Reports} for details on formatting. Be sure to reference figures before they appear in your paper (see Figure \ref{Frog}). Be sure to do the same for tables (see Table \ref{Table}). For a good tool for making tables, go to \href{www.tablesgenerator.com}{tablesgenerator.com}.
+% \end{itemize}
+
+% \begin{figure}[H]
+% 	\centering
+% 	\includegraphics[scale=0.1]{./figures/frog}
+% 	\caption{Captions go beneath figures.}
+% 	\label{Frog}
+% \end{figure}
+
+% \begin{table}[H]
+% 	\centering
+% 	\caption{Captions go above tables.}
+% 	\begin{tabular}{| l | c | c |}
+% 		\hline
+% 		Parameter          & Symbol   & Value                 \\ \hline
+% 		Residence Time     & $\theta$ & 90 s                  \\ \hline
+% 		Hydraulic Gradient & $G$      & 500 $\mathrm{s^{-1}}$ \\
+% 		\hline
+% 	\end{tabular}
+% 	\label{Table}
+% \end{table}
+
+% After describing a particular result, within a paragraph, go on to connect your work to fundamental physics/chemistry/statics/fluid mechanics, or whatever field is appropriate. Analyze your results and compare with theoretical expectations; or, if you have not yet done the experiments, describe your expectations based on established knowledge. Include implications of your results. How will your results influence the design of AguaClara plants? If possible provide clear recommendations for design changes that should be adopted. Show your experimental data in a professional way using the following guidelines:
+% \begin{itemize}
+% 	\item Why did you get those results/data?
+% 	\item Did these results line up with expectations?
+% 	\item What went wrong?
+% 	\item If the data do not support your hypothesis, is there another hypothesis that describes your new data?
+% \end{itemize}
 
 \section*{Discussion}
 Study comparison with other studies. What were the limitations?

@@ -72,9 +72,9 @@ def umap_query(request: Request_query):
         return {'status': 'Success', 'query_text': request.query, 'query_umap': query_umap[0].tolist()}
             
 
-# TODO: Fine-tune the UMAP model!
-@router.post("/umap-training", response_model=Response)
-def umap_training(request: Request_training):
+# TODO: Fine-tune the Top2Vec model!
+@router.post("/top2vec-training", response_model=Response)
+def top2vec_training(request: Request_training):
     """UMAP Training endpoint.
 
     Takes the 768 dimensional embeddings of each document and calls fit_transform()
@@ -101,7 +101,7 @@ def umap_training(request: Request_training):
 
 
 @router.post("/umap-inference", response_model=Response)
-def umap_inference():
+def top2vec_inference():
     """UMAP Inference endpoint.
 
     Loads the fitted UMAP model and calls transform() on any document in the database 

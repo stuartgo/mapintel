@@ -46,6 +46,6 @@ def backups_load(backups_dir, clean_backup_file):
             progress_bar.update(batch_size)
 
 if __name__ == '__main__':
-    clean_backup_file = '../data/backups/mongodb_cleaned_docs.json'
-    backups_dir = '../data/backups'
+    clean_backup_file = './data/backups/mongodb_cleaned_docs.json'
+    backups_dir = './data/backups'
     backups_load(backups_dir, clean_backup_file)

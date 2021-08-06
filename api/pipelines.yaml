@@ -13,11 +13,11 @@ components:    # define all the building-blocks for Pipeline
       similarity: cosine
       return_embedding: True
   - name: Retriever    # api/controller/feedback.py has this name hard coded. DO NOT CHANGE!
-    type: Top2VecRetriever
+    type: TopicRetriever
     params:
       document_store: DocumentStore    # params can reference other components defined in the YAML
       embedding_model: sentence-transformers/msmarco-distilbert-base-v4    # https://www.sbert.net/examples/applications/semantic-search/README.html
-      umap_args: {n_neighbors: 15, n_components: 2, metric: 'cosine'}
+      model_format: bertopic
       top_k: 100
   - name: Reader    # custom-name for the component; helpful for visualization & debugging
     type: CrossEncoderReRanker    # Haystack Class name for the component

@@ -1,6 +1,7 @@
 """
 See https://github.com/deepset-ai/haystack/issues/955 for further context
 """
+import os
 import logging
 from copy import deepcopy
 from typing import Dict, Generator, List, Optional, Union
@@ -15,26 +16,35 @@ from haystack.document_store.elasticsearch import OpenDistroElasticsearchDocumen
 from haystack.retriever.base import BaseRetriever
 from haystack.reader.base import BaseReader
 
-from .top2vec import Top2Vec2
+from api.custom_components.bertopic import BERTopic2
+from api.custom_components.top2vec import Top2Vec2
 
+dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
 
 
-class Top2VecRetriever(BaseRetriever):
+class TopicRetriever(BaseRetriever):
     def __init__(
         self,
         document_store: BaseDocumentStore,
         embedding_model: str,
+        model_format: str = "bertopic",
         umap_args: dict = None,
         hdbscan_args: dict = None,
+        vectorizer_args: dict = None,
         top_k: int = 10,
         progress_bar: bool = True
     ):
         """
         :param document_store: An instance of DocumentStore from which to retrieve documents.
         :param embedding_model: Local path or name of model in Hugging Face's model hub such as ``'deepset/sentence_bert'``
+        :param model_format: Name of framework that was used for saving the model. Options:
+
+                             - ``'top2vec'``
+                             - ``'bertopic'``
         :param umap_args: Pass custom arguments to UMAP.
         :param hdbscan_args: Pass custom arguments to HDBSCAN.
+        :param hdbscan_args: Pass custom arguments to CountVectorizer. Only needed if model_format="bertopic".
         :param top_k: How many documents to return per query.
         :param progress_bar: If true displays progress bar during embedding.
         """
@@ -47,13 +57,21 @@ class Top2VecRetriever(BaseRetriever):
 
         self.document_store = document_store
         self.embedding_model = embedding_model
+        self.model_format = model_format
         self.umap_args = umap_args
         self.hdbscan_args = hdbscan_args
+        self.vectorizer_args = vectorizer_args
         self.top_k = top_k
         self.progress_bar = progress_bar
 
         logger.info(f"Init retriever using embeddings of model {embedding_model}")
-        self.embedding_encoder = _Top2VecEncoder(self)
+        if self.model_format == "top2vec":
+            raise NotImplementedError("model_format='top2vec' isn't fully implemented yet.")
+            # self.embedding_encoder = _Top2VecEncoder(self)
+        elif self.model_format == "bertopic":
+            self.embedding_encoder = _BERTopicEncoder(self)
+        else:
+            raise ValueError("Argument model_format can only take the values 'top2vec' or 'bertopic'.")
 
     def retrieve(self, query: str, filters: dict = None, top_k: Optional[int] = None, index: str = None) -> List[Document]:
         """
@@ -85,14 +103,26 @@ class Top2VecRetriever(BaseRetriever):
         assert isinstance(texts, list), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
         return self.embedding_encoder.embed_queries(texts)
 
-    def embed_passages(self, docs: List[Document]) -> List[np.ndarray]:
+    def embed_queries_umap(self, texts: List[str]) -> List[np.ndarray]:
+        """
+        Create UMAP embeddings for a list of queries.
+        :param texts: Queries to embed
+        :return: Embeddings, one per input queries
+        """
+        # for backward compatibility: cast pure str input
+        if isinstance(texts, str):
+            texts = [texts]
+        assert isinstance(texts, list), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
+        return self.embedding_encoder.embed_queries_umap(texts)
+
+    def embed_passages(self, docs: List[Document], embeddings: np.array = None) -> List[np.ndarray]:
         """
         Create embeddings for a list of passages. Produces the original embeddings, the UMAP embeddings, 
         the topic number and the topic label of each document.
         :param docs: List of documents to embed
         :return: Embeddings, one per input passage
         """
-        return self.embedding_encoder.embed_passages(docs)
+        return self.embedding_encoder.embed_passages(docs, embeddings)
 
     def run_indexing(self, documents: List[dict], **kwargs):
         documents = deepcopy(documents)
@@ -106,13 +136,125 @@ class Top2VecRetriever(BaseRetriever):
         output = {**kwargs, "documents": documents}
         return output, "output_1"
 
+    def train(self, docs: List[Document], embeddings: np.array = None):
+        """
+        Trains the underlying embedding encoder model. If model_format="top2vec", a Top2Vec model 
+        will be trained, otherwise, if model_format="bertopic", a BERTopic model will be trained.
+        :param docs: List of documents to train the model on.
+        """
+        self.embedding_encoder.train(docs, embeddings)
     
+    def get_topic_names(self) -> List[str]:
+        return self.embedding_encoder.topic_names
+
+
+class _BERTopicEncoder():
+    def __init__(
+            self,
+            retriever: TopicRetriever
+    ):  
+        self.saved_model_path = os.path.join(dirname, '../../outputs/saved_models/bertopic.pkl')
+        self.embedding_model = retriever.embedding_model
+        self.umap_args = retriever.umap_args
+        self.hdbscan_args = retriever.hdbscan_args
+        self.vectorizer_args = retriever.vectorizer_args
+        self.show_progress_bar = retriever.progress_bar
+
+        if retriever.document_store.similarity != "cosine":
+            logger.warning(
+                f"You are using a Sentence Transformer with the {retriever.document_store.similarity} function. "
+                f"We recommend using cosine instead. "
+                f"This can be set when initializing the DocumentStore")
+
+        # Initializing the model
+        try:
+            logger.info("Loading the BERTopic model from disk.")
+            self.model = BERTopic2.load(self.saved_model_path, self.embedding_model)
+            self.topic_names = list(self.model.topic_names.values())
+        except Exception as e:
+            logger.info(f"The BERTopic model hasn't been successfuly loaded: {e}")
+            self.model = None
+            self.topic_names = None
+
+    def embed_queries(self, texts: List[str]) -> List[np.ndarray]:
+        self._check_is_trained()
+        # texts can be a list of strings or a list of [title, text]
+        # emb = self.model.embedding_model.embedding_model.encode(texts, batch_size=200, show_progress_bar=self.show_progress_bar)
+        emb = self.model.embedding_model.embed(texts, verbose=self.show_progress_bar)
+        emb = [r for r in emb]  # get back list of numpy embedding vectors 
+        return emb
+
+    def embed_queries_umap(self, texts: List[str]) -> List[np.ndarray]:
+        embeddings = self.embed_queries(texts)
+        umap_embeddings = self.model.umap_model.transform(np.array(embeddings))
+        umap_embeddings = [i for i in umap_embeddings]
+        return umap_embeddings
+    
+    def embed_passages(self, docs: List[Document], embeddings: np.array = None) -> List[np.ndarray]:
+        self._check_is_trained()
+        passages = [[d.meta["name"] if d.meta and "name" in d.meta else "", d.text] for d in docs]  # type: ignore
+        embeddings, umap_embeddings, topic_numbers, _ = self.model.transform(passages, embeddings)
+        topic_labels = [self.model.topic_names[i] for i in topic_numbers]
+        return [embeddings, umap_embeddings, topic_numbers, topic_labels]
+
+    def train(self, docs: List[Document], embeddings: np.array = None):
+        # Initializing the BERTopic model
+        from umap import UMAP
+        from hdbscan import HDBSCAN
+        from sklearn.feature_extraction.text import CountVectorizer
+        if self.umap_args:
+            umap_model = UMAP(**self.umap_args)
+        else:
+            umap_model = UMAP(
+                n_neighbors=15, 
+                n_components=2, 
+                metric='cosine'
+        )
+        if self.hdbscan_args:
+            hdbscan_model = HDBSCAN(**self.hdbscan_args)
+        else:
+            hdbscan_model = HDBSCAN(
+                min_cluster_size=15, 
+                metric='euclidean',
+                prediction_data=True
+            )
+        if self.vectorizer_args:
+            vectorizer_model = CountVectorizer(**self.vectorizer_args)
+            n_gram_range = self.vectorizer_args.get(['ngram_range'], (1,1))
+        else:
+            vectorizer_model = CountVectorizer(
+                ngram_range=(1, 2),
+                stop_words="english"
+            )
+            n_gram_range = (1, 2)
+        
+        self.model = BERTopic2(
+            n_gram_range=n_gram_range,
+            nr_topics=20,
+            low_memory=True,
+            embedding_model=self.embedding_model,
+            umap_model=umap_model,
+            hdbscan_model=hdbscan_model,
+            vectorizer_model=vectorizer_model
+        )
+
+        logger.info(f"Beginning training of BERTopic with {len(docs)} documents.")
+        self.model = self.model.fit(docs, embeddings)
+        self.topic_names = list(self.model.topic_names.values())
+        logger.info(f"Saving fitted BERTopic model to disk.")
+        self.model.save(self.saved_model_path, save_embedding_model=False)
+    
+    def _check_is_trained(self):
+        if self.model is None:
+            raise ValueError("The BERTopic model isn't either loaded or trained yet.")
+
+
 class _Top2VecEncoder():
     def __init__(
             self,
-            retriever: Top2VecRetriever
+            retriever: TopicRetriever
     ):  
-        self.saved_top2vec_path = "/home/user/outputs/saved_models/top2vec.pkl"
+        self.saved_model_path = os.path.join(dirname, '../../outputs/saved_models/top2vec.pkl')
         self.embedding_model = retriever.embedding_model
         self.umap_args = retriever.umap_args
         self.hdbscan_args = retriever.hdbscan_args
@@ -128,8 +270,8 @@ class _Top2VecEncoder():
     def embed(self, texts: Union[List[List[str]], List[str], str]) -> List[np.ndarray]:        
         # texts can be a list of strings or a list of [title, text]
         # get back list of numpy embedding vectors
-        self.top2vec_model._check_model_status()  # Setting the embed attribute based on the embedding_model
-        emb = self.top2vec_model.embed(texts, batch_size=200, show_progress_bar=self.show_progress_bar)
+        self.model._check_model_status()  # Setting the embed attribute based on the embedding_model
+        emb = self.model.embed(texts, batch_size=200, show_progress_bar=self.show_progress_bar)
         emb = [r for r in emb]
         return emb
 
@@ -145,15 +287,15 @@ class _Top2VecEncoder():
 
         passages = [[d.meta["name"] if d.meta and "name" in d.meta else "", d.text] for d in docs]  # type: ignore
         embeddings = self.embed(passages)
-        umap_embeddings = self.top2vec_model.get_umap().transform(embeddings)
-        topic_numbers = self.top2vec_model.doc_top_reduced
+        umap_embeddings = self.model.get_umap().transform(embeddings)
+        topic_numbers = self.model.doc_top_reduced
         topic_labels = self.create_topic_labels()
         return [embeddings, umap_embeddings, topic_numbers, topic_labels]
 
     def create_topic_labels(self):
         # TODO: Give more importance to words with higher score and that are unique to a cluster.
         # Get topic words
-        topic_words, _, _ = self.top2vec_model.get_topics(20, reduced=True)
+        topic_words, _, _ = self.model.get_topics(20, reduced=True)
         # Produce topic labels by concatenating top 5 words
         topic_labels = ["_".join(words[:5]) for words in topic_words]
         return topic_labels
@@ -161,9 +303,9 @@ class _Top2VecEncoder():
     def init_model(self, docs=None):
         try:
             logger.info("Loading the Top2Vec model from disk.")
-            self.top2vec_model = Top2Vec2.load(self.saved_top2vec_path)
+            self.model = Top2Vec2.load(self.saved_model_path)
             # Ensure the embedding model matches
-            assert self.top2vec_model.embedding_model == self.embedding_model, \
+            assert self.model.embedding_model == self.embedding_model, \
                 "The Top2Vec embedding model doesn't match the embedding model in the Retriever."
             # TODO: Ensure the umap_args and hdbscan_args match as well
         except Exception as e:
@@ -189,7 +331,7 @@ class _Top2VecEncoder():
         else:
             logger.info(f"Beginning training of Top2Vec with {len(docs)} external documents.")
         
-        self.top2vec_model = Top2Vec2(
+        self.model = Top2Vec2(
             docs,
             embedding_model=self.embedding_model,
             keep_documents=False,  # we don't need to keep the documents as the search isn't performed through top2vec
@@ -198,8 +340,8 @@ class _Top2VecEncoder():
             umap_args=self.umap_args,
             hdbscan_args=self.hdbscan_args
         )
-        self.top2vec_model.hierarchical_topic_reduction(20)  # reduce the number of topics
-        self.top2vec_model.save(self.saved_top2vec_path)
+        self.model.hierarchical_topic_reduction(20)  # reduce the number of topics
+        self.model.save(self.saved_model_path)
 
 class CrossEncoderReRanker(BaseReader):
     """

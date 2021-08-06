@@ -33,11 +33,8 @@ try:
 except ImportError:
     _HAVE_TORCH = False
 
-logger = logging.getLogger('top2vec')
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-sh = logging.StreamHandler()
-sh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(sh)
 
 
 def default_tokenizer(doc):

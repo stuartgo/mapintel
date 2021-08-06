@@ -52,7 +52,7 @@ def umap_query(request: Request_query):
     """UMAP query endpoint.
 
     Loads the TopicRetriever with its trained Topic model. Uses the underlying trained UMAP model to call
-    transform() on the embedding of the query string and returns the resulting 2 dimensional UMAP embedding.
+    transform() on the embedding of the query string and returns the resulting 2-dimensional UMAP embedding.
     """
     with concurrency_limiter.run():
         # Get query UMAP embeddings

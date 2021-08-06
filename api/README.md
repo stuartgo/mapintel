@@ -3,7 +3,7 @@
 This is a FastAPI application that sets the endpoints necessary for the Mapintel UI application.
 
 ## API modules
-The API consists of 4 modules: search, feedback, upload, and umap. Each module is composed by a given number of endpoints. Below is a list of the API endpoints divided by the 4 modules.
+The API consists of 4 modules: Search, Topic, Upload, and Feedback. Each module is composed of a given number of endpoints. Below is a list of the API endpoints divided by the 4 modules.
 
 ### Search
 - query: 
@@ -13,25 +13,25 @@ The API consists of 4 modules: search, feedback, upload, and umap. Each module i
 - doc-count: 
 > Gets the number of documents in the document store that satisfy a particular boolean filter.
 
+### Topic
+- umap-query: 
+> Loads the TopicRetriever with its trained Topic model. Uses the underlying trained UMAP model to call transform() on the embedding of the query string and returns the resulting 2-dimensional UMAP embedding.
+- topic-names: 
+> Gets the unique topic names in the document store.
+- topic-training: 
+> Trains the Retriever's topic model with the documents in the database and updates the instances in the database using the new model. This endpoint can be used to update the topic model on a regular basis. Saves the trained model to disk.
+
+### Upload
+- file-upload: 
+> Receives a document as input from any file type, extracts its text content, preprocesses it, gets the corresponding embeddings, and adds it to the document store.
+- news-upload: 
+> Gets the latest news from NewsAPI and respective metadata, cleans the documents, and runs them through the indexing pipeline to be stored in the database.
+
 ### Feedback
 - feedback: 
 > Writes the feedback labels of responses to a query into the document store.
 - eval-feedback: 
 > Return basic accuracy metrics based on the user feedback. Which ratio of documents was relevant? You can supply filters in the request to only use a certain subset of labels.
-
-### Upload
-- file-upload: 
-> Receives a document as input from any file type, extracts its text content, preprocesses it, gets the corresponding embeddings and adds it to the document store.
-- news-upload: 
-> Gets the latest news from NewsAPI and respective metadata, cleans the documents and runs them through the indexing pipeline to be stored in the database.
-
-### UMAP
-- umap-query: 
-> Loads the fitted UMAP model and calls transform() on the embedding of the query string and returns the resulting 2 dimensional UMAP embeddings.
-- umap-training: 
-> Takes the 768 dimensional embeddings of each document in the document store and calls fit_transform() to generate the respective 2 dimensional embeddings while saving the fitted model under outputs/saved_models. The 2 dimensional embeddings of each document are inserted in the document store under the umap field.
-- umap-inference: 
-> Loads the fitted UMAP model and calls transform() on any document in the database that doesn't have a 2 dimensional embedding. The 2 dimensional embeddings of each document are inserted in the document store under the umap field.
 
 ## Usage
 

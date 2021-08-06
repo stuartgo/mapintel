@@ -65,7 +65,8 @@ def get_all_docs(filters=None, batch_size=None, sample_size=None):
         sample_size = float('inf')
     
     final_docs = []
-    for i, line in enumerate(response_generator, start=1):
+    i = 0
+    for line in response_generator:
         if i % batch_size == 0:
             if i == 0:
                 logger.info(f"Begin generator.")
@@ -98,8 +99,10 @@ def get_all_docs(filters=None, batch_size=None, sample_size=None):
                         "document_id": document_id
                     }
                 )
+                i += 1
         # Exit the loop when we reach sample_size
         if i == sample_size:
+            logger.info(f"Final iteration number: {i}")
             break
     return final_docs        
 

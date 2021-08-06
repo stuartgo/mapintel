@@ -5,6 +5,7 @@ import logging
 import os
 import json
 
+dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -137,5 +138,5 @@ def clean_backups(backups_dir):
 
 
 if __name__ == "__main__":
-    backups_dir = '../data/backups'
+    backups_dir = os.path.join(dirname, '../../data/backups')
     clean_backups(backups_dir)

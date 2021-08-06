@@ -17,7 +17,7 @@
 #     echo "msmarco-distilbert-base-v4 already exists."
 # fi
 
-# Load backups (wait 20 sec for ODES node initialization)
+# Load backups (wait 20 sec for ODFE node initialization)
 sleep 20 && python3 api/load_backups.py
 
 # Launch application

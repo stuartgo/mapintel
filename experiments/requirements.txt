@@ -11,7 +11,7 @@ scikit-image==0.18.1
 seaborn==0.11.0
 networkx==2.5
 wordfreq==2.3.2
-sentence-transformers==1.1.1
+sentence-transformers==2.0.0
 tesserocr==2.5.1
 ipywidgets
 matplotlib
@@ -20,5 +20,6 @@ pandas
 nltk
 hdbscan
 top2vec
+bertopic
 -e .
 -e git+https://github.com/DavidSilva98/SOMPY.git#egg=SOMPY

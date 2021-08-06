@@ -11,7 +11,7 @@ DOC_FEEDBACK = "feedback"
 DOC_UPLOAD = "file-upload"
 DOC_REQUEST_GENERATOR = "all-docs-generator"
 UMAP_QUERY = "umap-query"
-UMAP_INFERENCE = "umap-inference"
+TOPIC_NAMES = "topic-names"
 NUM_DOCS = "doc-count"
 
 logger = logging.getLogger(__name__)
@@ -78,10 +78,12 @@ def get_all_docs(filters=None, batch_size=None, sample_size=None):
             if answer:
                 meta_source = doc["meta"].get("source", None)
                 meta_publishedat = doc["meta"].get("publishedat", None)
-                meta_topic = doc["meta"].get("category", None) 
+                meta_topic = doc["meta"].get("topic_label", None) 
                 meta_url = doc["meta"].get("url", None)
                 meta_imageurl = doc["meta"].get("urltoimage", None)
                 meta_umapembeddings = doc["meta"].get("umap_embeddings", None)
+                meta_umapembeddingsx = None if meta_umapembeddings is None else meta_umapembeddings[0]
+                meta_umapembeddingsy = None if meta_umapembeddings is None else meta_umapembeddings[1]
                 document_id = doc["document_id"]
                 final_docs.append(
                     {
@@ -91,8 +93,8 @@ def get_all_docs(filters=None, batch_size=None, sample_size=None):
                         "topic": meta_topic,
                         "url": meta_url,
                         "image_url": meta_imageurl,
-                        "umap_embeddings_x": meta_umapembeddings[0],
-                        "umap_embeddings_y": meta_umapembeddings[1],
+                        "umap_embeddings_x": meta_umapembeddingsx,
+                        "umap_embeddings_y": meta_umapembeddingsy,
                         "document_id": document_id
                     }
                 )
@@ -112,10 +114,10 @@ def umap_query(query):
     return response_raw
 
 
-def umap_inference():
-    url = f"{API_ENDPOINT}/{UMAP_INFERENCE}"
-    response_raw = requests.post(url, json={}).json()
-    return response_raw
+def topic_names():
+    url = f"{API_ENDPOINT}/{TOPIC_NAMES}"
+    response_raw = requests.get(url, json={}).json()
+    return response_raw["topic_names"]
 
 
 @st.cache(show_spinner=False)

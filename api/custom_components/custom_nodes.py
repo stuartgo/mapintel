@@ -544,40 +544,25 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         result = self.client.count(index=index, body=body)
         count = result["count"]
         return count
-
+    
     def get_all_documents(
         self,
         index: Optional[str] = None,
         filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         return_embedding: Optional[bool] = None,
-        embedding_field: Optional[str] = None,
-        only_documents_without_embedding: bool = False,
         batch_size: int = 10_000,
     ) -> List[Document]:
         """
         Get documents from the document store.
-
-        If only_documents_without_embedding=True, then it only retrieves the documents in the 
-        index without a value in the embedding_field (defaults to self.embedding_field).
-
         :param index: Name of the index to get the documents from. If None, the
                       DocumentStore's default index (self.index) will be used.
         :param filters: Optional filters to narrow down the documents to return.
                         Example: {"name": ["some", "more"], "category": ["only_one"]}
         :param return_embedding: Whether to return the document embeddings.
-        :param embedding_field: field to consider when looking for document without embedding.
-                                Defaults to self.embedding_field.
-        :param only_documents_without_embedding: whether or not to return only documents without embedding in 
-                                                 embedding_field.
         :param batch_size: When working with large number of documents, batching can help reduce memory footprint.
         """
         result = self.get_all_documents_generator(
-            index=index, 
-            filters=filters, 
-            return_embedding=return_embedding,
-            embedding_field=embedding_field,
-            only_documents_without_embedding=only_documents_without_embedding,
-            batch_size=batch_size
+            index=index, filters=filters, return_embedding=return_embedding, batch_size=batch_size
         )
         documents = list(result)
         return documents
@@ -587,29 +572,17 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         index: Optional[str] = None,
         filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         return_embedding: Optional[bool] = None,
-        embedding_field: Optional[str] = None,
-        only_documents_without_embedding: bool = False,
         batch_size: int = 10_000,
     ) -> Generator[Document, None, None]:
         """
-        Get documents from the document store without an embedding. 
-        
-        Under-the-hood, documents are fetched in batches from the
+        Get documents from the document store. Under-the-hood, documents are fetched in batches from the
         document store and yielded as individual documents. This method can be used to iteratively process
         a large number of documents without having to load all documents in memory.
-
-        If only_documents_without_embedding=True, then it only retrieves the documents in the 
-        index without a value in the embedding_field.
-        
         :param index: Name of the index to get the documents from. If None, the
                       DocumentStore's default index (self.index) will be used.
         :param filters: Optional filters to narrow down the documents to return.
                         Example: {"name": ["some", "more"], "category": ["only_one"]}
         :param return_embedding: Whether to return the document embeddings.
-        :param embedding_field: field to consider when looking for document without embedding.
-                                Defaults to self.embedding_field.
-        :param only_documents_without_embedding: whether or not to return only documents without embedding in 
-                                                 embedding_field.
         :param batch_size: When working with large number of documents, batching can help reduce memory footprint.
         """
 
@@ -618,14 +591,8 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
 
         if return_embedding is None:
             return_embedding = self.return_embedding
-        
-        result = self._get_all_documents_in_index(
-            index=index, 
-            filters=filters, 
-            batch_size=batch_size, 
-            embedding_field=embedding_field,
-            only_documents_without_embedding=only_documents_without_embedding
-        )
+
+        result = self._get_all_documents_in_index(index=index, filters=filters, batch_size=batch_size)
         for hit in result:
             document = self._convert_es_hit_to_document(hit, return_embedding=return_embedding)
             yield document
@@ -636,23 +603,17 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         batch_size: int = 10_000,
         only_documents_without_embedding: bool = False,
-        embedding_field: Optional[str] = None
     ) -> Generator[dict, None, None]:
         """
-        Return all documents in a specific index in the document store.
-        If only_documents_without_embedding=True, then it only retrieves
-        the documents in the index without a value in the embedding_field.
+        Return all documents in a specific index in the document store
         """
         body: dict = {"query": {"bool": {}}}
-
-        if embedding_field is None:
-            embedding_field = self.embedding_field
 
         if filters:
             body = self._filter_adapter(body, filters)
 
         if only_documents_without_embedding:
-            body['query']['bool']['must_not'] = [{"exists": {"field": embedding_field}}]
+            body['query']['bool']['must_not'] = [{"exists": {"field": self.embedding_field}}]
 
         result = scan(self.client, query=body, index=index, size=batch_size, scroll="1d")
         yield from result
@@ -686,7 +647,7 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         self,
         retriever,
         index: Optional[str] = None,
-        filters: Optional[Dict[str, List[str]]] = None,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         update_existing_embeddings: bool = True,
         batch_size: int = 10_000
     ):

@@ -10,7 +10,7 @@ from utils import (
     get_all_docs,
     upload_doc, 
     umap_query,
-    umap_inference,
+    topic_names,
     doc_count
 )
 
@@ -52,9 +52,7 @@ with st.sidebar:
                 format="DD-MM-YY"
             )
         with st.beta_expander("Query Options"):
-            # TODO: remove hard encoding of unique categories. When creating the topic modeling endpoint, 
-            # put the unique categories in the results and pass it here
-            unique_categories = ['Business', 'Entertainment', 'General', 'Health', 'Science', 'Sports', 'Technology']
+            unique_categories = topic_names()
             filter_category = st.multiselect(
                 "Category",
                 options = unique_categories
@@ -93,8 +91,7 @@ with st.sidebar:
     # Upload file
     if data_file:
         raw_json1 = upload_doc(data_file)  # Upload documents to the doc store
-        raw_json2 = umap_inference()  # Get respective umap embedding
-        if raw_json1['status'] == "Success" and raw_json2['status'] == "Success":
+        if raw_json1['status'] == "Success":
             st.write("Success")
         else:
             st.write("Fail")
@@ -104,7 +101,7 @@ if filter_category:
     filters.append(
         {
             "terms": {
-                "category": list(map(lambda x: x.lower(), filter_category))
+                "topic_label": list(map(lambda x: x.lower(), filter_category))
             }
         }
     )

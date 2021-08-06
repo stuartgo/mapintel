@@ -13,8 +13,8 @@ from api.custom_components.custom_pipe import CustomPipeline
 from api.config import PIPELINE_YAML_PATH, LOG_LEVEL, QUERY_PIPELINE_NAME
 from api.controller.utils import RequestLimiter
 
-logging.getLogger("haystack").setLevel(LOG_LEVEL)
-logger = logging.getLogger("haystack")
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
 
 router = APIRouter()
 

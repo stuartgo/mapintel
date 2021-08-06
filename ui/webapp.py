@@ -25,10 +25,9 @@ from utils import (
 
 # Init variables
 default_question = "Stock Market News"
+unique_topics = topic_names()
 debug_mode = False
 batch_size = 10000
-umap_sample_size = 10000
-only_umap = True
 filters = []
 
 # Set page configuration
@@ -52,11 +51,11 @@ with st.sidebar:
                 format="DD-MM-YY"
             )
         with st.beta_expander("Query Options"):
-            unique_categories = topic_names()
             filter_category = st.multiselect(
                 "Category",
-                options = unique_categories
-            )        
+                options = unique_topics
+            )
+            filter_category_exclude = st.checkbox("Exclude?")
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
                 "Number of returned documents",
@@ -98,13 +97,25 @@ with st.sidebar:
 
 # Prepare filters
 if filter_category:
+    filter_topics = list(map(lambda x: x.lower(), filter_category))
+
+    # If filters should be excluded
+    if filter_category_exclude:
+        filter_topics = list(set(unique_topics).difference(set(filter_topics)))
+
+    # Sort filters
+    filter_topics.sort(key=lambda x: int(x.split("_")[0]))
+
     filters.append(
         {
             "terms": {
-                "topic_label": list(map(lambda x: x.lower(), filter_category))
+                "topic_label": filter_topics
             }
         }
     )
+else:
+    filter_topics = unique_topics
+
 filters.append(
     {
         "range": {
@@ -136,19 +147,13 @@ with st.spinner(
     )
 
 # Plot the completed UMAP plot
-umap_ids = umap_page(
+fig = umap_page(
     documents=pd.DataFrame(umap_docs), 
-    query=umap_query(question)
+    query=umap_query(question),
+    topics=filter_topics
 )
+st.bokeh_chart(fig, use_container_width=True)
 st.write("___")
-
-# If there is any UMAP selection, then retrieve_doc will only consider those documents
-if umap_ids:
-    pass
-    # TODO: What do we want to do with the selected docs? Maybe some summary 
-    # characteristics of them? I don't think that using the set as the basis of
-    # the query is that useful (because most likely it won't contain the KNN and
-    # we aren't limited by searching on the whole doc store because of Aprox-KNN)
 
 # Get results for query
 with st.spinner(

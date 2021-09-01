@@ -2,7 +2,7 @@ from pandas import DataFrame
 from vis_components import umap_plot
 
 
-def umap_page(documents: DataFrame, query: dict, topics: list):
+def umap_page(documents: DataFrame, query: dict, unique_topics: list):
     if query:
         query_label = query['query_text']
         if len(query_label) > 40:
@@ -24,8 +24,8 @@ def umap_page(documents: DataFrame, query: dict, topics: list):
         x=documents['umap_embeddings_x'],
         y=documents['umap_embeddings_y'],
         text=documents['answer'],
-        categories=documents['topic'],
-        topics=[query_label] + topics
+        topics=documents['topic'],
+        unique_topics=[query_label] + unique_topics
     )
     
     return p

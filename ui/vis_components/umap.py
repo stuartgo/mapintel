@@ -3,32 +3,36 @@ from bokeh.models import CDSView, ColumnDataSource, GroupFilter
 from .utils import cat_to_color
 
 
-def umap_plot(index, x, y, text, categories, topics, size=4):
+def umap_plot(index, x, y, text, topics, unique_topics, size=4):
     """Plots a scatter plot with umap projections."""
     
     # Creating the ColumnDataSource
-    topic_label = topics[0]
+    topic_label = unique_topics[0]
+    text = list(map(lambda x: x.split("#SEPTAG#"), text))
     source = ColumnDataSource(dict(
         index=index,
         x=x,
         y=y,
-        texts=text,
-        categories=categories,
-        marker=["circle" if i != topic_label else "x" for i in categories],
-        size=[size if i != topic_label else size*3 for i in categories],
-        alpha=[0.5 if i != topic_label else 1 for i in categories]
+        categories=topics,
+        title=list(map(lambda x: x[0], text)),
+        body=list(map(lambda x: "\n".join(x[1:]) if len(x)>1 else "", text)),
+        marker=["circle" if categ != topic_label else "x" for categ in topics],
+        size=[size if categ != topic_label else size*3 for categ in topics],
+        alpha=[0.5 if categ != topic_label else 1 for categ in topics],
+        color=cat_to_color(topics)
     ))
 
     # Defining the Tooltip format
     TOOLTIPS = """
         <div>
             <div>
-                <span style="font-size: 17px; font-weight: bold;">
-                    @categories
-                </span>
+                <span style="font-size: 15px; font-weight: bold;">@title{safe}</span>
             </div>
             <div>
-                <span>@texts{safe}</span>
+                <span style="color: @color;">@categories</span>
+            </div>
+            <div>
+                <span>@body{safe}</span>
             </div>
         </div>
     """
@@ -44,7 +48,7 @@ def umap_plot(index, x, y, text, categories, topics, size=4):
     )
 
     # Plot the scatter plots for each topic label
-    for topic, color in zip(topics, cat_to_color(topics)):
+    for topic in unique_topics:
         view = CDSView(
             source=source, 
             filters=[GroupFilter(column_name="categories", group=topic)]
@@ -53,7 +57,7 @@ def umap_plot(index, x, y, text, categories, topics, size=4):
             x='x',
             y='y',
             size='size',
-            color=color,
+            color='color',
             marker='marker',
             alpha='alpha',
             legend_label=topic,
@@ -66,7 +70,7 @@ def umap_plot(index, x, y, text, categories, topics, size=4):
     p.toolbar.logo = None
     p.toolbar_location = 'below'
     p.toolbar.autohide = True
-    p.axis.visible = False
+    p.axis.visible = True
     p.outline_line_color = '#ffffff'
 
     ## Legend position and interactivity configs

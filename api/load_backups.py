@@ -42,12 +42,12 @@ def backups_load(backups_dir, clean_backup_file):
         documents = json.load(file)
 
     # Training the Retriever
-    text = list(map(lambda x: x['text'], documents))
+    text = list(map(lambda x: x['text'].replace("#SEPTAG#", " "), documents))
     try:
         # RANDOM SAMPLE TO FIT IN MEMORY
         from random import sample, seed
         seed(10)
-        INDEXING_PIPELINE.get_node("Retriever").train(sample(text,50000))
+        INDEXING_PIPELINE.get_node("Retriever").train(sample(text, 50000))
     except Exception as e:
         logger.warning(e)
 

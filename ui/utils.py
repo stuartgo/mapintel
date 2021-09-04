@@ -33,7 +33,7 @@ def retrieve_doc(query, filters=None, top_k_reader=10, top_k_retriever=100):
             relevance = round(answers[i]["score"], 1)
             meta_source = answers[i]["meta"].get("source", None)
             meta_publishedat = answers[i]["meta"].get("publishedat", None)
-            meta_topic = answers[i]["meta"].get("category", None) 
+            meta_topic = answers[i]["meta"].get("topic_label", None) 
             meta_url = answers[i]["meta"].get("url", None)
             meta_imageurl = answers[i]["meta"].get("urltoimage", None)
             meta_umapembeddings = answers[i]["meta"].get("umap_embeddings", None)

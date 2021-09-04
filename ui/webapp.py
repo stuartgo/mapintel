@@ -31,7 +31,7 @@ from ui.utils import (
 # Init variables
 default_question = "Stock Market News"
 unique_topics = topic_names()
-debug_mode = False
+debug = False
 batch_size = 10000
 filters = []
 
@@ -60,7 +60,7 @@ with st.sidebar:
                 "Category",
                 options = unique_topics
             )
-            filter_category_exclude = st.checkbox("Exclude?")
+            filter_category_exclude = st.checkbox("Exclude")
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
                 "Number of returned documents",
@@ -76,10 +76,6 @@ with st.sidebar:
                 value=100, 
                 step=1
             )
-            if debug_mode:
-                debug = st.checkbox("Show debug info")
-            else:
-                debug = None
         with st.beta_expander("Visualization Options"):
             umap_perc = st.slider(
                 "Percentage of documents displayed", 
@@ -155,7 +151,7 @@ with st.spinner(
 fig = umap_page(
     documents=pd.DataFrame(umap_docs), 
     query=umap_query(question),
-    topics=filter_topics
+    unique_topics=filter_topics
 )
 st.bokeh_chart(fig, use_container_width=True)
 st.write("___")
@@ -183,9 +179,10 @@ for result in results:
     # Define columns for answer text and image
     col1, _, col2 = st.beta_columns([6, 1, 3])
     with col1:
-        st.write(result["answer"])
+        title, description, content = result["answer"].split("#SEPTAG#")
+        st.write(f"### {title}\n{description}\n\n{content}")
     with col2:
-        if result['image_url'] is not None:
+        if result['image_url'] is not None and result['image_url'] != "null":
             image_url = result['image_url']
         else:
             image_url = 'http://www.jennybeaumont.com/wp-content/uploads/2015/03/placeholder.gif'
@@ -207,7 +204,7 @@ for result in results:
                 , unsafe_allow_html=True
             )
 
-    "**Relevance:** ", result["relevance"], "**Source:** ", result["source"], "**Published At:** ", result["publishedat"]
+    "**Relevance:** ", result["relevance"], "**Topic:** ", result["topic"], "**Published At:** ", result["publishedat"][:-4].replace('T', ', ')
 
     # Define columns for feedback buttons
     button_col1, button_col2, _ = st.beta_columns([1, 1, 8])

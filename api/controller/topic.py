@@ -118,6 +118,6 @@ def topic_training(request: Request_training):
 
 def _encoded_results(results):
     for hit in results:
-        document = hit.text
+        document = hit.text.replace("#SEPTAG#", " ")
         embedding = hit.embedding
         yield document, embedding

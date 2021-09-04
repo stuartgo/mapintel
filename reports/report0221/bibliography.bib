@@ -506,3 +506,117 @@
   keywords = {Computer Science - Computation and Language},
   primaryclass = {cs}
 }
+
+@misc{grootendorst2020,
+  author       = {Maarten Grootendorst},
+  title        = {BERTopic: Leveraging BERT and c-TF-IDF to create easily interpretable topics.},
+  year         = 2020,
+  publisher    = {Zenodo},
+  version      = {v0.7.0},
+  doi          = {10.5281/zenodo.4381785},
+  url          = {https://doi.org/10.5281/zenodo.4381785}
+}
+
+@article{angelov2020,
+  title = {{{Top2Vec}}: {{Distributed Representations}} of {{Topics}}},
+  shorttitle = {{{Top2Vec}}},
+  author = {Angelov, Dimo},
+  year = {2020},
+  month = aug,
+  journal = {arXiv:2008.09470 [cs, stat]},
+  eprint = {2008.09470},
+  eprinttype = {arxiv},
+  primaryclass = {cs, stat},
+  abstract = {Topic modeling is used for discovering latent semantic structure, usually referred to as topics, in a large collection of documents. The most widely used methods are Latent Dirichlet Allocation and Probabilistic Latent Semantic Analysis. Despite their popularity they have several weaknesses. In order to achieve optimal results they often require the number of topics to be known, custom stop-word lists, stemming, and lemmatization. Additionally these methods rely on bag-of-words representation of documents which ignore the ordering and semantics of words. Distributed representations of documents and words have gained popularity due to their ability to capture semantics of words and documents. We present \$\textbackslash texttt\{top2vec\}\$, which leverages joint document and word semantic embedding to find \$\textbackslash textit\{topic vectors\}\$. This model does not require stop-word lists, stemming or lemmatization, and it automatically finds the number of topics. The resulting topic vectors are jointly embedded with the document and word vectors with distance between them representing semantic similarity. Our experiments demonstrate that \$\textbackslash texttt\{top2vec\}\$ finds topics which are significantly more informative and representative of the corpus trained on than probabilistic generative models.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language,Computer Science - Machine Learning,Statistics - Machine Learning},
+  file = {/home/dsilva/Zotero/storage/KY7BYTSB/Angelov - 2020 - Top2Vec Distributed Representations of Topics.pdf;/home/dsilva/Zotero/storage/6F8XGGQM/2008.html}
+}
+
+@article{brown2020,
+  title = {Language {{Models}} Are {{Few}}-{{Shot Learners}}},
+  author = {Brown, Tom B. and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and Kaplan, Jared and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and Sastry, Girish and Askell, Amanda and Agarwal, Sandhini and {Herbert-Voss}, Ariel and Krueger, Gretchen and Henighan, Tom and Child, Rewon and Ramesh, Aditya and Ziegler, Daniel M. and Wu, Jeffrey and Winter, Clemens and Hesse, Christopher and Chen, Mark and Sigler, Eric and Litwin, Mateusz and Gray, Scott and Chess, Benjamin and Clark, Jack and Berner, Christopher and McCandlish, Sam and Radford, Alec and Sutskever, Ilya and Amodei, Dario},
+  year = {2020},
+  month = jul,
+  journal = {arXiv:2005.14165 [cs]},
+  eprint = {2005.14165},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {Recent work has demonstrated substantial gains on many NLP tasks and benchmarks by pre-training on a large corpus of text followed by fine-tuning on a specific task. While typically task-agnostic in architecture, this method still requires task-specific fine-tuning datasets of thousands or tens of thousands of examples. By contrast, humans can generally perform a new language task from only a few examples or from simple instructions - something which current NLP systems still largely struggle to do. Here we show that scaling up language models greatly improves task-agnostic, few-shot performance, sometimes even reaching competitiveness with prior state-of-the-art fine-tuning approaches. Specifically, we train GPT-3, an autoregressive language model with 175 billion parameters, 10x more than any previous non-sparse language model, and test its performance in the few-shot setting. For all tasks, GPT-3 is applied without any gradient updates or fine-tuning, with tasks and few-shot demonstrations specified purely via text interaction with the model. GPT-3 achieves strong performance on many NLP datasets, including translation, question-answering, and cloze tasks, as well as several tasks that require on-the-fly reasoning or domain adaptation, such as unscrambling words, using a novel word in a sentence, or performing 3-digit arithmetic. At the same time, we also identify some datasets where GPT-3's few-shot learning still struggles, as well as some datasets where GPT-3 faces methodological issues related to training on large web corpora. Finally, we find that GPT-3 can generate samples of news articles which human evaluators have difficulty distinguishing from articles written by humans. We discuss broader societal impacts of this finding and of GPT-3 in general.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computation and Language},
+  file = {/home/dsilva/Zotero/storage/5333CTYJ/Brown et al. - 2020 - Language Models are Few-Shot Learners.pdf;/home/dsilva/Zotero/storage/34YGARGS/2005.html}
+}
+
+@article{mcinnes2017,
+  title={hdbscan: Hierarchical density based clustering},
+  author={McInnes, Leland and Healy, John and Astels, Steve},
+  journal={The Journal of Open Source Software},
+  volume={2},
+  number={11},
+  pages={205},
+  year={2017}
+}
+
+@article{humeau2019,
+  title = {Poly-Encoders: {{Transformer Architectures}} and {{Pre}}-Training {{Strategies}} for {{Fast}} and {{Accurate Multi}}-Sentence {{Scoring}}},
+  shorttitle = {Poly-Encoders},
+  author = {Humeau, Samuel and Shuster, Kurt and Lachaux, Marie-Anne and Weston, Jason},
+  year = {2019},
+  month = apr,
+  abstract = {The use of deep pre-trained bidirectional transformers has led to remarkable progress in a number of applications (Devlin et al., 2018). For tasks that make pairwise comparisons between sequences, matching a given input with a corresponding label, two approaches are common: Cross-encoders performing full self-attention over the pair and Bi-encoders encoding the pair separately. The former often performs better, but is too slow for practical use. In this work, we develop a new transformer architecture, the Poly-encoder, that learns global rather than token level self-attention features. We perform a detailed comparison of all three approaches, including what pre-training and fine-tuning strategies work best. We show our models achieve state-of-the-art results on three existing tasks; that Poly-encoders are faster than Cross-encoders and more accurate than Bi-encoders; and that the best results are obtained by pre-training on large datasets similar to the downstream tasks.},
+  language = {en},
+  file = {/home/dsilva/Zotero/storage/BDB6RVYM/Humeau et al. - 2019 - Poly-encoders Transformer Architectures and Pre-t.pdf;/home/dsilva/Zotero/storage/LR74EGSM/1905.html}
+}
+
+@article{erdelez2020,
+  title = {Information Encountering Re-Encountered: {{A}} Conceptual Re-Examination of Serendipity in the Context of Information Acquisition},
+  shorttitle = {Information Encountering Re-Encountered},
+  author = {Erdelez, Sanda and Makri, Stephann},
+  year = {2020},
+  month = jan,
+  journal = {Journal of Documentation},
+  volume = {76},
+  number = {3},
+  pages = {731--751},
+  publisher = {{Emerald Publishing Limited}},
+  issn = {0022-0418},
+  doi = {10.1108/JD-08-2019-0151},
+  abstract = {Purpose In order to understand the totality, diversity and richness of human information behavior, increasing research attention has been paid to examining serendipity in the context of information acquisition. However, several issues have arisen as this research subfield has tried to find its feet; we have used different, inconsistent terminology to define this phenomenon (e.g. information encountering, accidental information discovery, incidental information acquisition), the scope of the phenomenon has not been clearly defined and its nature was not fully understood or fleshed-out. Design/methodology/approach In this paper, information encountering (IE) was proposed as the preferred term for serendipity in the context of information acquisition. Findings A reconceptualized definition and scope of IE was presented, a temporal model of IE and a refined model of IE that integrates the IE process with contextual factors and extends previous models of IE to include additional information acquisition activities pre- and postencounter. Originality/value By providing a more precise definition, clearer scope and richer theoretical description of the nature of IE, there was hope to make the phenomenon of serendipity in the context of information acquisition more accessible, encouraging future research consistency and thereby promoting deeper, more unified theoretical development.},
+  keywords = {Information behavior,Information encountering,Information seeking,Models,Passive information acquisition,Serendipity},
+  file = {/home/dsilva/Zotero/storage/RECU5KIA/Erdelez and Makri - 2020 - Information encountering re-encountered A concept.pdf;/home/dsilva/Zotero/storage/4S2HNTZ4/html.html}
+}
+
+@article{sampathila2020,
+  title = {Computational Approach for Content-Based Image Retrieval of {{K}}-Similar Images from Brain {{MR}} Image Database},
+  author = {Sampathila, Niranjana and Pavithra and Martis, Roshan Joy},
+  year = {2020},
+  journal = {Expert Systems},
+  volume = {n/a},
+  number = {n/a},
+  pages = {e12652},
+  issn = {1468-0394},
+  doi = {10.1111/exsy.12652},
+  abstract = {Content-based medical image retrieval (CBMIR) is a mechanism to handle a huge quantity of image data generated in various medical imaging modalities. In recent years, due to the evolution of computer vision and digital imaging modalities, a large number of medical images are generated. Consequently, the task of retrieving medical images from a large image database becomes more tedious due to variation in the size and shape of the images. Hence, it is necessary to design an appropriate system for medical image retrieval. In this paper a methodology for CBMIR using features of an image such as colour, shape, and texture is proposed to represent and retrieve the images from a large database that are relevant to a given query image. This methodology is evaluated for the application of retrieving the brain MRI images of different planes (coronal, sagittal, and transverse) from a dataset of normal and demented subjects. The features are determined in terms of Grey level co-occurrence based Haralik's features and histogram based cumulative distribution function (CDF). The image retrieval mechanism is designed using the K-Nearest Neighbour algorithm by finding the minimum distance between query and database images. The performance parameters such as precision and recall are calculated. The average accuracy of 95.5\% are obtained. The results provided ensures the capability to use it as assistive framework for radiologists in radiology image retrieval and classification.},
+  language = {en},
+  keywords = {CBMIR,K nearest neighbour,medical image,MRI,query image},
+  annotation = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1111/exsy.12652},
+  file = {/home/dsilva/Zotero/storage/VBQURPXA/exsy.html}
+}
+
+@article{esteva2020,
+  title = {{{CO}}-{{Search}}: {{COVID}}-19 {{Information Retrieval}} with {{Semantic Search}}, {{Question Answering}}, and {{Abstractive Summarization}}},
+  shorttitle = {{{CO}}-{{Search}}},
+  author = {Esteva, Andre and Kale, Anuprit and Paulus, Romain and Hashimoto, Kazuma and Yin, Wenpeng and Radev, Dragomir and Socher, Richard},
+  year = {2020},
+  month = jun,
+  journal = {arXiv:2006.09595 [cs]},
+  eprint = {2006.09595},
+  eprinttype = {arxiv},
+  primaryclass = {cs},
+  abstract = {The COVID-19 global pandemic has resulted in international efforts to understand, track, and mitigate the disease, yielding a significant corpus of COVID-19 and SARS-CoV-2-related publications across scientific disciplines. As of May 2020, 128,000 coronavirus-related publications have been collected through the COVID-19 Open Research Dataset Challenge. Here we present CO-Search, a retriever-ranker semantic search engine designed to handle complex queries over the COVID-19 literature, potentially aiding overburdened health workers in finding scientific answers during a time of crisis. The retriever is built from a Siamese-BERT encoder that is linearly composed with a TF-IDF vectorizer, and reciprocal-rank fused with a BM25 vectorizer. The ranker is composed of a multi-hop question-answering module, that together with a multi-paragraph abstractive summarizer adjust retriever scores. To account for the domain-specific and relatively limited dataset, we generate a bipartite graph of document paragraphs and citations, creating 1.3 million (citation title, paragraph) tuples for training the encoder. We evaluate our system on the data of the TREC-COVID information retrieval challenge. CO-Search obtains top performance on the datasets of the first and second rounds, across several key metrics: normalized discounted cumulative gain, precision, mean average precision, and binary preference.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Computation and Language,Computer Science - Information Retrieval},
+  file = {/home/dsilva/Zotero/storage/475Z4PAZ/Esteva et al. - 2020 - CO-Search COVID-19 Information Retrieval with Sem.pdf;/home/dsilva/Zotero/storage/FTIZXSS6/2006.html}
+}
+

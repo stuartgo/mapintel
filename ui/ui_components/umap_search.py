@@ -1,5 +1,5 @@
 from pandas import DataFrame
-from vis_components import umap_plot
+from ui.vis_components.umap import umap_plot
 
 
 def umap_page(documents: DataFrame, query: dict, unique_topics: list):

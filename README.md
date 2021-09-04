@@ -25,37 +25,31 @@ Further usage information is present in the README files inside the *api*, *expe
 
 ## Project Organization
 
-    ├── api                <- API based on FastAPI that connects the database with the rest of the application
-    |
-    ├── data               <- Stores any data produced and used by the project
+    ├── api                         <- API based on FastAPI that connects the database with the rest of the application
     |   |
-    |   ├── backups        <- Backups of NewsAPI documents
-    │   ├── external       <- Data from third party sources
-    │   ├── interim        <- Intermediate data that has been transformed
-    │   ├── processed      <- The final, canonical data sets for modeling
-    │   └── raw            <- The original, immutable data dump
+    │   ├── controller              <- Defines the FastAPI endpoints
+    │   └── custom_components       <- Custom classes and functions
     |
-    ├── experiments        <- Performs experiments using data from the Open Distro for Elasticsearch instance
-    |   |
-    │   ├── notebooks      <- Jupyter notebooks: each with an experimental purpose described in the first cell
-    |   ├── src            <- Source code for use in experiments
-    |   └── setup.py       <- Makes src pip installable (pip install -e .) so src can be imported
+    ├── backups                     <- Backups of NewsAPI documents
     |
-    ├── outputs            <- Trained and serialized models, model predictions, model summaries and other outputs
+    ├── experiments                 <- Performs experiments using data from the Open Distro for Elasticsearch instance
     |   |
-    │   ├── figures        <- Figures resulting from experiments
-    │   ├── ocr            <- Optical Character Recognition ouptuts
-    |   ├── saved_embeddings    <- Saved document embeddings 
-    │   └── saved_models   <- Saved machine learning models
+    │   └── notebooks               <- Jupyter notebooks: each with an experimental purpose described in the first cell
+    |
+    ├── outputs
+    |   |
+    │   ├── figures                 <- Figures resulting from experiments
+    │   └── saved_models            <- Trained and serialized models
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    |   |
-    │   └── figures        <- Generated graphics and figures to be used in reporting
+    ├── reports                     <- Generated analysis as HTML, PDF, LaTeX, etc.
     |
-    ├── ui                 <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
+    ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
+    |   |
+    │   ├── ui_components           <- Defines UI related functions
+    │   └── vis_components          <- Defines Visualization functions
     │
-    ├── .env               <- Stores your secrets and config variables
-    ├── docker-compose.yml <- The docker-compose file for reproducing the analysis environment using containers
+    ├── .env                        <- Stores your secrets and config variables
+    ├── docker-compose.yml
     ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project
-    └── requirements.txt   <- The requirements file for locally reproducing the analysis environment
+    ├── README.md
+    └── requirements.txt            <- The requirements file for locally reproducing the analysis environment

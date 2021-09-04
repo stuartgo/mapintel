@@ -153,7 +153,7 @@ fig = umap_page(
     query=umap_query(question),
     unique_topics=filter_topics
 )
-st.bokeh_chart(fig, use_container_width=True)
+st.bokeh_chart(fig, use_container_width=False)
 st.write("___")
 
 # Get results for query

@@ -13,9 +13,10 @@ networkx==2.5
 wordfreq==2.3.2
 sentence-transformers==2.0.0
 tesserocr==2.5.1
+numpy==1.20
+octis
 ipywidgets
 matplotlib
-numpy
 pandas
 nltk
 hdbscan

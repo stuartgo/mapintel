@@ -1,6 +1,6 @@
 from bokeh.plotting import figure
 from bokeh.models import CDSView, ColumnDataSource, GroupFilter
-from .utils import cat_to_color
+from ui.vis_components.utils import cat_to_color
 
 
 def umap_plot(index, x, y, text, categories, topics, size=4):

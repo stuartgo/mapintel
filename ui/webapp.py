@@ -1,10 +1,15 @@
+import os
+import sys
 from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
 from bokeh.io import curdoc
 
-from ui_components import umap_page
-from utils import (
+dirname = os.path.dirname(__file__)
+sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
+
+from ui.ui_components.umap_search import umap_page
+from ui.utils import (
     feedback_doc, 
     retrieve_doc, 
     get_all_docs,

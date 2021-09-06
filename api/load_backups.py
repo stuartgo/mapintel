@@ -43,11 +43,14 @@ def backups_load(backups_dir, clean_backup_file):
 
     # Training the Retriever
     text = list(map(lambda x: x['text'].replace("#SEPTAG#", " "), documents))
-    try:
-        # RANDOM SAMPLE TO FIT IN MEMORY
-        from random import sample, seed
-        seed(10)
-        INDEXING_PIPELINE.get_node("Retriever").train(sample(text, 50000))
+    try:      
+        if len(text) > 50000:
+            # RANDOM SAMPLE TO FIT IN MEMORY
+            from random import sample, seed
+            seed(10)
+            text = sample(text, 50000)        
+        INDEXING_PIPELINE.get_node("Retriever").train(text)
+
     except Exception as e:
         logger.warning(e)
 

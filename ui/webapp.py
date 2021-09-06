@@ -51,6 +51,7 @@ with st.sidebar:
         with mid:  # Use columns to avoid slider labels being off-window
             filter_date = st.slider(
                 "Date range", 
+                min_value=date(2020,1,1),
                 value=(date(2020,1,1), end_of_week),
                 step=timedelta(7), 
                 format="DD-MM-YY"

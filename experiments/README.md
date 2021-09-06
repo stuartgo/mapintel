@@ -1,10 +1,8 @@
 # Mapintel Experiments
 
-This is the Experiments module of the Mapintel project. This module is composed of source code and notebooks. 
+This is the Experiments module of the Mapintel project. This module is composed mainly of notebooks. 
 
 In the *notebooks folder* you can find various jupyter notebooks, each with an experimental purpose described in the first cell of each file.
-
-In the *src folder* you can find any source code necessary for the development of the experiments performed.
 
 This module is independent of the UI application and therefore should not be deployed. Its only objective is to perform experiments by making use of the Open Distro for Elasticsearch instance.
 

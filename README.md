@@ -30,7 +30,9 @@ Further usage information is present in the README files inside the *api*, *expe
     │   ├── controller              <- Defines the FastAPI endpoints
     │   └── custom_components       <- Custom classes and functions
     |
-    ├── backups                     <- Backups of NewsAPI documents
+    ├── data
+    |   |
+    │   └── backups                 <- Backups of NewsAPI documents
     |
     ├── experiments                 <- Performs experiments using data from the Open Distro for Elasticsearch instance
     |   |

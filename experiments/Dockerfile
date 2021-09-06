@@ -18,15 +18,11 @@ RUN apt-get update && apt-get install -y \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
 RUN update-alternatives --set python3 /usr/bin/python3.7
 
-# Copy source code
-COPY ./experiments/src /home/user/experiments/src
-COPY ./experiments/setup.py /home/user/experiments/setup.py
-
 # Install necessary package dependencies
 COPY ./experiments/requirements.txt /home/user/experiments/requirements.txt
 RUN cd experiments && pip3 install -r requirements.txt
 # Install sompy package here
-RUN pip3 install -e git+https://github.com/DavidSilva98/SOMPY.git#egg=SOMPY
+RUN pip3 install -e git+https://github.com/sevamoo/SOMPY.git#egg=SOMPY
 
 # Add Tini (What is advantage of Tini? https://github.com/krallin/tini/issues/8)
 # Also is advised by jupyter notebook docs https://jupyter-notebook.readthedocs.io/en/stable/public_server.html#docker-cmd

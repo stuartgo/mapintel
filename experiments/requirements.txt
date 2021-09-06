@@ -22,5 +22,4 @@ nltk
 hdbscan
 top2vec
 bertopic
--e .
--e git+https://github.com/DavidSilva98/SOMPY.git#egg=SOMPY
+-e git+https://github.com/sevamoo/SOMPY.git#egg=SOMPY

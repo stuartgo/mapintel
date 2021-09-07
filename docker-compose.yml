@@ -21,7 +21,7 @@ services:
                 reservations:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
-        volumes:  
+        volumes:
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
     ui:
@@ -52,7 +52,7 @@ services:
             - API_ENDPOINT=http://api:8000
         networks:
             - odfe-net
-        volumes:  
+        volumes:
             - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
     ################################## CPU services - alternative ##################################
     api-cpu:
@@ -70,7 +70,7 @@ services:
             - odfe-net
         secrets:
             - dotenv-file
-        volumes:  
+        volumes:
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
     ui-cpu:
@@ -84,7 +84,7 @@ services:
         ports:
             - 8501:8501
         environment:
-            - API_ENDPOINT=http://api:8000
+            - API_ENDPOINT=http://api-cpu:8000
         networks:
             - odfe-net
     ui-dev-cpu:
@@ -98,10 +98,10 @@ services:
         ports:
             - 8501:8501
         environment:
-            - API_ENDPOINT=http://api:8000
+            - API_ENDPOINT=http://api-cpu:8000
         networks:
             - odfe-net
-        volumes:  
+        volumes:
             - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
     ################################## GPU/CPU Independent services ##################################
     experiments:

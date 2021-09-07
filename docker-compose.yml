@@ -1,5 +1,6 @@
 version: "3.8"
 services:
+    ################################## GPU services - default ##################################
     api:
         build:
             context: .
@@ -20,27 +21,9 @@ services:
                 reservations:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
-        volumes:  
+        volumes:
             - ./data:/home/user/data
             - ./outputs:/home/user/outputs
-    # api-cpu:
-    #     build:
-    #         context: .
-    #         dockerfile: api/DockerfileCPU
-    #     profiles:
-    #         - api-cpu  # uses cpu over gpu if profile set that way
-    #     ports:
-    #         - 8000:8000
-    #     restart: always  # The policy always restarts the container until its removal
-    #     depends_on:
-    #         - odfe-node1
-    #     networks:
-    #         - odfe-net
-    #     secrets:
-    #         - dotenv-file
-    #     volumes:  
-    #         - ./data:/home/user/data
-    #         - ./outputs:/home/user/outputs
     ui:
         build:
             context: .
@@ -69,8 +52,58 @@ services:
             - API_ENDPOINT=http://api:8000
         networks:
             - odfe-net
-        volumes:  
+        volumes:
             - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
+    ################################## CPU services - alternative ##################################
+    api-cpu:
+        build:
+            context: .
+            dockerfile: api/DockerfileCPU
+        profiles:
+            - api-cpu  # uses cpu over gpu if profile set that way
+        ports:
+            - 8000:8000
+        restart: always  # The policy always restarts the container until its removal
+        depends_on:
+            - odfe-node1
+        networks:
+            - odfe-net
+        secrets:
+            - dotenv-file
+        volumes:
+            - ./data:/home/user/data
+            - ./outputs:/home/user/outputs
+    ui-cpu:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-cpu
+        depends_on:
+            - api-cpu
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api-cpu:8000
+        networks:
+            - odfe-net
+    ui-dev-cpu:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-dev-cpu
+        depends_on:
+            - api-cpu
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api-cpu:8000
+        networks:
+            - odfe-net
+        volumes:
+            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
+    ################################## GPU/CPU Independent services ##################################
     experiments:
         build:
             context: .

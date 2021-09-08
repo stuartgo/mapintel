@@ -8,18 +8,24 @@ Some components of the project require the existence of a **.env file** under th
 
 - NEWSAPIKEY: Holds the key for using the API to obtain the updated news-articles. A News API key can be obtained by [creating an account](https://newsapi.org/register) with News API. 
 
-You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. To launch the Mapintel UI application, run the following command from the root folder of the Mapintel repository:
+You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. The project has a default option to use of a CUDA-enabled GPU to improve its performance but we also made the project compatible without this resource. Please follow the options bellow:
+
+To launch the Mapintel UI application with a CUDA-enabled GPU, run the following command from the root folder of the Mapintel repository:
 ```
 docker-compose --profile api --profile ui up
 ```
+
+To launch the Mapintel UI application with CPU only, run the following command from the root folder of the Mapintel repository:
+```
+docker-compose --profile api-cpu --profile ui-cpu up --build
+```
+
 To launch the Experiments container, run the following command from the root folder of the Mapintel repository:
 ```
 docker-compose --profile experiments up
 ```
 
 If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
-
-The project makes use of a CUDA-enabled GPU to improve its performance. Making the project compatible without this resource is something we intend to provide in the future. Any contributions in this aspect are appreciated.
 
 Further usage information is present in the README files inside the *api*, *experiments* and *ui* folders.
 

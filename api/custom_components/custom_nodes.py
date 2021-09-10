@@ -208,7 +208,8 @@ class _BERTopicEncoder():
             umap_model = UMAP(
                 n_neighbors=15, 
                 n_components=2, 
-                metric='cosine'
+                metric='cosine',
+                random_state=1
         )
         if self.hdbscan_args:
             hdbscan_model = HDBSCAN(**self.hdbscan_args)

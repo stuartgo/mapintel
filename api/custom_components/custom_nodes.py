@@ -208,7 +208,8 @@ class _BERTopicEncoder():
             umap_model = UMAP(
                 n_neighbors=15, 
                 n_components=2, 
-                metric='cosine'
+                metric='cosine',
+                random_state=1
         )
         if self.hdbscan_args:
             hdbscan_model = HDBSCAN(**self.hdbscan_args)
@@ -355,12 +356,10 @@ class CrossEncoderReRanker(BaseReader):
     def __init__(
         self,
         cross_encoder: str = "cross-encoder/ms-marco-TinyBERT-L-6",
-        use_gpu: int = True,
         top_k: int = 10
     ):
         """
         :param cross_encoder: Local path or name of cross-encoder model in Hugging Face's model hub such as ``'cross-encoder/ms-marco-TinyBERT-L-6'``
-        :param use_gpu: If < 0, then use cpu. If >= 0, this is the ordinal of the gpu to use
         :param top_k: The maximum number of answers to return
         """
 
@@ -378,11 +377,9 @@ class CrossEncoderReRanker(BaseReader):
                               "You can install it via `pip install sentence-transformers` \n"
                               "For details see https://github.com/UKPLab/sentence-transformers ")
         # pretrained embedding models coming from: https://github.com/UKPLab/sentence-transformers#pretrained-models
-        if use_gpu:
-            device = "cuda"
-        else:
-            device = "cpu"
-        self.cross_encoder = CrossEncoder(cross_encoder, device=device)
+
+        # CrossEncoder uses cuda device if available
+        self.cross_encoder = CrossEncoder(cross_encoder)
 
     def predict(self, query: str, documents: List[Document], top_k: Optional[int] = None):
         """

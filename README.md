@@ -38,6 +38,7 @@ Further usage information is present in the README files inside the *api*, *expe
     |
     ├── data
     |   |
+    │   ├── experiments             <- Experiments' data
     │   └── backups                 <- Backups of NewsAPI documents
     |
     ├── experiments                 <- Performs experiments using data from the Open Distro for Elasticsearch instance

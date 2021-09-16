@@ -257,7 +257,7 @@ class Top2Vec(Top2Vec):
         if self.embedding_model == 'doc2vec':
 
             if norm:
-                self.model.docvecs.init_sims() 
+                self.model.dv.init_sims() 
                 return self.model.dv.get_normed_vectors()  # gensim=>4.0.0
             else:
                 return self.model.dv.vectors  # gensim=>4.0.0
@@ -276,6 +276,12 @@ class Top2Vec(Top2Vec):
             return self.model.wv.get_normed_vectors()  # gensim=>4.0.0
         else:
             return self.word_vectors
+    
+    def _set_document_vectors(self, document_vectors):
+        if self.embedding_model == 'doc2vec':
+            self.model.dv.vectors = document_vectors
+        else:
+            self.document_vectors = document_vectors
 
     def _check_import_status(self):  # allow use of sentence-transformer model
         if self.embedding_model == "universal-sentence-encoder" or self.embedding_model == "universal-sentence-encoder-multilingual":
@@ -318,3 +324,97 @@ class Top2Vec(Top2Vec):
 
         if self.verbose is False:
             logger.setLevel(logging.WARNING)
+    
+    def add_documents(self, documents, doc_ids=None, tokenizer=None, use_embedding_model_tokenizer=False):
+        """
+        Update the model with new documents.
+
+        The documents will be added to the current model without changing
+        existing document, word and topic vectors. Topic sizes will be updated.
+
+        If adding a large quantity of documents relative to the current model
+        size, or documents containing a largely new vocabulary, a new model
+        should be trained for best results.
+
+        Parameters
+        ----------
+        documents: List of str
+
+        doc_ids: List of str, int (Optional)
+            Only required when doc_ids were given to the original model.
+
+            A unique value per document that will be used for referring to
+            documents in search results.
+
+        tokenizer: callable (Optional, default None)
+            Override the default tokenization method. If None then
+            gensim.utils.simple_preprocess will be used.
+
+        use_embedding_model_tokenizer: bool (Optional, default False)
+            If using an embedding model other than doc2vec, use the model's
+            tokenizer for document embedding.
+        """
+        # if tokenizer is not passed use default
+        if tokenizer is None:
+            tokenizer = default_tokenizer
+
+        # add documents
+        self._validate_documents(documents)
+        if self.documents is not None:
+            self.documents = np.append(self.documents, documents)
+
+        # add document ids
+        if self.document_ids_provided is True:
+            self._validate_document_ids_add_doc(documents, doc_ids)
+            doc_ids_len = len(self.document_ids)
+            self.document_ids = np.append(self.document_ids, doc_ids)
+            self.doc_id2index.update(dict(zip(doc_ids, list(range(doc_ids_len, doc_ids_len + len(doc_ids))))))
+
+        elif doc_ids is None:
+            num_docs = len(documents)
+            start_id = max(self.document_ids) + 1
+            doc_ids = list(range(start_id, start_id + num_docs))
+            doc_ids_len = len(self.document_ids)
+            self.document_ids = np.append(self.document_ids, doc_ids)
+            self.doc_id2index.update(dict(zip(doc_ids, list(range(doc_ids_len, doc_ids_len + len(doc_ids))))))
+        else:
+            raise ValueError("doc_ids cannot be used because they were not provided to model during training.")
+
+        if self.embedding_model == "doc2vec":
+            docs_processed = [tokenizer(doc) for doc in documents]
+            document_vectors = np.vstack([self.model.infer_vector(doc_words=doc,
+                                                                  alpha=0.025,
+                                                                  min_alpha=0.01,
+                                                                  epochs=100) for doc in docs_processed])
+
+            self._set_document_vectors(np.vstack([self._get_document_vectors(norm=False), document_vectors]))
+            self.model.dv.init_sims()
+
+        else:
+            if use_embedding_model_tokenizer:
+                docs_training = documents
+            else:
+                docs_processed = [tokenizer(doc) for doc in documents]
+                docs_training = [' '.join(doc) for doc in docs_processed]
+            document_vectors = self._embed_documents(docs_training)
+            self._set_document_vectors(np.vstack([self._get_document_vectors(), document_vectors]))
+
+        # update index
+        if self.documents_indexed:
+            # update capacity of index
+            current_max = self.documents_index.get_max_elements()
+            updated_max = current_max + len(documents)
+            self.documents_index.resize_index(updated_max)
+
+            # update index_id and doc_ids
+            start_index_id = max(self.index_id2doc_id.keys()) + 1
+            new_index_ids = list(range(start_index_id, start_index_id + len(doc_ids)))
+            self.index_id2doc_id.update(dict(zip(new_index_ids, doc_ids)))
+            self.doc_id2index_id.update(dict(zip(doc_ids, new_index_ids)))
+            self.documents_index.add_items(document_vectors, new_index_ids)
+
+        # update topics
+        self._assign_documents_to_topic(document_vectors, hierarchy=False)
+
+        if self.hierarchy is not None:
+            self._assign_documents_to_topic(document_vectors, hierarchy=True)

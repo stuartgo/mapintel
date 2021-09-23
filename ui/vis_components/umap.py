@@ -17,7 +17,7 @@ def umap_plot(index, x, y, text, topics, unique_topics, size=4):
         title=list(map(lambda x: x[0], text)),
         body=list(map(lambda x: "\n".join(x[1:]) if len(x)>1 else "", text)),
         marker=["circle" if categ != topic_label else "x" for categ in topics],
-        size=[size if categ != topic_label else size*3 for categ in topics],
+        size=[size if categ != topic_label else size*5 for categ in topics],
         alpha=[0.5 if categ != topic_label else 1 for categ in topics],
         color=cat_to_color(topics)
     ))

@@ -49,6 +49,8 @@ class Top2Vec(Top2Vec):
                  use_corpus_file=False,
                  document_ids=None,
                  keep_documents=True,
+                 save_umap=True,
+                 save_hdbscan=True,
                  workers=None,
                  tokenizer=None,
                  use_embedding_model_tokenizer=False,
@@ -197,8 +199,11 @@ class Top2Vec(Top2Vec):
         cluster = hdbscan.HDBSCAN(**hdbscan_args).fit(umap_model.embedding_)
 
         # save the UMAP and HDBSCAN model
-        self.umap_model = umap_model
-        self.cluster = cluster
+        self.umap_model, self.cluster = None, None
+        if save_umap:
+            self.umap_model = umap_model
+        if save_hdbscan:
+            self.cluster = cluster
 
         # calculate topic vectors from dense areas of documents
         logger.info('Finding topics')

@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import csv
 import logging
@@ -21,6 +22,9 @@ from octis.evaluation_metrics.diversity_metrics import TopicDiversity, InvertedR
 from octis.evaluation_metrics.coherence_metrics import Coherence, WECoherencePairwise, _load_default_texts
 from octis.optimization.optimizer import Optimizer
 from skopt.space.space import Real, Categorical, Integer
+
+dirname = os.path.dirname(__file__)
+sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
 
 from experiments.utils import Top2Vec
 
@@ -199,10 +203,14 @@ class Top2Vec_octis(AbstractModel):
             train_corpus = list(map(lambda x: " ".join(x), train_corpus))
             test_corpus = list(map(lambda x: " ".join(x), test_corpus))
             model = Top2Vec(
-                documents=train_corpus, 
+                documents=train_corpus,
                 embedding_model=self.hyperparameters["embedding_model"],
                 umap_args=self.hyperparameters["umap_args"],
-                hdbscan_args=self.hyperparameters["hdbscan_args"]
+                hdbscan_args=self.hyperparameters["hdbscan_args"],
+                keep_documents=False,
+                use_corpus_file=True,
+                save_umap=False,
+                save_hdbscan=False
             )
             reduced = True
             try:
@@ -229,10 +237,14 @@ class Top2Vec_octis(AbstractModel):
         else:
             data_corpus = list(map(lambda x: " ".join(x), dataset.get_corpus()))
             model = Top2Vec(
-                documents=data_corpus, 
+                documents=data_corpus,
                 embedding_model=self.hyperparameters["embedding_model"],
                 umap_args=self.hyperparameters["umap_args"],
-                hdbscan_args=self.hyperparameters["hdbscan_args"]
+                hdbscan_args=self.hyperparameters["hdbscan_args"],
+                keep_documents=False,
+                use_corpus_file=True,
+                save_umap=False,
+                save_hdbscan=False
             )
             reduced = True
             try:
@@ -272,7 +284,7 @@ class OptMetric(AbstractMetric):
         return m1.score(model_output) * m2.score(model_output)
 
 
-def create_octis_files(backup_file, out_dir, partition=False):
+def create_octis_files(backup_file, data_dir, partition=False):
     # Open json backup file
     with open(backup_file, "r") as file:
         jsondata = json.load(file)
@@ -282,7 +294,7 @@ def create_octis_files(backup_file, out_dir, partition=False):
     categs = list(map(lambda x: x['meta']['category'], jsondata))
 
     # Write vocabulary file
-    with open(os.path.join(out_dir, "vocabulary.txt"), "w", newline='') as file:
+    with open(os.path.join(data_dir, "vocabulary.txt"), "w", newline='') as file:
         vectorizer = CountVectorizer(
             ngram_range=(1, 1),
             stop_words="english"
@@ -295,7 +307,7 @@ def create_octis_files(backup_file, out_dir, partition=False):
     seed(1)
     rand_ix = list(range(len(texts)))
     shuffle(rand_ix)
-    with open(os.path.join(out_dir, "corpus.tsv"), "w", newline='') as file:
+    with open(os.path.join(data_dir, "corpus.tsv"), "w", newline='') as file:
         csv_writer = csv.writer(file, delimiter="\t")
         for i, ix in enumerate(rand_ix):
             if partition:
@@ -337,15 +349,19 @@ def topic_evaluation(model_output, texts):
 
 
 if __name__ == "__main__":    
-    dirname = os.path.dirname(__file__)
     out_path = os.path.join(dirname, "../outputs/experiments/")
+    
+    # Define path to sbert model
+    sbert_dir = os.path.join(dirname, "../data/experiments/msmarco-distilbert-base-v4")
+    if not os.path.isdir(sbert_dir):
+        sbert_dir = "sentence-transformers/msmarco-distilbert-base-v4"
 
     # Creating the OCTIS files if necessary
     if not os.path.exists(os.path.join(dirname, "../data/experiments/corpus.tsv")):
-        logger.info("Creating the OCTIS files if necessary.")
+        logger.info("Creating the OCTIS files.")
         create_octis_files(
             backup_file=os.path.join(dirname, "../data/backups/mongodb_cleaned_docs.json"),
-            out_dir=os.path.join(dirname, "../outputs/experiments"),
+            data_dir=os.path.join(dirname, "../data/experiments"),
             partition=False
         )
 
@@ -357,7 +373,7 @@ if __name__ == "__main__":
 
     # Obtaining the reduced space
     logger.info("Obtaining the reduced space for projecting the topic embeddings.")
-    embeddings = SentenceTransformer('sentence-transformers/msmarco-distilbert-base-v4').encode(docs, show_progress_bar=True)
+    embeddings = SentenceTransformer(sbert_dir).encode(docs, show_progress_bar=True)
     umap_emb = UMAP(
         n_neighbors=30, 
         n_components=2,
@@ -374,7 +390,7 @@ if __name__ == "__main__":
     models = {
         "CTM": CTM(
             num_topics=20, 
-            bert_model="sentence-transformers/msmarco-distilbert-base-v4",
+            bert_model=sbert_dir,
             use_partitions=False,
             bert_path=out_path
         ),
@@ -393,7 +409,7 @@ if __name__ == "__main__":
         ),
         "BERTopic": BERTopic_octis(
             num_topics=20,
-            embedding_model="sentence-transformers/msmarco-distilbert-base-v4",
+            embedding_model=sbert_dir,
             umap_args={
                 "min_dist": 0.0,  # accentuates clusters in low dim space
                 "random_state":1
@@ -424,7 +440,7 @@ if __name__ == "__main__":
             "inference_type": Categorical({'zeroshot', 'combined'})
         },
         "Top2Vec": {
-            "embedding_model": Categorical({"doc2vec", "sentence-transformers/msmarco-distilbert-base-v4"}),
+            "embedding_model": Categorical({"doc2vec", sbert_dir}),
             "umap_args__n_neighbors": Integer(10, 50),
             "umap_args__n_components": Categorical({2, 5, 10, 25, 50}),
             "umap_args__metric": Categorical({'cosine', 'euclidean'}),
@@ -467,8 +483,8 @@ if __name__ == "__main__":
             save_path=out_path, # path to store the results
             save_name=f"{i}_results",
             save_models=False,
-            number_of_call=50, # number of optimization iterations (only explore points with most potential)
-            model_runs=3, # number of different evaluation of the function in the same point and with the same hyperparameters
+            number_of_call=30, # number of optimization iterations (only explore points with most potential)
+            model_runs=1, # number of different evaluation of the function in the same point and with the same hyperparameters
             random_state=0
         )
 

@@ -2,6 +2,7 @@
 experiments/notebooks/mlruns/
 sompy/
 outputs/
+venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

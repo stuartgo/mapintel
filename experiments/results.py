@@ -16,7 +16,6 @@ from sentence_transformers import SentenceTransformer
 from octis.dataset.dataset import Dataset
 from octis.models.model import AbstractModel
 from octis.evaluation_metrics.metrics import AbstractMetric
-from octis.models.CTM import CTM
 from octis.models.LDA import LDA
 from octis.evaluation_metrics.diversity_metrics import TopicDiversity, InvertedRBO
 from octis.evaluation_metrics.coherence_metrics import Coherence, WECoherencePairwise, _load_default_texts
@@ -26,7 +25,7 @@ from skopt.space.space import Real, Categorical, Integer
 dirname = os.path.dirname(__file__)
 sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
 
-from experiments.utils import Top2Vec
+from experiments.utils import Top2Vec, CTM
 
 logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -212,13 +211,16 @@ class Top2Vec_octis(AbstractModel):
                 save_umap=False,
                 save_hdbscan=False
             )
-            reduced = True
-            try:
+            reduced = False
+            if len(model.topic_vectors) > num_topics:
                 model.hierarchical_topic_reduction(num_topics)  # Reduce the number of topics discovered by Top2Vec
-            except ValueError:
+                reduced = True
+            elif len(model.topic_vectors) == num_topics:
+                print(f"No topic reduction necessary as model already has {len(model.topic_vectors)} topics.")
+            else:
                 print(f"Can't reduce number of topics to {num_topics}. Model will have {len(model.topic_vectors)} topics.")
-                reduced = False
-            model.add_documents(documents=test_corpus)  # Add test corpus - new document topics are appended to doc_top_reduced 
+            # Add test corpus - new document topics are appended to doc_top_reduced 
+            model.add_documents(documents=test_corpus)
 
             if reduced:
                 result = {
@@ -246,12 +248,14 @@ class Top2Vec_octis(AbstractModel):
                 save_umap=False,
                 save_hdbscan=False
             )
-            reduced = True
-            try:
+            reduced = False
+            if len(model.topic_vectors) > num_topics:
                 model.hierarchical_topic_reduction(num_topics)  # Reduce the number of topics discovered by Top2Vec
-            except ValueError:
+                reduced = True
+            elif len(model.topic_vectors) == num_topics:
+                print(f"No topic reduction necessary as model already has {len(model.topic_vectors)} topics.")
+            else:
                 print(f"Can't reduce number of topics to {num_topics}. Model will have {len(model.topic_vectors)} topics.")
-                reduced = False
             
             if reduced:
                 result = {
@@ -307,6 +311,7 @@ def create_octis_files(backup_file, data_dir, partition=False):
     seed(1)
     rand_ix = list(range(len(texts)))
     shuffle(rand_ix)
+    rand_ix = rand_ix[:100000]  # sample the corpus for experiments
     with open(os.path.join(data_dir, "corpus.tsv"), "w", newline='') as file:
         csv_writer = csv.writer(file, delimiter="\t")
         for i, ix in enumerate(rand_ix):

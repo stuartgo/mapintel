@@ -8,6 +8,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import normalize
 from top2vec import Top2Vec
 from top2vec.Top2Vec import default_tokenizer
+from octis.models.CTM import CTM
+from octis.models.contextualized_topic_models.datasets import dataset
 
 try:
     import hnswlib
@@ -423,3 +425,48 @@ class Top2Vec(Top2Vec):
 
         if self.hierarchy is not None:
             self._assign_documents_to_topic(document_vectors, hierarchy=True)
+
+
+class CTM(CTM):
+    @staticmethod
+    def preprocess(vocab, train, bert_model, test=None, validation=None,
+                   bert_train_path=None, bert_test_path=None, bert_val_path=None):
+        vocab2id = {w: i for i, w in enumerate(vocab)}
+        vec = CountVectorizer(
+            vocabulary=vocab2id, token_pattern=r'(?u)\b[\w+|\-]+\b')
+        entire_dataset = train.copy()
+        if test is not None:
+            entire_dataset.extend(test)
+        if validation is not None:
+            entire_dataset.extend(validation)
+
+        vec.fit(entire_dataset)
+        idx2token = {v: k for (k, v) in vec.vocabulary_.items()}
+
+        x_train = vec.transform(train)
+        b_train = CTM.load_bert_data(bert_train_path, train, bert_model)
+
+        train_data = dataset.CTMDataset(x_train, b_train, idx2token)
+        input_size = len(idx2token.keys())
+
+        if test is not None and validation is not None:
+            x_test = vec.transform(test)
+            b_test = CTM.load_bert_data(bert_test_path, test, bert_model)
+            test_data = dataset.CTMDataset(x_test, b_test, idx2token)
+
+            x_valid = vec.transform(validation)
+            b_val = CTM.load_bert_data(bert_val_path, validation, bert_model)
+            valid_data = dataset.CTMDataset(x_valid, b_val, idx2token)
+            return train_data, test_data, valid_data, input_size
+        if test is None and validation is not None:
+            x_valid = vec.transform(validation)
+            b_val = CTM.load_bert_data(bert_val_path, validation, bert_model)
+            valid_data = dataset.CTMDataset(x_valid, b_val, idx2token)
+            return train_data, valid_data, input_size
+        if test is not None and validation is None:
+            x_test = vec.transform(test)
+            b_test = CTM.load_bert_data(bert_test_path, test, bert_model)
+            test_data = dataset.CTMDataset(x_test, b_test, idx2token)
+            return train_data, test_data, input_size
+        if test is None and validation is None:
+            return train_data, input_size

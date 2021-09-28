@@ -231,7 +231,7 @@ class Top2Vec_octis(AbstractModel):
                 }
             else:
                 result = {
-                    'topics': [words[:top_words].tolist() for words in model.get_topics(num_topics, reduced=False)[0]],
+                    'topics': [words[:top_words].tolist() for words in model.get_topics(len(model.topic_vectors), reduced=False)[0]],
                     'topic-word-matrix': np.inner(model.topic_vectors, model._get_word_vectors()),
                     'topic-document-matrix': model.doc_top[:len(train_corpus)],  # in Top2Vec a document only belongs to a topic
                     'test-topic-document-matrix': model.doc_top[len(train_corpus):]
@@ -265,7 +265,7 @@ class Top2Vec_octis(AbstractModel):
                 }
             else:
                 result = {
-                    'topics': [words[:top_words].tolist() for words in model.get_topics(num_topics, reduced=False)[0]],
+                    'topics': [words[:top_words].tolist() for words in model.get_topics(len(model.topic_vectors), reduced=False)[0]],
                     'topic-word-matrix': np.inner(model.topic_vectors, model._get_word_vectors()),
                     'topic-document-matrix': model.doc_top,  # in Top2Vec a document only belongs to a topic
                 }

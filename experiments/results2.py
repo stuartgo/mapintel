@@ -110,12 +110,6 @@ def suggest_hyperparameters(trial):
         hyperparams['hdbscan_args__cluster_selection_epsilon'] = trial.suggest_float('cluster_selection_epsilon', 0.01, 1.0, log=True)
         hyperparams['hdbscan_args__cluster_selection_method'] = trial.suggest_categorical('cluster_selection_method', ['eom', 'leaf'])
 
-    # elif hyperparams['topic_model'] == 'Top2Vec':
-    #     # Setting hyperparameters for Top2Vec
-    #     hyperparams['hdbscan_args__min_cluster_size'] = trial.suggest_int('min_cluster_size', 30, 150)
-    #     hyperparams['hdbscan_args__cluster_selection_epsilon'] = trial.suggest_float('cluster_selection_epsilon', 0.1, 1.0, log=True)
-    #     hyperparams['hdbscan_args__cluster_selection_method'] = trial.suggest_categorical('cluster_selection_method', ['eom', 'leaf'])
-
     elif hyperparams['topic_model'] == 'CTM':
         # Setting hyperparameters for CTM
         hyperparams['model_type'] = trial.suggest_categorical('model_type', ['prodLDA', 'LDA'])
@@ -202,32 +196,6 @@ def define_topic_model(hyperparams):
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer_model
         )
-    
-    # elif hyperparams['topic_model'] == 'Top2Vec':
-    #     # Setting model components
-    #     umap_model = UMAP(
-    #         n_neighbors=hyperparams['umap_args__n_neighbors'], 
-    #         n_components=hyperparams['umap_args__n_components'],
-    #         min_dist=0.0,
-    #         metric=hyperparams['umap_args__metric'],
-    #         random_state=1
-    #     )
-    #     hdbscan_model = HDBSCAN(
-    #         min_cluster_size=hyperparams['hdbscan_args__min_cluster_size'], 
-    #         cluster_selection_epsilon=hyperparams['hdbscan_args__cluster_selection_epsilon'],
-    #         cluster_selection_method=hyperparams['hdbscan_args__cluster_selection_method'],
-    #         metric='euclidean',
-    #         memory=outputs_dir,  # we cache the hard computation and recompute only the relatively cheap flat cluster extraction
-    #         prediction_data=True
-    #     )
-
-    #     # Declaring the model
-    #     model = Top2VecScikit(
-    #         nr_topics=20,
-    #         embedding_model=hyperparams['embedding_model'],
-    #         umap_model=umap_model,
-    #         hdbscan_model=hdbscan_model
-    #     )
 
     elif hyperparams['topic_model'] == 'CTM':
         # Declaring the model

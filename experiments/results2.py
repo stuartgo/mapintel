@@ -4,6 +4,7 @@ import re
 import string
 from itertools import compress
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from multiprocessing import cpu_count
@@ -30,14 +31,14 @@ VALID_EMBEDDINGS_MODELS = ['doc2vec', 'sentence-transformers/msmarco-distilbert-
 VALID_TOPIC_MODELS = ['BERTopic', 'CTM', 'LDA']
 
 # TODO:
+# - In the SentenceTransformer can we avoid fitting in each fold since there's no actual fit?
 # - Define which metric(s) to optimize on hyperparameter searching
 # - Print information on parameters selected
 # - Use other datasets for validating the methodology
-# - Set the sampler and pruner for the optuna optimization process
+# - Set the sampler and pruner for the optuna optimizatinon process
 # - Log the training and inference time (average across folds) as a metric
 # - Define MLflow project file
 # - Create test set for obtainining unbiased evaluations
-# - Log actual number of topics obtained
 # - Log topic word labels and pass them to the UMAP plot legend
 
 
@@ -56,11 +57,12 @@ def clean_text(text):
 
 
 def prepare_20newsgroups(dataset_file):
+    print("Load and clean the dataset.")
     # Check whether there is a saved dataset in disk
     if os.path.isfile(dataset_file):
         # Load the data from disk
-        data = np.load(dataset_file)
-        X_clean, y_clean = data[:, 0], data[:, 1]
+        df = pd.read_csv(dataset_file)
+        X_clean, y_clean = df['X_clean'], df['y_clean']
     else:
         # Loading the data
         newsgroups_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
@@ -75,8 +77,7 @@ def prepare_20newsgroups(dataset_file):
         y_clean = list(compress(y, blank & fourwords & outliers))
 
         # Save the dataset to disk
-        data = np.array([X_clean, y_clean]).T
-        np.save(dataset_file, data)
+        pd.DataFrame({'X_clean': X_clean, 'y_clean': y_clean}).to_csv(dataset_file, index=False)
 
     y_labels = [
         'alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware',
@@ -89,6 +90,7 @@ def prepare_20newsgroups(dataset_file):
 
 
 def suggest_hyperparameters(trial):
+    print('Suggest hyperparameters.')
     hyperparams = {}
 
     # Define embedding_model
@@ -113,8 +115,8 @@ def suggest_hyperparameters(trial):
     elif hyperparams['topic_model'] == 'CTM':
         # Setting hyperparameters for CTM
         hyperparams['model_type'] = trial.suggest_categorical('model_type', ['prodLDA', 'LDA'])
-        hyperparams['activation'] = trial.suggest_categorical('activation', ['sigmoid', 'relu', 'softplus'])
-        hyperparams['hidden_sizes'] = trial.suggest_categorical('hidden_sizes', [(100), (100, 100), (100, 100, 100), (300), (300, 300), (300, 300, 300)])
+        hyperparams['activation'] = trial.suggest_categorical('activation', ['relu', 'softplus'])
+        hyperparams['hidden_sizes'] = trial.suggest_categorical('hidden_sizes', [(100,), (100, 100), (100, 100, 100), (300,), (300, 300), (300, 300, 300)])
         hyperparams['num_epochs'] = trial.suggest_categorical('num_epochs', [33, 66, 100])
         hyperparams['dropout'] = trial.suggest_float('dropout', 0.0, 0.4)
         hyperparams['lr'] = trial.suggest_float('lr', 2e-3, 2e-1)
@@ -133,6 +135,7 @@ def suggest_hyperparameters(trial):
 
 
 def define_embedding_model(hyperparams):
+    print('Define the embedding model.')
     embedding_model = hyperparams['embedding_model']
     if embedding_model == 'doc2vec':
         # Based on hyperparameters used in Top2Vec
@@ -163,6 +166,7 @@ def define_embedding_model(hyperparams):
 
 
 def define_topic_model(hyperparams):
+    print('Define the topic model.')
     if hyperparams['topic_model'] == 'BERTopic':
         # Setting model components
         umap_model = UMAP(
@@ -191,7 +195,6 @@ def define_topic_model(hyperparams):
             n_gram_range=n_gram_range,
             nr_topics=20,
             min_topic_size=hyperparams['min_topic_size'],
-            embedding_model=hyperparams['embedding_model'],
             umap_model=umap_model,
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer_model
@@ -200,7 +203,6 @@ def define_topic_model(hyperparams):
     elif hyperparams['topic_model'] == 'CTM':
         # Declaring the model
         model = CTMScikit(
-            contextual_size=768,
             n_components=20, 
             model_type = hyperparams['model_type'],
             activation = hyperparams['activation'],
@@ -219,7 +221,6 @@ def define_topic_model(hyperparams):
             max_iter=hyperparams['max_iter'],
             max_doc_update_iter=hyperparams['max_doc_update_iter'],
             n_components=20, 
-            n_jobs=-1,
             random_state=0
         )
     
@@ -239,7 +240,6 @@ def umap_evaluation(umap_emb_train, umap_emb_test, y_train, y_test, k_range=[10,
             weights='uniform',
             algorithm='brute',
             metric='cosine',
-            n_jobs=-1
         )
 
         # Get KNN classifier predictions
@@ -255,6 +255,7 @@ def umap_evaluation(umap_emb_train, umap_emb_test, y_train, y_test, k_range=[10,
 
 
 def cluster_evaluation(topics, y, outlier_label=None):
+    assert len(topics) == len(y), f'topics and y have different lengths ({len(topics)}, {len(y)}).'
     nmi = normalized_mutual_info_score(y, topics)
     if outlier_label:
         doc_ids = [top != outlier_label for top in topics]
@@ -309,12 +310,12 @@ def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
     infer = {}
 
     # Fit and transform the embedding model
-    print(f"Fit and transform the embedding model.")
+    print(f"Fit and transform the {emb_model} embedding model.")
     emb_train = emb_model.fit_transform(X_train)
     emb_test = emb_model.transform(X_test)
 
     # Fit and transform the topic model
-    print('Fit and transform the topic model.')
+    print(f'Fit and transform the {topic_model} topic model.')
     infer['top_train'] = topic_model.fit_transform(X_train, embeddings=emb_train)
     infer['top_test'] = topic_model.transform(X_test, embeddings=emb_test)
 
@@ -331,6 +332,9 @@ def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
 
 def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, plot=False):
     artifacts = {}
+
+    # Save the number of topics identified
+    artifacts['ntopics'] = len(infer['tm_full_output']['topics'])
 
     # Evaluate the UMAP model on test split
     print("Evaluate UMAP on K-NN accuracy.")
@@ -361,17 +365,16 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, plot=False):
 def objective(trial):
     with mlflow.start_run():
         # Load dataset
-        print("Load and clean the dataset.")
-        X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.npy'))
+        X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.csv'))
 
         # Suggest hyperparameters
         hyperparams = suggest_hyperparameters(trial)
 
-        # Define topic model
-        topic_model = define_topic_model(hyperparams)
-
         # Define embedding model
         emb_model = define_embedding_model(hyperparams)
+
+        # Define topic model
+        topic_model = define_topic_model(hyperparams)
 
         # Define UMAP model for projecting space to 2 dimensions
         umap_model = UMAP(
@@ -387,6 +390,8 @@ def objective(trial):
         n_splits = 10
         skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
         for n, (train_ix, test_ix) in enumerate(skf.split(X_clean, y_clean)):
+            print(f'Iteration number {n + 1} out of {n_splits}.')
+
             # Get train and test samples
             X_train, X_test = np.array(X_clean)[train_ix], np.array(X_clean)[test_ix]
             y_train, y_test = np.array(y_clean)[train_ix], np.array(y_clean)[test_ix]
@@ -406,6 +411,7 @@ def objective(trial):
                     continue
                 split_metrics[k].append(v)
 
+        print('Log artifacts.')
         # Log parameters with mlflow
         mlflow.log_param("cv-folds", 10)
         mlflow.log_params(trial.params)
@@ -429,8 +435,7 @@ def objective(trial):
 def log_best_model(best_trial):
     with mlflow.start_run(run_name='best-model'):
         # Load dataset
-        print("Load and clean the dataset.")
-        X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.npy'))
+        X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.csv'))
 
         # Suggest hyperparameters
         hyperparams = suggest_hyperparameters(best_trial)
@@ -459,6 +464,7 @@ def log_best_model(best_trial):
         # Evaluate the topic_model and umap_model
         artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, plot=True)
 
+        print('Log artifacts.')
         # Log parameters with mlflow
         mlflow.log_param("test_size", 0.2)
         mlflow.log_params(best_trial.params)
@@ -481,7 +487,7 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(outputs_dir)
     mlflow.set_experiment("my-experiment")
     study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=1, n_jobs=-1)
+    study.optimize(objective, n_trials=1, n_jobs=1)
 
     # Print optuna study statistics
     print("\n++++++++++++++++++++++++++++++++++\n")

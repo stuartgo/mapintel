@@ -17,6 +17,9 @@ from sklearn.decomposition import LatentDirichletAllocation
 
 
 class LatentDirichletAllocation(LatentDirichletAllocation):
+    def __str__(self):
+        return "LatentDirichletAllocation"
+
     def fit(self, X, embeddings=None, y=None):
         self.cv = CountVectorizer()
         doc_word_train = self.cv.fit_transform(X)
@@ -34,10 +37,13 @@ class LatentDirichletAllocation(LatentDirichletAllocation):
             'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
             'topic-document-matrix': doc_topic_dist.T,
         }
-        return doc_topic_dist
+        return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
 
 
 class BERTopic(BERTopic):
+    def __str__(self):
+        return "BERTopic"
+
     def fit_transform(self, documents, embeddings, y=None):
         train_doc_topics, _ = super().fit_transform(documents, embeddings, y)
         self.full_output = {
@@ -46,17 +52,21 @@ class BERTopic(BERTopic):
                 'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
             }
         return train_doc_topics
+    
+    def transform(self, documents, embeddings):
+        test_doc_topics, _ = super().transform(documents, embeddings)
+        return test_doc_topics
 
 
 class CTMScikit(TransformerMixin, BaseEstimator):
-    def __init__(self, contextual_size, inference_type="combined", n_components=10, model_type='prodLDA',
+    def __init__(self, inference_type="combined", n_components=10, model_type='prodLDA',
                  hidden_sizes=(100, 100), activation='softplus', dropout=0.2, learn_priors=True, batch_size=64,
                  lr=2e-3, momentum=0.99, solver='adam', num_epochs=100, reduce_on_plateau=False,
                  num_data_loader_workers=cpu_count() - 1, label_size=0, loss_weights=None, n_samples=20):
 
         self.ctm_model = None
         self.model_output = None
-        self.contextual_size = contextual_size
+        self.contextual_size = None
         self.inference_type = inference_type
         self.n_components = n_components
         self.model_type = model_type
@@ -74,6 +84,9 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         self.label_size = label_size
         self.loss_weights = loss_weights
         self.n_samples = n_samples
+    
+    def __str__(self):
+        return "CTM"
 
     def fit(self, X, embeddings, y=None):
         """Fit the model according to the given training data.
@@ -85,6 +98,7 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         embeddings: {numpy array}
             A collection of vectorized documents used for training the model.
         """
+        self.contextual_size = embeddings.shape[1]  # Get dimension of input from embeddings
         self.vectorizer = CountVectorizer()
 
         # BOW vectorize the corpus
@@ -97,7 +111,7 @@ class CTMScikit(TransformerMixin, BaseEstimator):
 
         if self.inference_type == 'combined':
             self.ctm_model = CombinedTM(
-                bow_size=self.vectorizer.vocabulary_, contextual_size=self.contextual_size, n_components=self.n_components,
+                bow_size=len(self.vocab), contextual_size=self.contextual_size, n_components=self.n_components,
                 model_type=self.model_type, hidden_sizes=self.hidden_sizes, activation=self.activation, dropout=self.dropout, 
                 learn_priors=self.learn_priors, batch_size=self.batch_size, lr=self.lr, momentum=self.momentum, solver=self.solver, 
                 num_epochs=self.num_epochs, reduce_on_plateau=self.reduce_on_plateau, num_data_loader_workers=self.num_data_loader_workers, 
@@ -105,7 +119,7 @@ class CTMScikit(TransformerMixin, BaseEstimator):
             )
         elif self.inference_type == 'zeroshot':
             self.ctm_model = ZeroShotTM(
-                bow_size=self.vectorizer.vocabulary_, contextual_size=self.contextual_size, n_components=self.n_components,
+                bow_size=len(self.vocab), contextual_size=self.contextual_size, n_components=self.n_components,
                 model_type=self.model_type, hidden_sizes=self.hidden_sizes, activation=self.activation, dropout=self.dropout, 
                 learn_priors=self.learn_priors, batch_size=self.batch_size, lr=self.lr, momentum=self.momentum, solver=self.solver, 
                 num_epochs=self.num_epochs, reduce_on_plateau=self.reduce_on_plateau, num_data_loader_workers=self.num_data_loader_workers, 
@@ -153,7 +167,7 @@ class CTMScikit(TransformerMixin, BaseEstimator):
             'topic-document-matrix': doc_topic_dist.T,
         }
         
-        return np.argmax(doc_topic_dist, axis=0)  # get the most prominent topic for each document
+        return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
     
     def fit_transform(self, X, embeddings, y=None, **fit_params):
         return self.fit(X, embeddings, **fit_params).transform(X, embeddings)
@@ -175,6 +189,9 @@ class SentenceTransformerScikit(TransformerMixin, BaseEstimator):
         self.convert_to_numpy = convert_to_numpy
         self.convert_to_tensor = convert_to_tensor
         self.normalize_embeddings = normalize_embeddings
+    
+    def __str__(self):
+        return "SentenceTransformer"
 
     def fit(self, X=None, y=None):
         """Initialize the pre-trained Sentence Transformer model.
@@ -256,6 +273,9 @@ class Doc2VecScikit(TransformerMixin, BaseEstimator):
         self.epochs = epochs
         self.sorted_vocab = sorted_vocab
         self.batch_words = batch_words
+
+    def __str__(self):
+        return "Doc2Vec"
 
     def fit(self, X, y=None):
         """Fit the model according to the given training data.

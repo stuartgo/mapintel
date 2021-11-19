@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import string
+from json import dumps
 from itertools import compress
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score, normalized_mutual_info_score
 from octis.evaluation_metrics.diversity_metrics import TopicDiversity, InvertedRBO
-from octis.evaluation_metrics.coherence_metrics import Coherence, WECoherencePairwise
+from octis.evaluation_metrics.coherence_metrics import Coherence
 
 dirname = os.path.dirname(__file__)
 outputs_dir = os.path.join(dirname, "../outputs/experiments")
@@ -29,17 +30,14 @@ from experiments.utils import Doc2VecScikit, SentenceTransformerScikit, CTMSciki
 
 VALID_EMBEDDINGS_MODELS = ['doc2vec', 'sentence-transformers/msmarco-distilbert-base-v4']
 VALID_TOPIC_MODELS = ['BERTopic', 'CTM', 'LDA']
+UMAP_EVAL_K_RANGE = [10, 20, 40, 80, 160]
+N_CV_SPLITS = 5
 
 # TODO:
+# - Add Documentation to each function
 # - In the SentenceTransformer can we avoid fitting in each fold since there's no actual fit?
-# - Define which metric(s) to optimize on hyperparameter searching
-# - Print information on parameters selected
 # - Use other datasets for validating the methodology
-# - Set the sampler and pruner for the optuna optimizatinon process
-# - Log the training and inference time (average across folds) as a metric
 # - Define MLflow project file
-# - Create test set for obtainining unbiased evaluations
-# - Log topic word labels and pass them to the UMAP plot legend
 
 
 def clean_text(text):
@@ -56,29 +54,8 @@ def clean_text(text):
     return text
 
 
-def prepare_20newsgroups(dataset_file):
+def prepare_20newsgroups(dataset_file=None):
     print("Load and clean the dataset.")
-    # Check whether there is a saved dataset in disk
-    if os.path.isfile(dataset_file):
-        # Load the data from disk
-        df = pd.read_csv(dataset_file)
-        X_clean, y_clean = df['X_clean'], df['y_clean']
-    else:
-        # Loading the data
-        newsgroups_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
-        X, y = newsgroups_data.data, newsgroups_data.target
-
-        # Clean text
-        X_clean = list(map(clean_text, X))
-        blank = np.array([len(doc) > 2 for doc in X_clean])  # Remove blank documents
-        fourwords = np.array([len(doc.split(' ')) > 4 for doc in X_clean])  # Remove documents with 4 words or less
-        outliers = np.array(['the most current orbital' not in doc for doc in X_clean])  # Remove outliers (in embedding space)
-        X_clean = list(compress(X_clean, blank & fourwords & outliers))
-        y_clean = list(compress(y, blank & fourwords & outliers))
-
-        # Save the dataset to disk
-        pd.DataFrame({'X_clean': X_clean, 'y_clean': y_clean}).to_csv(dataset_file, index=False)
-
     y_labels = [
         'alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware',
         'comp.sys.mac.hardware', 'comp.windows.x', 'misc.forsale', 'rec.autos', 
@@ -86,6 +63,32 @@ def prepare_20newsgroups(dataset_file):
         'sci.electronics', 'sci.med', 'sci.space', 'soc.religion.christian', 
         'talk.politics.guns', 'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc'
     ]
+
+    if dataset_file:
+        # Check whether there is a saved dataset in disk
+        if os.path.isfile(dataset_file):
+            # Load the data from disk
+            df = pd.read_csv(dataset_file)
+            X_clean, y_clean = df['X_clean'], df['y_clean']
+        
+            return X_clean, y_clean, y_labels
+    
+    # Loading the data
+    newsgroups_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+    X, y = newsgroups_data.data, newsgroups_data.target
+
+    # Clean text
+    X_clean = list(map(clean_text, X))
+    blank = np.array([len(doc) > 2 for doc in X_clean])  # Remove blank documents
+    fourwords = np.array([len(doc.split(' ')) > 4 for doc in X_clean])  # Remove documents with 4 words or less
+    outliers = np.array(['the most current orbital' not in doc for doc in X_clean])  # Remove outliers (in embedding space)
+    X_clean = list(compress(X_clean, blank & fourwords & outliers))
+    y_clean = list(compress(y, blank & fourwords & outliers))
+
+    # Save the dataset to disk
+    if dataset_file:
+        pd.DataFrame({'X_clean': X_clean, 'y_clean': y_clean}).to_csv(dataset_file, index=False)
+
     return X_clean, y_clean, y_labels
 
 
@@ -131,6 +134,9 @@ def suggest_hyperparameters(trial):
     else:
         raise ValueError(f"topic_model={hyperparams['topic_model']} is not defined!")
     
+    # Print the hyperparemeters
+    print(dumps(hyperparams, sort_keys=False, indent=2))
+
     return hyperparams
 
 
@@ -192,6 +198,7 @@ def define_topic_model(hyperparams):
 
         # Declaring the model
         model = BERTopic(
+            top_n_words=10,
             n_gram_range=n_gram_range,
             nr_topics=20,
             min_topic_size=hyperparams['min_topic_size'],
@@ -230,10 +237,10 @@ def define_topic_model(hyperparams):
     return model
 
 
-def umap_evaluation(umap_emb_train, umap_emb_test, y_train, y_test, k_range=[10, 20, 40, 80, 160]):
+def evaluate_umap(umap_emb_train, umap_emb_test, y_train, y_test):
     accuracies_train = {}
     accuracies_test = {}
-    for k in k_range:
+    for k in UMAP_EVAL_K_RANGE:
         # Initialize the KNN classifier
         knn = KNeighborsClassifier(
             n_neighbors=k,
@@ -254,7 +261,7 @@ def umap_evaluation(umap_emb_train, umap_emb_test, y_train, y_test, k_range=[10,
     return accuracies_train, accuracies_test
 
 
-def cluster_evaluation(topics, y, outlier_label=None):
+def evaluate_cluster(topics, y, outlier_label=None):
     assert len(topics) == len(y), f'topics and y have different lengths ({len(topics)}, {len(y)}).'
     nmi = normalized_mutual_info_score(y, topics)
     if outlier_label:
@@ -265,7 +272,7 @@ def cluster_evaluation(topics, y, outlier_label=None):
         return nmi, None
 
 
-def topic_evaluation(model_output, texts):
+def evaluate_topic(model_output, texts):
     """
     Provide a topic model output and get the score on several metrics.
     """
@@ -277,18 +284,14 @@ def topic_evaluation(model_output, texts):
     metric = InvertedRBO(topk=10)
     inverted_rbo = metric.score(model_output)
 
-    # Topic Coherence - internal
+    # Topic Coherence
     metric = Coherence(texts=texts, topk=10, measure='c_v')
     topic_coherence_c_v = metric.score(model_output)
 
-    # Topic Coherence - external
-    metric = WECoherencePairwise(topk=10)
-    topic_coherence_we_coherence_pairwise = metric.score(model_output)
-
-    return topic_diversity, inverted_rbo, topic_coherence_c_v, topic_coherence_we_coherence_pairwise
+    return topic_diversity, inverted_rbo, topic_coherence_c_v
 
 
-def umap_plot_labels(umap_emb, labels, label_names, topics):
+def plot_umap_labels(umap_emb, labels, label_names, topics, topic_names):
     # Plot the 2D UMAP projection with the topic labels vs original labels
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 11))
     plt.subplots_adjust(wspace=0.5)
@@ -301,7 +304,7 @@ def umap_plot_labels(umap_emb, labels, label_names, topics):
     # Set axis 2 - Topic labels
     ax2.set_title("Topic labels")
     scatter = ax2.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=topics, cmap='tab20')
-    ax2.legend(*scatter.legend_elements(num=len(set(topics))), title="Topics", bbox_to_anchor=(1,1), loc="upper left")
+    ax2.legend(scatter.legend_elements(num=len(topic_names))[0], topic_names, title="Topics", bbox_to_anchor=(1,1), loc="upper left")
 
     return fig
 
@@ -338,26 +341,27 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, plot=False):
 
     # Evaluate the UMAP model on test split
     print("Evaluate UMAP on K-NN accuracy.")
-    knn_accuracies_train, knn_accuracies_test = umap_evaluation(infer['umap_emb_train'], infer['umap_emb_test'], y_train, y_test)
+    knn_accuracies_train, knn_accuracies_test = evaluate_umap(infer['umap_emb_train'], infer['umap_emb_test'], y_train, y_test)
     artifacts.update(knn_accuracies_train)
     artifacts.update(knn_accuracies_test)
 
     # Evaluate the clustering on agreement between true labels and topics
     # 0 value indicates two independent label assignments; 1 value indicates two agreeable label assignments
     print("Evaluate clustering on Mutual Information.")
-    artifacts['nmi_train'], artifacts['nmi_filtered_train'] = cluster_evaluation(infer['top_train'], y_train, outlier_label=-1)
-    artifacts['nmi_test'], artifacts['nmi_filtered_test'] = cluster_evaluation(infer['top_test'], y_test, outlier_label=-1)
+    artifacts['nmi_train'], artifacts['nmi_filtered_train'] = evaluate_cluster(infer['top_train'], y_train, outlier_label=-1)
+    artifacts['nmi_test'], artifacts['nmi_filtered_test'] = evaluate_cluster(infer['top_test'], y_test, outlier_label=-1)
 
     # Evaluate the Topic model on Coherence and Diversity metrics
     print("Evaluate topics on Diversity and Coherence metrics.")
-    artifacts['topic_diversity'], artifacts['inverted_rbo'], artifacts['topic_coherence_c_v'], artifacts['topic_coherence_we_coherence'] = \
-        topic_evaluation(infer['tm_full_output'], list(map(lambda x: x.split(' '), X_train)))
+    artifacts['topic_diversity'], artifacts['inverted_rbo'], artifacts['topic_coherence_c_v'] = \
+        evaluate_topic(infer['tm_full_output'], list(map(lambda x: x.split(' '), X_train)))
 
     if plot:
         # UMAP plot on last split of k-fold cross validation: Original labels VS Topics
         print("Produce UMAP plot: Original labels VS Topics.")
-        artifacts['train_fig'] = umap_plot_labels(infer['umap_emb_train'], y_train, y_labels, infer['top_train'])
-        artifacts['test_fig'] = umap_plot_labels(infer['umap_emb_test'], y_test, y_labels, infer['top_test'])
+        topic_names = ['_'.join(words[:5]) for words in infer['tm_full_output']['topics']]
+        artifacts['train_fig'] = plot_umap_labels(infer['umap_emb_train'], y_train, y_labels, infer['top_train'], topic_names)
+        artifacts['test_fig'] = plot_umap_labels(infer['umap_emb_test'], y_test, y_labels, infer['top_test'], topic_names)
 
     return artifacts
 
@@ -387,10 +391,9 @@ def objective(trial):
 
         # Apply Stratified K-fold
         split_metrics = defaultdict(list)
-        n_splits = 10
-        skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=1)
+        skf = StratifiedKFold(n_splits=N_CV_SPLITS, shuffle=True, random_state=1)
         for n, (train_ix, test_ix) in enumerate(skf.split(X_clean, y_clean)):
-            print(f'Iteration number {n + 1} out of {n_splits}.')
+            print(f'Iteration number {n + 1} out of {N_CV_SPLITS}.')
 
             # Get train and test samples
             X_train, X_test = np.array(X_clean)[train_ix], np.array(X_clean)[test_ix]
@@ -400,7 +403,7 @@ def objective(trial):
             infer = train_infer_models(topic_model, umap_model, emb_model, X_train, X_test)
 
             # Evaluate the topic_model and umap_model
-            if n == n_splits - 1:  # Get UMAP plot on last iteration only
+            if n == N_CV_SPLITS - 1:  # Get UMAP plot on last iteration only
                 artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, plot=True)
             else:
                 artifacts = evaluate_models(infer, y_train, y_test, X_train)
@@ -429,7 +432,14 @@ def objective(trial):
         mlflow.log_figure(artifacts['train_fig'], 'umap_train_plot.png')
         mlflow.log_figure(artifacts['test_fig'], 'umap_test_plot.png')
 
-        return agg_metrics
+        # Get evaluation metric(s)
+        eval_metrics = [
+            np.mean([agg_metrics[f'umap_{k}nn_acc_test'] for k in UMAP_EVAL_K_RANGE]), # UMAP eval metric
+            agg_metrics['nmi_filtered_test_mean'],  # Cluster eval metric
+            agg_metrics['topic_coherence_c_v_mean']  # Topic modeling eval metric
+        ]
+
+        return eval_metrics
 
 
 def log_best_model(best_trial):
@@ -478,15 +488,13 @@ def log_best_model(best_trial):
         mlflow.log_figure(train_fig, 'umap_train_plot.png')
         mlflow.log_figure(test_fig, 'umap_test_plot.png')
 
-        # Log best model TODO: set the path where the model is located.
-        mlflow.log_artifact(topic_model)
-
 
 if __name__ == "__main__":
     print("Performing Hyper-parameter tuning.")
     mlflow.set_tracking_uri(outputs_dir)
     mlflow.set_experiment("my-experiment")
-    study = optuna.create_study(direction='maximize')
+    study = optuna.create_study(direction=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
+    print(f"Starting optimization process! Sampler is {study.sampler.__class__.__name__}")
     study.optimize(objective, n_trials=1, n_jobs=1)
 
     # Print optuna study statistics
@@ -501,8 +509,7 @@ if __name__ == "__main__":
     print("  Loss (trial value): ", best_trial.value)
 
     print("  Params: ")
-    for key, value in best_trial.params.items():
-        print("    {}: {}".format(key, value))
+    print(dumps(best_trial.params, sort_keys=False, indent=2))
 
     print("  Log best model: ")
     log_best_model(best_trial)

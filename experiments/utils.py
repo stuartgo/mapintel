@@ -30,10 +30,10 @@ class LatentDirichletAllocation(LatentDirichletAllocation):
     def transform(self, X, embeddings=None):
         doc_word_test = self.cv.transform(X)
         doc_topic_dist = super().transform(doc_word_test)
-        top_features_ind = self.components_.argsort(axis=1)[:, :-9:-1]  # test this
+        top_features_ind = self.components_.argsort(axis=1)[:, :-11:-1]
         feature_names = self.cv.get_feature_names()
         self.full_output = {
-            'topics': [feature_names[i] for i in top_features_ind],
+            'topics': [feature_names[i].tolist() for i in top_features_ind],
             'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
             'topic-document-matrix': doc_topic_dist.T,
         }

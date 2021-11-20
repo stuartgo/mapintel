@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import string
+import time
 from json import dumps
 from itertools import compress
 import numpy as np
@@ -26,16 +27,20 @@ dirname = os.path.dirname(__file__)
 outputs_dir = os.path.join(dirname, "../outputs/experiments")
 sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
 
-from experiments.utils import Doc2VecScikit, SentenceTransformerScikit, CTMScikit, BERTopic, LatentDirichletAllocation
+from experiments.utils import Timer, Doc2VecScikit, SentenceTransformerScikit, CTMScikit, BERTopic, LatentDirichletAllocation
 
 VALID_EMBEDDINGS_MODELS = ['doc2vec', 'sentence-transformers/msmarco-distilbert-base-v4']
 VALID_TOPIC_MODELS = ['BERTopic', 'CTM', 'LDA']
 UMAP_EVAL_K_RANGE = [10, 20, 40, 80, 160]
 N_CV_SPLITS = 5
 
+# Explicitly disable parallelism to avoid any hidden deadlock
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # TODO:
+# - Figure out how to resume runs with MLFlow
 # - Add Documentation to each function
-# - In the SentenceTransformer can we avoid fitting in each fold since there's no actual fit?
+# - In the SentenceTransformer can we load the model from disk?
 # - Use other datasets for validating the methodology
 # - Define MLflow project file
 
@@ -312,15 +317,29 @@ def plot_umap_labels(umap_emb, labels, label_names, topics, topic_names):
 def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
     infer = {}
 
+    # Initialize timers
+    timer_emb_model_t = Timer('timer_emb_model_train')
+    timer_emb_model_i = Timer('timer_emb_model_infer')
+    timer_top_model_t = Timer('timer_top_model_train')
+    timer_top_model_i = Timer('timer_top_model_infer')
+
     # Fit and transform the embedding model
     print(f"Fit and transform the {emb_model} embedding model.")
+    timer_emb_model_t.start()
     emb_train = emb_model.fit_transform(X_train)
+    timer_emb_model_t.stop()
+    timer_emb_model_i.start()
     emb_test = emb_model.transform(X_test)
+    timer_emb_model_i.stop()
 
     # Fit and transform the topic model
     print(f'Fit and transform the {topic_model} topic model.')
+    timer_top_model_t.start()
     infer['top_train'] = topic_model.fit_transform(X_train, embeddings=emb_train)
+    timer_top_model_t.stop()
+    timer_top_model_i.start()
     infer['top_test'] = topic_model.transform(X_test, embeddings=emb_test)
+    timer_top_model_i.stop()
 
     # Fit and transform the UMAP model on 2 components
     print(f"Reduce embeddings to 2 dimensions with UMAP.")
@@ -330,10 +349,13 @@ def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
     # Get full output dictionary from topic_model
     infer['tm_full_output'] = topic_model.full_output
 
+    # Add timers to infer dictionary
+    infer['timers'] = Timer.timers
+
     return infer
 
 
-def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, plot=False):
+def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, last_iter=False):
     artifacts = {}
 
     # Save the number of topics identified
@@ -356,7 +378,10 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, plot=False):
     artifacts['topic_diversity'], artifacts['inverted_rbo'], artifacts['topic_coherence_c_v'] = \
         evaluate_topic(infer['tm_full_output'], list(map(lambda x: x.split(' '), X_train)))
 
-    if plot:
+    if last_iter:
+        # Add timers to artifacts
+        artifacts.update(infer['timers'])
+
         # UMAP plot on last split of k-fold cross validation: Original labels VS Topics
         print("Produce UMAP plot: Original labels VS Topics.")
         topic_names = ['_'.join(words[:5]) for words in infer['tm_full_output']['topics']]
@@ -403,8 +428,8 @@ def objective(trial):
             infer = train_infer_models(topic_model, umap_model, emb_model, X_train, X_test)
 
             # Evaluate the topic_model and umap_model
-            if n == N_CV_SPLITS - 1:  # Get UMAP plot on last iteration only
-                artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, plot=True)
+            if n == N_CV_SPLITS - 1:
+                artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, last_iter=True)
             else:
                 artifacts = evaluate_models(infer, y_train, y_test, X_train)
 
@@ -412,11 +437,14 @@ def objective(trial):
             for k, v in artifacts.items():
                 if 'fig' in k:
                     continue
-                split_metrics[k].append(v)
+                elif 'timer' in k:
+                    split_metrics[k] = v
+                else:
+                    split_metrics[k].append(v)
 
         print('Log artifacts.')
         # Log parameters with mlflow
-        mlflow.log_param("cv-folds", 10)
+        mlflow.log_param("cv-folds", N_CV_SPLITS)
         mlflow.log_params(trial.params)
 
         # Get averages and standard deviations of metrics
@@ -434,7 +462,7 @@ def objective(trial):
 
         # Get evaluation metric(s)
         eval_metrics = [
-            np.mean([agg_metrics[f'umap_{k}nn_acc_test'] for k in UMAP_EVAL_K_RANGE]), # UMAP eval metric
+            np.mean([agg_metrics[f'umap_{k}nn_acc_test_mean'] for k in UMAP_EVAL_K_RANGE]), # UMAP eval metric
             agg_metrics['nmi_filtered_test_mean'],  # Cluster eval metric
             agg_metrics['topic_coherence_c_v_mean']  # Topic modeling eval metric
         ]
@@ -490,12 +518,13 @@ def log_best_model(best_trial):
 
 
 if __name__ == "__main__":
+    # Hyperparameter tuning
     print("Performing Hyper-parameter tuning.")
     mlflow.set_tracking_uri(outputs_dir)
     mlflow.set_experiment("my-experiment")
-    study = optuna.create_study(direction=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
+    study = optuna.create_study(directions=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
     print(f"Starting optimization process! Sampler is {study.sampler.__class__.__name__}")
-    study.optimize(objective, n_trials=1, n_jobs=1)
+    study.optimize(objective, n_trials=30, n_jobs=4, gc_after_trial=True)
 
     # Print optuna study statistics
     print("\n++++++++++++++++++++++++++++++++++\n")

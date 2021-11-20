@@ -1,5 +1,8 @@
 import numpy as np
 from multiprocessing import cpu_count
+from dataclasses import dataclass, field
+import time
+from typing import Iterable, Tuple, Union, ClassVar, Dict, Optional
 
 from scipy.sparse import csr_matrix
 from sklearn.base import TransformerMixin, BaseEstimator
@@ -11,12 +14,63 @@ from contextualized_topic_models.datasets.dataset import CTMDataset
 from contextualized_topic_models.models.ctm import ZeroShotTM, CombinedTM
 from sentence_transformers import SentenceTransformer
 from torch import nn
-from typing import Iterable
 from bertopic import BERTopic
 from sklearn.decomposition import LatentDirichletAllocation
 
 
+class TimerError(Exception):
+    """A custom exception used to report errors in use of Timer class"""
+
+
+@dataclass
+class Timer:
+    """Reference: https://realpython.com/python-timer/#a-python-timer-class"""
+    timers: ClassVar[Dict[str, list]] = dict()
+    name: Optional[str] = None
+    _start_time: Optional[float] = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Add timer to dict of timers after initialization"""
+        if self.name is not None:
+            self.timers.setdefault(self.name, [])
+
+    def start(self) -> None:
+        """Start a new timer"""
+        if self._start_time is not None:
+            raise TimerError(f"Timer is running. Use .stop() to stop it")
+
+        self._start_time = time.perf_counter()
+
+    def stop(self) -> float:
+        """Stop the timer, and report the elapsed time"""
+        if self._start_time is None:
+            raise TimerError(f"Timer is not running. Use .start() to start it")
+
+        # Calculate elapsed time
+        elapsed_time = time.perf_counter() - self._start_time
+        self._start_time = None
+
+        if self.name:
+            self.timers[self.name].append(elapsed_time)
+
+        return elapsed_time
+
+
 class LatentDirichletAllocation(LatentDirichletAllocation):
+    def __init__(self, n_components=10, *, doc_topic_prior=None,
+                 topic_word_prior=None, learning_method='batch',
+                 learning_decay=.7, learning_offset=10., max_iter=10,
+                 batch_size=128, evaluate_every=-1, total_samples=1e6,
+                 perp_tol=1e-1, mean_change_tol=1e-3, max_doc_update_iter=100,
+                 n_jobs=None, verbose=0, random_state=None):
+        self.full_output = None
+        super().__init__(n_components, doc_topic_prior,
+                 topic_word_prior, learning_method,
+                 learning_decay, learning_offset, max_iter,
+                 batch_size, evaluate_every, total_samples,
+                 perp_tol, mean_change_tol, max_doc_update_iter,
+                 n_jobs, verbose, random_state)
+
     def __str__(self):
         return "LatentDirichletAllocation"
 
@@ -30,27 +84,51 @@ class LatentDirichletAllocation(LatentDirichletAllocation):
     def transform(self, X, embeddings=None):
         doc_word_test = self.cv.transform(X)
         doc_topic_dist = super().transform(doc_word_test)
-        top_features_ind = self.components_.argsort(axis=1)[:, :-11:-1]
-        feature_names = self.cv.get_feature_names()
-        self.full_output = {
-            'topics': [feature_names[i].tolist() for i in top_features_ind],
-            'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
-            'topic-document-matrix': doc_topic_dist.T,
-        }
+        # Only set self.full_output on the first transform call (that should be with the training set)
+        if self.full_output is None:
+            top_features_ind = self.components_.argsort(axis=1)[:, :-11:-1]
+            feature_names = self.cv.get_feature_names()
+            self.full_output = {
+                'topics': [feature_names[i].tolist() for i in top_features_ind],
+                'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
+                'topic-document-matrix': doc_topic_dist.T,
+            }
         return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
 
 
 class BERTopic(BERTopic):
+    def __init__(self,
+                 language: str = "english",
+                 top_n_words: int = 10,
+                 n_gram_range: Tuple[int, int] = (1, 1),
+                 min_topic_size: int = 10,
+                 nr_topics: Union[int, str] = None,
+                 low_memory: bool = False,
+                 calculate_probabilities: bool = False,
+                 embedding_model = None,
+                 umap_model= None,
+                 hdbscan_model = None,
+                 vectorizer_model = None,
+                 verbose: bool = False,
+                 ):
+        self.full_output = None
+        super().__init__(language, top_n_words, n_gram_range,
+                 min_topic_size, nr_topics, low_memory,
+                 calculate_probabilities, embedding_model,
+                 umap_model, hdbscan_model, vectorizer_model,
+                 verbose)
     def __str__(self):
         return "BERTopic"
 
     def fit_transform(self, documents, embeddings, y=None):
         train_doc_topics, _ = super().fit_transform(documents, embeddings, y)
-        self.full_output = {
-                'topics': [[word[0] for word in values] for _, values in self.topics.items()],
-                'topic-word-matrix': self.c_tf_idf,
-                'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
-            }
+        # Only set self.full_output on the first transform call (that should be with the training set)
+        if self.full_output is None:
+            self.full_output = {
+                    'topics': [[word[0] for word in values] for _, values in self.topics.items()],
+                    'topic-word-matrix': self.c_tf_idf,
+                    'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
+                }
         return train_doc_topics
     
     def transform(self, documents, embeddings):
@@ -67,6 +145,7 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         self.ctm_model = None
         self.model_output = None
         self.contextual_size = None
+        self.full_output = None
         self.inference_type = inference_type
         self.n_components = n_components
         self.model_type = model_type
@@ -161,11 +240,13 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         # Get document topic distributions
         doc_topic_dist = self.ctm_model.get_doc_topic_distribution(testing_dataset, n_samples=self.n_samples)
 
-        self.full_output = {
-            'topics': self.ctm_model.get_topic_lists(),
-            'topic-word-matrix': self.ctm_model.get_topic_word_distribution(),
-            'topic-document-matrix': doc_topic_dist.T,
-        }
+        # Only set self.full_output on the first transform call (that should be with the training set)
+        if self.full_output is None:
+            self.full_output = {
+                'topics': self.ctm_model.get_topic_lists(),
+                'topic-word-matrix': self.ctm_model.get_topic_word_distribution(),
+                'topic-document-matrix': doc_topic_dist.T,
+            }
         
         return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
     

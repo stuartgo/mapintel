@@ -1,6 +1,6 @@
 gensim==4.1.0
 scikit-learn>=0.23.2
-sentence-transformers>=1.1.0
+sentence-transformers>=2.1.0
 numpy>=1.19.5
 octis==1.8.3
 matplotlib==3.3.1

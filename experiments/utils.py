@@ -2,7 +2,7 @@ import numpy as np
 from multiprocessing import cpu_count
 from dataclasses import dataclass, field
 import time
-from typing import Iterable, Tuple, Union, ClassVar, Dict, Optional
+from typing import Iterable, ClassVar, Dict, Optional
 
 from scipy.sparse import csr_matrix
 from sklearn.base import TransformerMixin, BaseEstimator
@@ -57,78 +57,57 @@ class Timer:
 
 
 class LatentDirichletAllocation(LatentDirichletAllocation):
-    def __init__(self, n_components=10, *, doc_topic_prior=None,
-                 topic_word_prior=None, learning_method='batch',
-                 learning_decay=.7, learning_offset=10., max_iter=10,
-                 batch_size=128, evaluate_every=-1, total_samples=1e6,
-                 perp_tol=1e-1, mean_change_tol=1e-3, max_doc_update_iter=100,
-                 n_jobs=None, verbose=0, random_state=None):
-        self.full_output = None
-        super().__init__(n_components, doc_topic_prior,
-                 topic_word_prior, learning_method,
-                 learning_decay, learning_offset, max_iter,
-                 batch_size, evaluate_every, total_samples,
-                 perp_tol, mean_change_tol, max_doc_update_iter,
-                 n_jobs, verbose, random_state)
-
     def __str__(self):
         return "LatentDirichletAllocation"
 
     def fit(self, X, embeddings=None, y=None):
-        self.cv = CountVectorizer()
-        doc_word_train = self.cv.fit_transform(X)
-        super().fit(doc_word_train)
-
+        self.fit_transform(X, embeddings, y)
         return self
 
     def transform(self, X, embeddings=None):
         doc_word_test = self.cv.transform(X)
         doc_topic_dist = super().transform(doc_word_test)
-        # Only set self.full_output on the first transform call (that should be with the training set)
-        if self.full_output is None:
-            top_features_ind = self.components_.argsort(axis=1)[:, :-11:-1]
-            feature_names = self.cv.get_feature_names()
-            self.full_output = {
-                'topics': [feature_names[i].tolist() for i in top_features_ind],
-                'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
-                'topic-document-matrix': doc_topic_dist.T,
-            }
+            
+        return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
+    
+    def fit_transform(self, X, embeddings=None, y=None, **fit_params):
+        # Get document topic distribution
+        self.cv = CountVectorizer()
+        doc_word_train = self.cv.fit_transform(X)
+        super().fit(doc_word_train)
+        doc_topic_dist = super().transform(doc_word_train)
+
+        # Get self.full_output
+        top_features_ind = self.components_.argsort(axis=1)[:, :-11:-1]
+        feature_names = self.cv.get_feature_names()
+        self.full_output = {
+            'topics': [[feature_names[i] for i in top_inds] for top_inds in top_features_ind],
+            'topic-word-matrix': self.components_ / self.components_.sum(axis=1)[:, np.newaxis],
+            'topic-document-matrix': doc_topic_dist.T,
+        }
         return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
 
 
 class BERTopic(BERTopic):
-    def __init__(self,
-                 language: str = "english",
-                 top_n_words: int = 10,
-                 n_gram_range: Tuple[int, int] = (1, 1),
-                 min_topic_size: int = 10,
-                 nr_topics: Union[int, str] = None,
-                 low_memory: bool = False,
-                 calculate_probabilities: bool = False,
-                 embedding_model = None,
-                 umap_model= None,
-                 hdbscan_model = None,
-                 vectorizer_model = None,
-                 verbose: bool = False,
-                 ):
-        self.full_output = None
-        super().__init__(language, top_n_words, n_gram_range,
-                 min_topic_size, nr_topics, low_memory,
-                 calculate_probabilities, embedding_model,
-                 umap_model, hdbscan_model, vectorizer_model,
-                 verbose)
     def __str__(self):
         return "BERTopic"
 
+    def fit(self, documents, embeddings, y=None):
+        self.fit_transform(documents, embeddings, y)
+        return self
+
     def fit_transform(self, documents, embeddings, y=None):
+        # Get document topic distribution
+        if type(documents) == np.ndarray:
+            documents = documents.tolist()
         train_doc_topics, _ = super().fit_transform(documents, embeddings, y)
-        # Only set self.full_output on the first transform call (that should be with the training set)
-        if self.full_output is None:
-            self.full_output = {
-                    'topics': [[word[0] for word in values] for _, values in self.topics.items()],
-                    'topic-word-matrix': self.c_tf_idf,
-                    'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
-                }
+
+        # Get self.full_output
+        self.full_output = {
+                'topics': [[word[0] for word in values] for _, values in self.topics.items()],
+                'topic-word-matrix': self.c_tf_idf,
+                'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
+            }
         return train_doc_topics
     
     def transform(self, documents, embeddings):
@@ -145,7 +124,6 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         self.ctm_model = None
         self.model_output = None
         self.contextual_size = None
-        self.full_output = None
         self.inference_type = inference_type
         self.n_components = n_components
         self.model_type = model_type
@@ -177,6 +155,41 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         embeddings: {numpy array}
             A collection of vectorized documents used for training the model.
         """
+        self.fit_transform(X, embeddings, y)
+        return self
+
+    def transform(self, X, embeddings, y=None):
+        """Infer the documents' topics for the input documents.
+        Parameters
+        ----------
+        X : {iterable of str}
+            Input document or sequence of documents.
+        
+        embeddings: {numpy array}
+            Input document or sequence of documents vectorized.
+        """
+        if self.ctm_model is None:
+            raise NotFittedError(
+                "This model has not been fitted yet. Call 'fit' with appropriate arguments before using this method."
+            )
+
+        if self.inference_type == 'combined':
+            # BOW vectorize the corpus
+            bow_embeddings = self.vectorizer.transform(X)
+        else:
+            # dummy matrix
+            bow_embeddings = csr_matrix(np.zeros((len(X), 1)))
+
+        # Get testing dataset
+        testing_dataset = CTMDataset(embeddings, bow_embeddings, self.id2token)
+
+        # Get document topic distributions
+        doc_topic_dist = self.ctm_model.get_doc_topic_distribution(testing_dataset, n_samples=self.n_samples)
+        
+        return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
+    
+    def fit_transform(self, X, embeddings, y=None, **fit_params):
+
         self.contextual_size = embeddings.shape[1]  # Get dimension of input from embeddings
         self.vectorizer = CountVectorizer()
 
@@ -210,60 +223,31 @@ class CTMScikit(TransformerMixin, BaseEstimator):
         # Fit the CTM model
         self.ctm_model.fit(training_dataset)
 
-        return self
-
-    def transform(self, X, embeddings, y=None):
-        """Infer the documents' topics for the input documents.
-        Parameters
-        ----------
-        X : {iterable of str}
-            Input document or sequence of documents.
-        
-        embeddings: {numpy array}
-            Input document or sequence of documents vectorized.
-        """
-        if self.ctm_model is None:
-            raise NotFittedError(
-                "This model has not been fitted yet. Call 'fit' with appropriate arguments before using this method."
-            )
-
-        if self.inference_type == 'combined':
-            # BOW vectorize the corpus
-            bow_embeddings = self.vectorizer.transform(X)
-        else:
-            # dummy matrix
-            bow_embeddings = csr_matrix(np.zeros((len(X), 1)))
-
-        # Get testing dataset
-        testing_dataset = CTMDataset(embeddings, bow_embeddings, self.id2token)
-
         # Get document topic distributions
-        doc_topic_dist = self.ctm_model.get_doc_topic_distribution(testing_dataset, n_samples=self.n_samples)
+        doc_topic_dist = self.ctm_model.get_doc_topic_distribution(training_dataset, n_samples=self.n_samples)
 
-        # Only set self.full_output on the first transform call (that should be with the training set)
-        if self.full_output is None:
-            self.full_output = {
-                'topics': self.ctm_model.get_topic_lists(),
-                'topic-word-matrix': self.ctm_model.get_topic_word_distribution(),
-                'topic-document-matrix': doc_topic_dist.T,
-            }
+        # Get self.full_output
+        self.full_output = {
+            'topics': self.ctm_model.get_topic_lists(),
+            'topic-word-matrix': self.ctm_model.get_topic_word_distribution(),
+            'topic-document-matrix': doc_topic_dist.T,
+        }
         
         return np.argmax(doc_topic_dist, axis=1)  # get the most prominent topic for each document
-    
-    def fit_transform(self, X, embeddings, y=None, **fit_params):
-        return self.fit(X, embeddings, **fit_params).transform(X, embeddings)
 
 
 class SentenceTransformerScikit(TransformerMixin, BaseEstimator):
-    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: str = None,
-                 batch_size: int = 32, show_progress_bar: bool = None, output_value: str = 'sentence_embedding',
-                 convert_to_numpy: bool = True, convert_to_tensor: bool = False, normalize_embeddings: bool = False
+    def __init__(self, model_name_or_path: str = None, modules: Iterable[nn.Module] = None, device: Optional[str] = None, 
+                 cache_folder: Optional[str] = None, batch_size: int = 32, show_progress_bar: bool = None, 
+                 output_value: str = 'sentence_embedding', convert_to_numpy: bool = True, convert_to_tensor: bool = False,
+                 normalize_embeddings: bool = False
                 ):
 
         self.sent_transformer = None
         self.model_name_or_path = model_name_or_path
         self.modules = modules
         self.device = device
+        self.cache_folder = cache_folder
         self.batch_size = batch_size
         self.show_progress_bar = show_progress_bar
         self.output_value = output_value
@@ -285,7 +269,8 @@ class SentenceTransformerScikit(TransformerMixin, BaseEstimator):
         self.sent_transformer = SentenceTransformer(
             model_name_or_path=self.model_name_or_path,
             modules=self.modules,
-            device=self.device
+            device=self.device,
+            cache_folder=self.cache_folder
         )
         return self
 

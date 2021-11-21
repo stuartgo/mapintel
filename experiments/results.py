@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import string
-import time
 from json import dumps
 from itertools import compress
 import numpy as np
@@ -40,7 +39,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # TODO:
 # - Figure out how to resume runs with MLFlow
 # - Add Documentation to each function
-# - In the SentenceTransformer can we load the model from disk?
 # - Use other datasets for validating the methodology
 # - Define MLflow project file
 
@@ -76,7 +74,7 @@ def prepare_20newsgroups(dataset_file=None):
             df = pd.read_csv(dataset_file)
             X_clean, y_clean = df['X_clean'], df['y_clean']
         
-            return X_clean, y_clean, y_labels
+            return X_clean.tolist(), y_clean.tolist(), y_labels
     
     # Loading the data
     newsgroups_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
@@ -167,7 +165,8 @@ def define_embedding_model(hyperparams):
     elif embedding_model == 'sentence-transformers/msmarco-distilbert-base-v4':
         model = SentenceTransformerScikit(
             model_name_or_path=embedding_model,
-            show_progress_bar=True
+            show_progress_bar=True,
+            cache_folder=outputs_dir
         )
 
     else:
@@ -524,7 +523,7 @@ if __name__ == "__main__":
     mlflow.set_experiment("my-experiment")
     study = optuna.create_study(directions=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
     print(f"Starting optimization process! Sampler is {study.sampler.__class__.__name__}")
-    study.optimize(objective, n_trials=30, n_jobs=4, gc_after_trial=True)
+    study.optimize(objective, n_trials=30, n_jobs=1)  # Set gc_after_trial=True if you see an increase in memory consumption over trials
 
     # Print optuna study statistics
     print("\n++++++++++++++++++++++++++++++++++\n")

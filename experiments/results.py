@@ -168,6 +168,9 @@ def suggest_hyperparameters(trial):
     else:
         raise ValueError(f"topic_model={hyperparams['topic_model']} is not defined!")
     
+    # Log parameters with mlflow
+    mlflow.log_params(trial.params)
+
     # Print the hyperparemeters
     print(dumps(hyperparams, sort_keys=False, indent=2))
 
@@ -320,6 +323,8 @@ def evaluate_umap(umap_emb_train, umap_emb_test, y_train, y_test):
         )
 
         # Get KNN classifier predictions
+        # Cast to float32 to avoid ValueError("Input contains NaN, infinity or a value too large for dtype('float32')
+        umap_emb_train = np.float32(umap_emb_train)
         knn.fit(umap_emb_train, y_train)
         y_train_pred = knn.predict(umap_emb_train)
         y_test_pred = knn.predict(umap_emb_test)
@@ -561,6 +566,7 @@ def objective(trial):
         # Apply Stratified K-fold
         split_metrics = defaultdict(list)
         skf = StratifiedKFold(n_splits=N_CV_SPLITS, shuffle=True, random_state=1)
+        mlflow.log_param("cv-folds", N_CV_SPLITS)
         for n, (train_ix, test_ix) in enumerate(skf.split(X_clean, y_clean)):
             print(f'Iteration number {n + 1} out of {N_CV_SPLITS}.')
 
@@ -587,10 +593,6 @@ def objective(trial):
                     split_metrics[k].append(v)
 
         print('Log artifacts.')
-        # Log parameters with mlflow
-        mlflow.log_param("cv-folds", N_CV_SPLITS)
-        mlflow.log_params(trial.params)
-
         # Get averages and standard deviations of metrics
         agg_metrics = {}
         for k, v in split_metrics.items():
@@ -643,6 +645,7 @@ def log_best_model(best_trial):
         )
 
         # Get train and test samples
+        mlflow.log_param("test_size", 0.2)
         X_train, X_test, y_train, y_test = train_test_split(X_clean, y_clean, test_size=0.2, random_state=0, stratify=y_clean)
         
         # Train and infer with topic_model, umap_model and emb_model
@@ -652,10 +655,6 @@ def log_best_model(best_trial):
         artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, plot=True)
 
         print('Log artifacts.')
-        # Log parameters with mlflow
-        mlflow.log_param("test_size", 0.2)
-        mlflow.log_params(best_trial.params)
-
         # Log metrics with mlflow
         train_fig = artifacts.pop('train_fig')
         test_fig = artifacts.pop('test_fig')

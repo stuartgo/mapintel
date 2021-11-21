@@ -37,13 +37,23 @@ N_CV_SPLITS = 5
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # TODO:
-# - Figure out how to resume runs with MLFlow
-# - Add Documentation to each function
+# - Partition the data into train and test set. Do the hyperparameter tuning on 
+# the train set only and evaluate the best model on the test set.
+# - Resuming Study (only works with a RDB backend). See: 
+# https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/001_rdb.html
 # - Use other datasets for validating the methodology
 # - Define MLflow project file
 
 
 def clean_text(text):
+    """Cleans a string of text by applying common transformations.
+
+    Args:
+        text (string): a string of text.
+
+    Returns:
+        string: a clean string of text.
+    """
     re_url = re.compile(r'(?:http|ftp|https)://(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?')
     re_email = re.compile('(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])')
     text = text.lower()
@@ -58,6 +68,15 @@ def clean_text(text):
 
 
 def prepare_20newsgroups(dataset_file=None):
+    """Applies the necessary pre-processing to the 20newsgroups corpus.
+
+    Args:
+        dataset_file (Path | string, optional): the path to the csv file where the pre-processed corpus should 
+        be saved. Defaults to None.
+
+    Returns:
+        list(list, list, list): the transformed documents, respective target values and target labels (ordered) .
+    """
     print("Load and clean the dataset.")
     y_labels = [
         'alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware',
@@ -96,6 +115,18 @@ def prepare_20newsgroups(dataset_file=None):
 
 
 def suggest_hyperparameters(trial):
+    """Optuna suggest hyperparameters function. Given an Optuna study trial, sample the hyperparameter according 
+    to the pre-defined sampler.  
+
+    Args:
+        trial (optuna.trial.Trial): an Optuna trial object.
+
+    Raises:
+        ValueError: when the suggested topic_model hyperparameter is not defined.
+
+    Returns:
+        dict: a dictionary with the sampled hyperparameters.
+    """
     print('Suggest hyperparameters.')
     hyperparams = {}
 
@@ -144,6 +175,17 @@ def suggest_hyperparameters(trial):
 
 
 def define_embedding_model(hyperparams):
+    """Instantiate the Embedding Model based on the sampled embedding_model hyperparameter.
+
+    Args:
+        hyperparams (dict): a dictionary with the sampled hyperparameters.
+
+    Raises:
+        ValueError: when the suggested embedding_model hyperparameter is not defined.
+
+    Returns:
+        Doc2VecScikit | SentenceTransformerScikit: an instance of the sampled Embedding Model.
+    """
     print('Define the embedding model.')
     embedding_model = hyperparams['embedding_model']
     if embedding_model == 'doc2vec':
@@ -176,6 +218,17 @@ def define_embedding_model(hyperparams):
 
 
 def define_topic_model(hyperparams):
+    """Instantiate the Topic Model based on the sampled topic_model hyperparameter.
+
+    Args:
+        hyperparams (dict): a dictionary with the sampled hyperparameters.
+
+    Raises:
+        ValueError: when the suggested topic_model hyperparameter is not defined.
+
+    Returns:
+        BERTopic | CTMScikit | LatentDirichletAllocation: an instance of the sampled Topic Model.
+    """
     print('Define the topic model.')
     if hyperparams['topic_model'] == 'BERTopic':
         # Setting model components
@@ -242,6 +295,19 @@ def define_topic_model(hyperparams):
 
 
 def evaluate_umap(umap_emb_train, umap_emb_test, y_train, y_test):
+    """Evaluate UMAP projections using K-NN Classifier accuracy over multiple K.
+    For each K, fit a K-NN classifier on the UMAP embeddings and classify each document. 
+    Evaluate the classifications using the Accuracy metric.
+
+    Args:
+        umap_emb_train (np.ndarray): the UMAP embeddings of the training documents.
+        umap_emb_test (np.ndarray): the UMAP embeddings of the testing documents.
+        y_train (np.ndarray): the target values of the training documents.
+        y_test (np.ndarray): the target values of the testing documents.
+
+    Returns:
+        list(dict, dict): the training and testing accuracies.
+    """
     accuracies_train = {}
     accuracies_test = {}
     for k in UMAP_EVAL_K_RANGE:
@@ -266,6 +332,21 @@ def evaluate_umap(umap_emb_train, umap_emb_test, y_train, y_test):
 
 
 def evaluate_cluster(topics, y, outlier_label=None):
+    """Compare cluster labels with target values using Normalized Mutual Information (NMI).
+    NMI is a scaled (between 0 and 1) version of Mutual Information (MI) and it quantifies the
+    "amount of information obtained about one random varible by observing the other random variable".
+    Ideally, for a good cluster solution that captures the target labels, NMI should be close to 1.
+
+    Args:
+        topics (np.ndarray): the topic assignments to each document.
+        y (np.ndarray): the target values of each document.
+        outlier_label (int, optional): a label that indicates documents that are outliers. 
+        If passed, two NMI values will be computed, one with outliers and another removing outliers. 
+        Defaults to None.
+
+    Returns:
+        list(float, float | None): the NMI value(s).
+    """
     assert len(topics) == len(y), f'topics and y have different lengths ({len(topics)}, {len(y)}).'
     nmi = normalized_mutual_info_score(y, topics)
     if outlier_label:
@@ -277,8 +358,17 @@ def evaluate_cluster(topics, y, outlier_label=None):
 
 
 def evaluate_topic(model_output, texts):
-    """
-    Provide a topic model output and get the score on several metrics.
+    """Evaluate the topics provided by the topic model according to Diversity and Coherence.
+    Use three metrics to evaluate the topics Topic Diversity, Inverted Ranked-Biased Overlap, and
+    Topic Coherence.
+
+    Args:
+        model_output (dict): a dict with three keys: 'topic', 'topic-word-matrix', and 'topic-document-matrix'.
+        texts (list): a list of lists, representing the vectorized training corpus.
+
+    Returns:
+        list(float, float, float): the Topic Diversity, Inverted Ranked-Biased Overlap, and 
+        Topic Coherence values.
     """
     # Topic Diversity
     metric = TopicDiversity(topk=10)
@@ -295,25 +385,52 @@ def evaluate_topic(model_output, texts):
     return topic_diversity, inverted_rbo, topic_coherence_c_v
 
 
-def plot_umap_labels(umap_emb, labels, label_names, topics, topic_names):
+def plot_umap_labels(umap_emb, y, y_labels, topics, topic_labels):
+    """Create a matplotlib.pyplot.Figure with the UMAP projection of the documents and the
+    respective original and topic labels. Allows the visual comparison between the documents' 
+    original and topic labels.
+
+    Args:
+        umap_emb (np.ndarray): the UMAP embeddings of the documents.
+        y (np.ndarray): the target values of each document.
+        y_labels (list): the target labels (ordered).
+        topics (np.ndarray): the topic assignments to each document.
+        topic_labels (list): the topic labels (ordered).
+
+    Returns:
+        matplotlib.pyplot.Figure: a matplotlib.pyplot.Figure object.
+    """
     # Plot the 2D UMAP projection with the topic labels vs original labels
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 11))
     plt.subplots_adjust(wspace=0.5)
 
     # Set axis 1 - Original labels
     ax1.set_title("Original labels")
-    scatter = ax1.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=labels, cmap='tab20')
-    ax1.legend(scatter.legend_elements(num=len(label_names))[0], label_names, title="Original", bbox_to_anchor=(1,1), loc="upper left")
+    scatter = ax1.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=y, cmap='tab20')
+    ax1.legend(scatter.legend_elements(num=len(y_labels))[0], y_labels, title="Original", bbox_to_anchor=(1,1), loc="upper left")
 
     # Set axis 2 - Topic labels
     ax2.set_title("Topic labels")
     scatter = ax2.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=topics, cmap='tab20')
-    ax2.legend(scatter.legend_elements(num=len(topic_names))[0], topic_names, title="Topics", bbox_to_anchor=(1,1), loc="upper left")
+    ax2.legend(scatter.legend_elements(num=len(topic_labels))[0], topic_labels, title="Topics", bbox_to_anchor=(1,1), loc="upper left")
 
     return fig
 
 
 def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
+    """Train the topic, umap and embedding models on the training data and use them to Infer
+    the testing data.
+
+    Args:
+        topic_model (BERTopic | CTMScikit | LatentDirichletAllocation): an instance of the sampled Topic Model.
+        umap_model (UMAP): an instance of the UMAP model.
+        emb_model (Doc2VecScikit | SentenceTransformerScikit): an instance of the sampled Embedding Model.
+        X_train (np.ndarray): the training corpus.
+        X_test (np.ndarray): the testing corpus.
+
+    Returns:
+        dict: all the models' outputs necessary for evaluation.
+    """
     infer = {}
 
     # Initialize timers
@@ -355,6 +472,21 @@ def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
 
 
 def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, last_iter=False):
+    """Evaluate the topic, umap and embedding models using the evaluate_umap, evaluate_cluster, 
+    evaluate_topic, and plot_umap_labels functions.
+
+    Args:
+        infer (dict): all the models' outputs necessary for evaluation.
+        y_train (np.ndarray): the training corpus target values.
+        y_test (np.ndarray): the testing corpus.
+        X_train (np.ndarray): the training corpus.
+        y_labels (list, optional): the target labels (ordered). Defaults to None.
+        last_iter (bool, optional): indicates if it is the last iteration of the Cross-Validation process.
+        Defaults to False.
+
+    Returns:
+        dicts: all the evaluation metrics to be logged.
+    """
     artifacts = {}
 
     # Save the number of topics identified
@@ -391,6 +523,19 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, last_iter=Fa
 
 
 def objective(trial):
+    """The Optuna objective function. This function is used by Optuna to quantify the performance 
+    of the chosen hyperparameters and to guide future hyperparameter sampling.
+    This function returns three objectives: umap_knn_acc_test_mean (average over UMAP_EVAL_K_RANGE),
+    nmi_filtered_test_mean, and topic_coherence_c_v_mean. 
+    Additionaly, this function logs every parameter, metric and artifact necessary for comparing 
+    the models a posteriori.
+
+    Args:
+        trial (optuna.trial.Trial): an Optuna trial object.
+
+    Returns:
+        list(float, float, float): the objective values to optimize.
+    """
     with mlflow.start_run():
         # Load dataset
         X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.csv'))
@@ -470,6 +615,11 @@ def objective(trial):
 
 
 def log_best_model(best_trial):
+    """Re-evaluate the model with the best hyperparameters on a train/ test split.
+
+    Args:
+        best_trial (optuna.FrozenTrial): the Optuna best trial object.
+    """
     with mlflow.start_run(run_name='best-model'):
         # Load dataset
         X_clean, y_clean, y_labels = prepare_20newsgroups(os.path.join(outputs_dir, '20newsgroups_prep.csv'))

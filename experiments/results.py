@@ -672,21 +672,23 @@ if __name__ == "__main__":
     mlflow.set_experiment("my-experiment")
     study = optuna.create_study(directions=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
     print(f"Starting optimization process! Sampler is {study.sampler.__class__.__name__}")
-    study.optimize(objective, n_trials=30, n_jobs=1)  # Set gc_after_trial=True if you see an increase in memory consumption over trials
+    study.optimize(objective, n_trials=100, n_jobs=1)  # Set gc_after_trial=True if you see an increase in memory consumption over trials
 
     # Print optuna study statistics
     print("\n++++++++++++++++++++++++++++++++++\n")
     print("Study statistics: ")
     print("  Number of finished trials: ", len(study.trials))
 
-    print("Best trial:")
-    best_trial = study.best_trial
-
-    print("  Trial number: ", best_trial.number)
-    print("  Loss (trial value): ", best_trial.value)
-
-    print("  Params: ")
-    print(dumps(best_trial.params, sort_keys=False, indent=2))
-
-    print("  Log best model: ")
-    log_best_model(best_trial)
+    print("Best trials:")
+    best_trials = study.best_trials
+    
+    for trial in best_trials:
+        print("  Trial number: ", trial.number)
+        print("  Loss (trial value): ", trial.value)
+        
+    
+        print("  Params: ")
+        print(dumps(trial.params, sort_keys=False, indent=2))
+    
+        print("  Log optimal model: ")
+        log_best_model(trial)

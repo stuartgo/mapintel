@@ -1,32 +1,27 @@
 # Mapintel Experiments
 
-This is the Experiments module of the Mapintel project. This module is composed mainly of notebooks. 
+This is the Experiments module of the Mapintel project. This module contains the results.py file which is responsible for the evaluation of the Mapintel system. 
 
 In the *notebooks folder* you can find various jupyter notebooks, each with an experimental purpose described in the first cell of each file.
 
-This module is independent of the UI application and therefore should not be deployed. Its only objective is to perform experiments by making use of the Open Distro for Elasticsearch instance.
+This module is independent of the UI application and therefore should not be deployed.
 
 ## Usage
 
-### Option 1: Container
-
-Just run
-```
-docker-compose --profile experiments up
-``` 
-in the root folder of the Mapintel repository. This will start two containers (Open Distro for Elasticsearch and Experiments container).
-The Experiments container will run a jupyter notebook server which can be accessed at `https://localhost:9999`. 
-
-For security reasons, jupyter notebook requires an authentication token which can be acquired in the terminal logs or by running 
-```
-docker exec mapintel_experiments_1 /usr/local/bin/jupyter notebook list
-```
-
-### Option 2: Local
-
 Execute in this folder:
 ```
-jupyter notebook ..
+pip install -r requirements.txt
 ```
+, to install the necessary dependencies (it is advisable to do it in an isolated environment).
 
-**Requirements**: This expects a running Open Distro for Elasticsearch instance at `https://localhost:9200`. Also, all python and system dependencies must be satisfied.
+Then run:
+```
+python results.py
+```
+, to execute the experiments. Mind that this is a very long process that takes several days to finish.
+
+## Optional
+
+To run the jupyter notebooks inside the notebooks folder, there is another requirements.txt file that should be installed.
+
+**Requirements**: Some notebooks expect a running Open Distro for Elasticsearch instance at `https://localhost:9200`. 

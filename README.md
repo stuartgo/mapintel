@@ -20,9 +20,9 @@ To launch the Mapintel UI application with CPU only, run the following command f
 docker-compose --profile api-cpu --profile ui-cpu up --build
 ```
 
-To launch the Experiments container, run the following command from the root folder of the Mapintel repository:
+To execute the Mapintel system evaluation, run the experiments/results.py file after having installed all the necessary dependencies (check the experiments folder README file for additional details):
 ```
-docker-compose --profile experiments up
+python experiments/results.py
 ```
 
 If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.

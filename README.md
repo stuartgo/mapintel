@@ -43,15 +43,15 @@ Further usage information is present in the README files inside the *api*, *expe
     |
     ├── experiments                 <- Performs experiments using data from the Open Distro for Elasticsearch instance
     |   |
-    │   └── notebooks               <- Jupyter notebooks: each with an experimental purpose described in the first cell
+    │   |── notebooks               <- Jupyter notebooks: each with an experimental purpose described in the first cell
+    │   |── results.py              <- Experiments script. Execution should produce experiments results.
+    │   └── research                <- LaTeX documents corresponding to research articles 
     |
     ├── outputs
     |   |
     │   ├── figures                 <- Figures
     |   ├── experiments             <- Experiments' outputs
     │   └── saved_models            <- Trained and serialized models
-    │
-    ├── reports                     <- Generated analysis as HTML, PDF, LaTeX, etc.
     |
     ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
     |   |

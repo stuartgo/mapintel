@@ -12,14 +12,13 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.12}
-\PrerenderUnicode{ü}
+% \PrerenderUnicode{ü}
 
 \title{Enhancing Competitive Intelligence Acquisition Through Embeddings and Visual Analytics}
 \author{David Silva, Fernando Bação}
 \date{}
 
-\begin{document}
-
+\begin{document} 
 \maketitle
 
 \begin{abstract}
@@ -155,11 +154,41 @@ The map provides a means to explore the news articles and the different semantic
 	\label{vis_pipeline}
 \end{figure}
 
-\section{Results and Discussion}
+\section{Evaluation}
+% Take a look at CO-Search,(especially this one. Just copyt the same format) DPR and Lafia 2021 paper for inspiration
 Our methodology addresses the issues of information dispersion and overload impacting the CI analysts' task. The proposed system provides searching and browsing capabilities, contributing to an easier understanding of the business environment by supporting analysts in seeking specific information, while promoting undirected information encoutering. In this section, we fundament our choices in the design of the system with experiments and analyse the different components of the system individually.
 
-\subsection{Dataset}
-Some of the evaluation metrics of our systems and its components are dependent on the underlying data. For that reason we provide a dataset of news articles collected as explained in section \ref{indexing}. This dataset contains 334,925 news articles from multiple international sources 
+\subsection{Experimental Setup}
+We evaluate our system quantitatively across three benchmark datasets. The 20 News Groups \citep{pedregosa2011} dataset consists of around 18,000 news groups posts on 20 topics divided into 6 main groups: "Computer", "Recreation", "Science", "Miscellaneous", "Politics" and "Religion". The CiteSeer-M10 \citep{lim2014, pan2016} is a subset of CiteSeerX dataset\footnote{\href{http://citeseerx.ist.psu.edu/}{citeseerx.ist.psu.edu}} which consists of 10,310 scientific publications from 10 distinct areas of research: "Agriculture", "Archaeology", "Biology", "Computer Science", "Financial Economics", "Industrial Engineering", "Material Science", "Petroleum Chemistry", "Physics, and Social Science". The Yahoo! Answers \citep{yin2019, zhang2015} dataset, composed of 1,400,000 labeled posts with one of the 10 classes: "Society \& Culture", "Science \& Mathematics", "Health", "Education \& Reference", "Computers \& Internet", "Sports", "Business \& Finance", "Entertainment \& Music", "Family \& Relationships", "Politics \& Government".
+
+The following algorithms are compared in our paper:
+\begin{itemize}
+  \item \textbf{Sentence embeddings}
+    \begin{enumerate}
+      \item Doc2Vec
+      \item SBERT
+    \end{enumerate}
+  \item \textbf{Topic modeling}
+    \begin{enumerate}
+      \item Latent Dirichlet Allocation
+      \item BERTopic
+      \item Contextualized Topic Model (CTM)
+    \end{enumerate}
+\end{itemize}
+
+We decided to evaluate our system by answering four main questions: How well can we encode the semantics of each document in a vector? How well can we represent the corpus of documents in two dimensions? How well can we capture the main topics within the corpus? How well can the topic words describe the semantics of their documents?
+Since every component of our system depends on the vector representation of the documents, their evaluation is also dependent on the embeddings' evaluation and hence, by evaluating every component of our system individually, we are also evaluating the system as a whole.
+
+We use three main metrics to guide our model comparison and hyperparameter tuning: 
+\begin{itemize}
+  \item \textbf{K-NN classifier accuracy for the UMAP projections}: evaluate the quality of the two-dimensional projections by inferring their labels using a K-NN classifier and computing its Accuracy for multiple values of K.
+  \item \textbf{Normalized Mutual Information (NMI) for the topic assignments}: evaluate the identification of the topical nature of the documents by computing the NMI between the true labels and the assigned topics.
+  \item \textbf{Topic coherence}: measure the quality of the words that describe each topic by applying the $C_v$ metric \citep{roder2015} indicating whether the words that compose a given topic support each other.
+\end{itemize}
+
+\subsection{Results}
+% Justify the choice of SBERT using some of the results in their paper
+Our results based on the setup described are shown in Table x.
 
 \section{Conclusions}
 Explain what you have learned and how that influences your next steps. Why does what you discovered matter?

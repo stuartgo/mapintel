@@ -20,6 +20,12 @@ python results.py
 ```
 , to execute the experiments. Mind that this is a very long process that takes several days to finish.
 
+To analyze the experiments' results we use MLflow:
+```
+mlflow ui --backend-store-uri ./outputs/experiments/
+```
+For a more in-depth analysis of the results you can consult the notebooks/results_exploration.ipynb file.
+
 ## Optional
 
 To run the jupyter notebooks inside the notebooks folder, there is another requirements.txt file that should be installed.

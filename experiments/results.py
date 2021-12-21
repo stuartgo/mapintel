@@ -39,9 +39,9 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # TODO:
 # - Partition the data into train and test set. Do the hyperparameter tuning on 
 # the train set only and evaluate the best model on the test set.
-# - Resuming Study (only works with a RDB backend). See: 
-# https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/001_rdb.html
 # - Use other datasets for validating the methodology
+# - Use other embedding models (e.g. TF-IDF)
+# - Simplify the validation mechanism (maybe use simple train-test split) to make the experiments achievable
 # - Define MLflow project file
 
 
@@ -497,6 +497,10 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, last_iter=Fa
     # Save the number of topics identified
     artifacts['ntopics'] = len(infer['tm_full_output']['topics'])
 
+    # Save the percentage of observations classified as outliers (outliers should be labeled as -1)
+    artifacts['perc_outliers_train'] = (infer['top_train'] == -1).mean()
+    artifacts['perc_outliers_test'] = (infer['top_test'] == -1).mean()
+
     # Evaluate the UMAP model on test split
     print("Evaluate UMAP on K-NN accuracy.")
     knn_accuracies_train, knn_accuracies_test = evaluate_umap(infer['umap_emb_train'], infer['umap_emb_test'], y_train, y_test)
@@ -598,6 +602,9 @@ def objective(trial):
         for k, v in split_metrics.items():
             agg_metrics[k + '_mean'] = np.mean(v)
             agg_metrics[k + '_std'] = np.std(v)
+
+        # Get average of umap_knn_acc_test_means
+        agg_metrics['umap_avgknn_acc_test_mean'] = np.mean([agg_metrics[f'umap_{k}nn_acc_test_mean'] for k in UMAP_EVAL_K_RANGE])
         
         # Log metrics with mlflow
         mlflow.log_metrics(agg_metrics)
@@ -608,7 +615,7 @@ def objective(trial):
 
         # Get evaluation metric(s)
         eval_metrics = [
-            np.mean([agg_metrics[f'umap_{k}nn_acc_test_mean'] for k in UMAP_EVAL_K_RANGE]), # UMAP eval metric
+            agg_metrics['umap_avgknn_acc_test_mean'],  # UMAP eval metric
             agg_metrics['nmi_filtered_test_mean'],  # Cluster eval metric
             agg_metrics['topic_coherence_c_v_mean']  # Topic modeling eval metric
         ]
@@ -652,9 +659,17 @@ def log_best_model(best_trial):
         infer = train_infer_models(topic_model, umap_model, emb_model, X_train, X_test)
 
         # Evaluate the topic_model and umap_model
-        artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, plot=True)
+        artifacts = evaluate_models(infer, y_train, y_test, X_train, y_labels, last_iter=True)
 
         print('Log artifacts.')
+        # Get average of umap_knn_acc_test
+        artifacts['umap_avgknn_acc_test'] = np.mean([artifacts[f'umap_{k}nn_acc_test'] for k in UMAP_EVAL_K_RANGE])
+
+        # Extract single elements from timer artifacts
+        for k, v in artifacts.items():
+            if 'timer' in k:
+                artifacts[k] = v[0]
+
         # Log metrics with mlflow
         train_fig = artifacts.pop('train_fig')
         test_fig = artifacts.pop('test_fig')
@@ -668,8 +683,8 @@ def log_best_model(best_trial):
 if __name__ == "__main__":
     # Hyperparameter tuning
     print("Performing Hyper-parameter tuning.")
-    mlflow.set_tracking_uri(outputs_dir)
-    mlflow.set_experiment("my-experiment")
+    mlflow.set_tracking_uri(os.path.join(outputs_dir, 'mlruns'))
+    mlflow.set_experiment("mapintel-experiment")
     study = optuna.create_study(directions=['maximize', 'maximize', 'maximize'])  # maximize the 3 evaluation metrics
     print(f"Starting optimization process! Sampler is {study.sampler.__class__.__name__}")
     study.optimize(objective, n_trials=100, n_jobs=1)  # Set gc_after_trial=True if you see an increase in memory consumption over trials

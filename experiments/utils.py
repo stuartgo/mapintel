@@ -108,11 +108,11 @@ class BERTopic(BERTopic):
                 'topic-word-matrix': self.c_tf_idf,
                 'topic-document-matrix': np.array(train_doc_topics),  # in BERTopic a document only belongs to a topic
             }
-        return train_doc_topics
+        return np.array(train_doc_topics)
     
     def transform(self, documents, embeddings):
         test_doc_topics, _ = super().transform(documents, embeddings)
-        return test_doc_topics
+        return np.array(test_doc_topics)
 
 
 class CTMScikit(TransformerMixin, BaseEstimator):

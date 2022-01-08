@@ -159,32 +159,34 @@ The map provides a means to explore the news articles and the different semantic
 Our methodology addresses the issues of information dispersion and overload impacting the CI analysts' task. The proposed system provides searching and browsing capabilities, contributing to an easier understanding of the business environment by supporting analysts in seeking specific information, while promoting undirected information encoutering. In this section, we fundament our choices in the design of the system with experiments and analyse the different components of the system individually.
 
 \subsection{Experimental Setup}
-We evaluate our system quantitatively across three benchmark datasets. The 20 News Groups \citep{pedregosa2011} dataset consists of around 18,000 news groups posts on 20 topics divided into 6 main groups: "Computer", "Recreation", "Science", "Miscellaneous", "Politics" and "Religion". The CiteSeer-M10 \citep{lim2014, pan2016} is a subset of CiteSeerX dataset\footnote{\href{http://citeseerx.ist.psu.edu/}{citeseerx.ist.psu.edu}} which consists of 10,310 scientific publications from 10 distinct areas of research: "Agriculture", "Archaeology", "Biology", "Computer Science", "Financial Economics", "Industrial Engineering", "Material Science", "Petroleum Chemistry", "Physics, and Social Science". The Yahoo! Answers \citep{yin2019, zhang2015} dataset, composed of 1,400,000 labeled posts with one of the 10 classes: "Society \& Culture", "Science \& Mathematics", "Health", "Education \& Reference", "Computers \& Internet", "Sports", "Business \& Finance", "Entertainment \& Music", "Family \& Relationships", "Politics \& Government".
+We evaluate our system quantitatively using the 20 newsgroups \citep{pedregosa2011} dataset and the document labels provided. This dataset consists of around 18,000 newsgroups posts on 20 topics divided into 6 main groups: "Computer", "Recreation", "Science", "Miscellaneous", "Politics" and "Religion".
 
 The following algorithms are compared in our paper:
 \begin{itemize}
   \item \textbf{Sentence embeddings}
     \begin{enumerate}
-      \item Doc2Vec
-      \item SBERT
+      \item \textbf{Paragraph Vector Model (or Doc2Vec)} \citep{le2014}: an unsupervised algorithm that learns both word and document vectors by minimizing the error of predicting the next word in a paragraph (a variable-length piece of text) given the paragraph and previous word vectors;
+      \item \textbf{SBERT}: a derivative of the Transformer-based BERT model, to embed the documents using a pre-trained encoder trained on reducing the distance between queries and relevant results in the MS MARCO dataset; 
     \end{enumerate}
   \item \textbf{Topic modeling}
     \begin{enumerate}
-      \item Latent Dirichlet Allocation
-      \item BERTopic
-      \item Contextualized Topic Model (CTM)
+      \item \textbf{LDA}: a generative probabilistic model of a corpus in which each document is modeled as a finite mixture over an underlying set of topics, and each topic is characterized by a distribution over words;
+      \item \textbf{BERTopic}: a cluster-based topic model that unveils the latent document-topic distribution responsible for the existing groups of documents in a semantic vector space;
+      \item \textbf{Contextualized Topic Model (CTM)} \citep{bianchi2021}: combines contextualized representations (like SBERT) with neural topic models resulting in more meaningful and coherent topics;
     \end{enumerate}
 \end{itemize}
 
 We decided to evaluate our system by answering four main questions: How well can we encode the semantics of each document in a vector? How well can we represent the corpus of documents in two dimensions? How well can we capture the main topics within the corpus? How well can the topic words describe the semantics of their documents?
-Since every component of our system depends on the vector representation of the documents, their evaluation is also dependent on the embeddings' evaluation and hence, by evaluating every component of our system individually, we are also evaluating the system as a whole.
+Given the inherent difficulty of evaluating the system on its entirety, we decided to evaluate each component individually. Furthermore, since every component of our system depends on the vector representation of the documents, their evaluation is also dependent on the embeddings' evaluation and hence, by evaluating every component of our system individually, we are also evaluating the system as a whole.
 
-We use three main metrics to guide our model comparison and hyperparameter tuning: 
+We use three main metrics to guide our model comparison: 
 \begin{itemize}
   \item \textbf{K-NN classifier accuracy for the UMAP projections}: evaluate the quality of the two-dimensional projections by inferring their labels using a K-NN classifier and computing its Accuracy for multiple values of K.
   \item \textbf{Normalized Mutual Information (NMI) for the topic assignments}: evaluate the identification of the topical nature of the documents by computing the NMI between the true labels and the assigned topics.
   \item \textbf{Topic coherence}: measure the quality of the words that describe each topic by applying the $C_v$ metric \citep{roder2015} indicating whether the words that compose a given topic support each other.
 \end{itemize}
+
+We don't set the hyperparameters of the models we compare apriori as we believe they can have a significant impact on the evaluation. For that reason, we perform hyperparameter tuning using a multi-objective approach to optimize the three metrics specified previously. We use the Tree-structured Parzen Estimator (TPE) algorithm \citep{bergstra2011, ozaki2020} for sampling the hyperparameter space at each trial of the optimization process. Contrarily to random search, TPE samples values $x_\alpha$ for each hyperparameter $\alpha$ by fitting one Gaussian Mixture Model (GMM) $l(x_\alpha)$ to the set of values associated with the best objective scores, and another GMM $g(x_\alpha)$ to the remaining values. It then chooses the hyperparameter value $x_\alpha$ that maximizes the ratio $\frac{l(x_\alpha)}{g(x_\alpha)}$.
 
 \subsection{Results}
 % Justify the choice of SBERT using some of the results in their paper

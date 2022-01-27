@@ -5,9 +5,10 @@
 \usepackage{amsmath}
 % \usepackage{amssymb}
 \usepackage{float}
-% \usepackage{graphicx}
+\usepackage{graphicx}
 \usepackage[authoryear]{natbib}
 \usepackage{hyperref}
+\usepackage{booktabs}
 % \usepackage{authblk}
 \usepackage[margin=1in]{geometry}
 \usepackage{pgfplots}
@@ -70,36 +71,30 @@ The system is scalable to large amounts of data, is dynamic as it regularly inte
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.5]{./figures/system_architecture}
+	\includegraphics[scale=0.5]{./assets/system_architecture}
 	\caption{System Architecture}
 	\label{system_architecture}
 \end{figure}
 
 \subsection{Indexing} \label{indexing}
-In this work we decided to focus on how NLP and particularly sentence embeddings could help in organizing, exploring, and retrieving text documents in the CI domain. As already stated, there are multiple sources of CI, and different information can be obtained from these. \citet{dey2011} shows in Table \ref{ci_resources} what kind of information can be acquired from these sources, particularly the ones that are easily available through the web. We decided to work mainly with news articles as they provide a general and accessible means of information about the environment, however, our methodology is easily extensible to data from different sources and can be applied in various settings. 
+In this work we decided to focus on how NLP and particularly sentence embeddings could help in organizing, exploring, and retrieving text documents in the CI domain. As already stated, there are multiple sources of CI, and different information can be obtained from these. \citet{dey2011} shows in Table \ref{table1} what kind of information can be acquired from these sources, particularly the ones that are easily available through the web. We decided to work mainly with news articles as they provide a general and accessible means of information about the environment, however, our methodology is easily extensible to data from different sources and can be applied in various settings. 
 
 % Is it ok to put this table from another paper here in the way it is presented?
-\renewcommand{\arraystretch}{1.3}
-\begin{table}[h!]
-  \begin{center}
-    \caption{Competitive Intelligence resources on the web - \citet{dey2011}}
-    \label{ci_resources}
-    \begin{tabular}{ |p{6cm}|p{6cm}| }
-	  \hline
-      \textbf{Type of Competitive Intelligence} & \textbf{Web resources} \\
-      \hline
-	  People events & News, company web-sites \\
-	  \hline
-	  Competitor strategies, Technology investment, etc. & News, Discussion forum, Blogs, Patent search sites \\
-	  \hline
-	  Consumer sentiments & Review sites, Social networking sites \\
-	  \hline
-	  Promotional events and pricing & Social networking sites \\
-	  \hline
-	  Related real-world events & News, Social networking sites \\
-	  \hline
-    \end{tabular}
-  \end{center}
+\begin{table}[]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}ll@{}}
+      \toprule
+      \textbf{Type of Competitive Intelligence}          & \textbf{Web Resources}                             \\ \midrule
+      People event                                       & News, company web-sites                            \\
+      Competitor strategies, Technology investment, etc. & News, Discussion forum, Blogs, Patent search sites \\
+      Consumer sentiments                                & Review sites, Social networking sites              \\
+      Promotional events and pricing                     & Social networking sites                            \\
+      Related real-world events                          & News, Social networking sites                      \\ \bottomrule
+    \end{tabular}%
+  }
+  \caption{Competitive Intelligence resources on the web - \citet{dey2011}}
+  \label{table1}
 \end{table}
 
 To obtain news articles from multiple international sources, we use a REST API\footnote{\href{https://newsapi.org/}{newsapi.org}}. The API retrieves the articles, as well as their metadata, consisting of attributes such as source, author, title, description, content, category, URL, and publication date and time. We use this API to feed the system with updated data on a schedule while focusing on articles written in English from a set of predefined categories (business, entertainment, general, health, science, sports, technology).
@@ -115,7 +110,7 @@ Finally, we load the documents, their metadata, their SBERT embeddings, their UM
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.7]{./figures/indexing_pipeline}
+	\includegraphics[scale=0.7]{./assets/indexing_pipeline}
 	\caption{Indexing Pipeline}
 	\label{indexing_pipeline}
 \end{figure}
@@ -133,7 +128,7 @@ With this pipeline, we can provide relevant documents to the user given a query 
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.7]{./figures/query_pipeline}
+	\includegraphics[scale=0.7]{./assets/query_pipeline}
 	\caption{Query Pipeline}
 	\label{query_pipeline}
 \end{figure}
@@ -149,7 +144,7 @@ The map provides a means to explore the news articles and the different semantic
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.7]{./figures/vis_pipeline}
+	\includegraphics[scale=0.7]{./assets/vis_pipeline}
 	\caption{Visualization Pipeline}
 	\label{vis_pipeline}
 \end{figure}
@@ -186,11 +181,29 @@ We use three main metrics to guide our model comparison:
   \item \textbf{Topic coherence}: measure the quality of the words that describe each topic by applying the $C_v$ metric \citep{roder2015} indicating whether the words that compose a given topic support each other.
 \end{itemize}
 
-We don't set the hyperparameters of the models we compare apriori as we believe they can have a significant impact on the evaluation. For that reason, we perform hyperparameter tuning using a multi-objective approach to optimize the three metrics specified previously. We use the Tree-structured Parzen Estimator (TPE) algorithm \citep{bergstra2011, ozaki2020} for sampling the hyperparameter space at each trial of the optimization process. Contrarily to random search, TPE samples values $x_\alpha$ for each hyperparameter $\alpha$ by fitting one Gaussian Mixture Model (GMM) $l(x_\alpha)$ to the set of values associated with the best objective scores, and another GMM $g(x_\alpha)$ to the remaining values. It then chooses the hyperparameter value $x_\alpha$ that maximizes the ratio $\frac{l(x_\alpha)}{g(x_\alpha)}$.
+% l and g are the GMM densities. Basically we choose the hyperparameter that has the largest likelihood of belonging to the density l in relation to g
+We don't set the hyperparameters of the models we compare apriori as we believe they can have a significant impact on the evaluation. For that reason, we perform hyperparameter tuning using a multi-objective approach to optimize the three metrics specified previously. We use the Tree-structured Parzen Estimator (TPE) algorithm \citep{bergstra2011, ozaki2020} for sampling the hyperparameter space at each trial $t$ of the optimization process. Contrarily to random search, TPE samples values $x_t^\alpha$ for each hyperparameter $\alpha$ by fitting one Gaussian Mixture Model (GMM) $l(x^\alpha)$ to the set of values associated with the best objective scores in past observed trials, and another GMM $g(x^\alpha)$ to the remaining values. It then chooses the hyperparameter value $x_t^\alpha$ drawn from $l(x^\alpha)$ that maximizes the ratio $\frac{l(x^\alpha)}{g(x^\alpha)}$. For each trial, we evaluate the sampled hyperparameters using a 5-fold cross-validation approach where the folds preserve the percentage of samples of each class. We report the average results and standard deviations over the defined folds.
 
 \subsection{Results}
 % Justify the choice of SBERT using some of the results in their paper
-Our results based on the setup described are shown in Table x.
+Our results based on the setup described are shown in Table \ref{table2}.
+\begin{table}[]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}llllll@{}}
+      \toprule
+      \textbf{Topic Model} & \textbf{Embedding Model}     & MinMax Average      & NMI            & Topic Coherence $C_v$   & $k$NN Classifier Accuracy \\ \midrule
+      BERTopic             & \multicolumn{1}{l|}{Doc2Vec} & 0.499               & 0.105          & 0.721                   & 0.224                     \\
+      BERTopic             & \multicolumn{1}{l|}{SBERT}   & \textbf{0.942}      & \textbf{0.403} & \textbf{0.763}          & \textbf{0.38}             \\
+      CTM                  & \multicolumn{1}{l|}{Doc2Vec} & 0.558               & 0.287          & 0.567                   & 0.235                     \\
+      CTM                  & \multicolumn{1}{l|}{SBERT}   & 0.704               & 0.329          & 0.576                   & 0.36                      \\
+      LDA                  & \multicolumn{1}{l|}{Doc2Vec} & 0.576               & 0.261          & 0.537                   & 0.249                     \\
+      LDA                  & \multicolumn{1}{l|}{SBERT}   & 0.71                & 0.27           & 0.544                   & 0.369                     \\ \bottomrule
+    \end{tabular}%
+  }
+  \caption{Hyperparameter Tuning Results}
+  \label{table2}
+\end{table}
 
 \section{Conclusions}
 Explain what you have learned and how that influences your next steps. Why does what you discovered matter?

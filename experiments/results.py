@@ -603,8 +603,9 @@ def objective(trial):
             agg_metrics[k + '_mean'] = np.mean(v)
             agg_metrics[k + '_std'] = np.std(v)
 
-        # Get average of umap_knn_acc_test_means
+        # Get average of umap_knn_acc_test_means and standard deviations
         agg_metrics['umap_avgknn_acc_test_mean'] = np.mean([agg_metrics[f'umap_{k}nn_acc_test_mean'] for k in UMAP_EVAL_K_RANGE])
+        agg_metrics['umap_avgknn_acc_test_std'] = np.mean([agg_metrics[f'umap_{k}nn_acc_test_std'] for k in UMAP_EVAL_K_RANGE])
         
         # Log metrics with mlflow
         mlflow.log_metrics(agg_metrics)

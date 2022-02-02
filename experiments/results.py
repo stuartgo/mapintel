@@ -7,6 +7,7 @@ from itertools import compress
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from collections import defaultdict
 from multiprocessing import cpu_count
 
@@ -403,23 +404,28 @@ def plot_umap_labels(umap_emb, y, y_labels, topics, topic_labels):
         topic_labels (list): the topic labels (ordered).
 
     Returns:
-        matplotlib.pyplot.Figure: a matplotlib.pyplot.Figure object.
+        list(matplotlib.pyplot.Figure, matplotlib.pyplot.Figure): matplotlib.pyplot.Figure objects 
+        with scatter plots of UMAP original and topic labels.
     """
     # Plot the 2D UMAP projection with the topic labels vs original labels
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 11))
-    plt.subplots_adjust(wspace=0.5)
+    # Figure 1 - Original labels
+    fig1, ax1 = plt.subplots(figsize=(11, 9))
+    s0 = ax1.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=y, cmap='tab20')
+    ax1.legend(s0.legend_elements(num=len(y_labels))[0], y_labels,
+            bbox_to_anchor=(1,1), loc="upper left", fontsize=11, framealpha=1)
 
-    # Set axis 1 - Original labels
-    ax1.set_title("Original labels")
-    scatter = ax1.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=y, cmap='tab20')
-    ax1.legend(scatter.legend_elements(num=len(y_labels))[0], y_labels, title="Original", bbox_to_anchor=(1,1), loc="upper left")
+    # Figure 2 - Topic labels
+    fig2, ax2 = plt.subplots(figsize=(11, 9))
+    outcmap = ListedColormap([(0.8509803921568627, 0.8509803921568627, 0.8509803921568627)])
+    s1 = ax2.scatter(umap_emb[topics==-1, 0], umap_emb[topics==-1, 1], s=2, c=topics[topics==-1], marker='.', 
+            cmap=outcmap)
+    s1handles, _ = s1.legend_elements(num=1)
+    s2 = ax2.scatter(umap_emb[topics!=-1, 0], umap_emb[topics!=-1, 1], s=6, c=topics[topics!=-1], cmap='tab20')
+    s2handles, _ = s2.legend_elements(num=len(topic_labels)-1)
+    ax2.legend(s1handles + s2handles, topic_labels, bbox_to_anchor=(1,1), loc="upper left", fontsize=11, 
+            framealpha=1)
 
-    # Set axis 2 - Topic labels
-    ax2.set_title("Topic labels")
-    scatter = ax2.scatter(umap_emb[:, 0], umap_emb[:, 1], s=4, c=topics, cmap='tab20')
-    ax2.legend(scatter.legend_elements(num=len(topic_labels))[0], topic_labels, title="Topics", bbox_to_anchor=(1,1), loc="upper left")
-
-    return fig
+    return fig1, fig2
 
 
 def train_infer_models(topic_model, umap_model, emb_model, X_train, X_test):
@@ -524,9 +530,10 @@ def evaluate_models(infer, y_train, y_test, X_train, y_labels=None, last_iter=Fa
 
         # UMAP plot on last split of k-fold cross validation: Original labels VS Topics
         print("Produce UMAP plot: Original labels VS Topics.")
-        topic_names = ['_'.join(words[:5]) for words in infer['tm_full_output']['topics']]
-        artifacts['train_fig'] = plot_umap_labels(infer['umap_emb_train'], y_train, y_labels, infer['top_train'], topic_names)
-        artifacts['test_fig'] = plot_umap_labels(infer['umap_emb_test'], y_test, y_labels, infer['top_test'], topic_names)
+        topic_names = ['.'.join(words[:5]) for words in infer['tm_full_output']['topics']]
+        topic_names[0] = 'outliers'  # setting the outlier topic name
+        artifacts['orig_train_fig'], artifacts['top_train_fig'] = plot_umap_labels(infer['umap_emb_train'], y_train, y_labels, infer['top_train'], topic_names)
+        artifacts['orig_test_fig'], artifacts['top_test_fig'] = plot_umap_labels(infer['umap_emb_test'], y_test, y_labels, infer['top_test'], topic_names)
 
     return artifacts
 
@@ -611,8 +618,10 @@ def objective(trial):
         mlflow.log_metrics(agg_metrics)
 
         # Log figures with mlflow
-        mlflow.log_figure(artifacts['train_fig'], 'umap_train_plot.png')
-        mlflow.log_figure(artifacts['test_fig'], 'umap_test_plot.png')
+        mlflow.log_figure(artifacts['orig_train_fig'], 'orig_umap_train_plot.png')
+        mlflow.log_figure(artifacts['top_train_fig'], 'top_umap_train_plot.png')
+        mlflow.log_figure(artifacts['orig_test_fig'], 'orig_umap_test_plot.png')
+        mlflow.log_figure(artifacts['top_test_fig'], 'top_umap_test_plot.png')
 
         # Get evaluation metric(s)
         eval_metrics = [
@@ -672,13 +681,17 @@ def log_best_model(best_trial):
                 artifacts[k] = v[0]
 
         # Log metrics with mlflow
-        train_fig = artifacts.pop('train_fig')
-        test_fig = artifacts.pop('test_fig')
+        orig_train_fig = artifacts.pop('orig_train_fig')
+        top_train_fig = artifacts.pop('top_train_fig')
+        orig_test_fig = artifacts.pop('orig_test_fig')
+        top_test_fig = artifacts.pop('top_test_fig')
         mlflow.log_metrics(artifacts)
 
-        # Log figures with mlflow
-        mlflow.log_figure(train_fig, 'umap_train_plot.png')
-        mlflow.log_figure(test_fig, 'umap_test_plot.png')
+        # Log figures with mlflow - if the figures get cut, use fig.savefig(path, bbox_inches='tight')
+        mlflow.log_figure(orig_train_fig, 'orig_umap_train_plot.png')
+        mlflow.log_figure(top_train_fig, 'top_umap_train_plot.png')
+        mlflow.log_figure(orig_test_fig, 'orig_umap_test_plot.png')
+        mlflow.log_figure(top_test_fig, 'top_umap_test_plot.png')
 
 
 if __name__ == "__main__":

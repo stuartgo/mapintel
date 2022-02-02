@@ -1,7 +1,0 @@
-Topic Model,Embedding Model,MinMax Average,NMI,Topic Coherence $C_v$,$k$NN Classifier Accuracy
-BERTopic,Doc2Vec,0.499,0.105,0.721,0.224
-BERTopic,SBERT,0.942,0.403,0.763,0.38
-CTM,Doc2Vec,0.558,0.287,0.567,0.235
-CTM,SBERT,0.704,0.329,0.576,0.36
-LDA,Doc2Vec,0.576,0.261,0.537,0.249
-LDA,SBERT,0.71,0.27,0.544,0.369

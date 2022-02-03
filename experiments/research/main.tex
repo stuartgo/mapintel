@@ -3,17 +3,24 @@
 \usepackage[english]{babel}
 \usepackage[utf8x]{inputenc}
 \usepackage{amsmath}
-% \usepackage{amssymb}
 \usepackage{float}
+\usepackage{subcaption}
 \usepackage{graphicx}
 \usepackage[authoryear]{natbib}
 \usepackage{hyperref}
 \usepackage{booktabs}
-% \usepackage{authblk}
 \usepackage[margin=1in]{geometry}
 \usepackage{pgfplots}
+\usepackage{siunitx,etoolbox}
 \pgfplotsset{compat=1.12}
-% \PrerenderUnicode{ü}
+
+\sisetup{
+  table-align-uncertainty=true,
+  separate-uncertainty=true,
+}
+%% local redefinitions
+\renewrobustcmd{\bfseries}{\fontseries{b}\selectfont}
+\renewrobustcmd{\boldmath}{}
 
 \title{Enhancing Competitive Intelligence Acquisition Through Embeddings and Visual Analytics}
 \author{David Silva, Fernando Bação}
@@ -172,7 +179,7 @@ The following algorithms are compared in our paper:
 \end{itemize}
 
 We decided to evaluate our system by answering four main questions: How well can we encode the semantics of each document in a vector? How well can we represent the corpus of documents in two dimensions? How well can we capture the main topics within the corpus? How well can the topic words describe the semantics of their documents?
-Given the inherent difficulty of evaluating the system on its entirety, we decided to evaluate each component individually. Furthermore, since every component of our system depends on the vector representation of the documents, their evaluation is also dependent on the embeddings' evaluation and hence, by evaluating every component of our system individually, we are also evaluating the system as a whole.
+Given the inherent difficulty of evaluating the system on its entirety, we decided to evaluate each component individually. Furthermore, since every component of our system depends on the vector representation of the documents, their evaluation is also dependent on the embeddings' evaluation and so, by evaluating every component of our system individually, we are also evaluating the system as a whole.
 
 We use three main metrics to guide our model comparison: 
 \begin{itemize}
@@ -182,28 +189,62 @@ We use three main metrics to guide our model comparison:
 \end{itemize}
 
 % l and g are the GMM densities. Basically we choose the hyperparameter that has the largest likelihood of belonging to the density l in relation to g
-We don't set the hyperparameters of the models we compare apriori as we believe they can have a significant impact on the evaluation. For that reason, we perform hyperparameter tuning using a multi-objective approach to optimize the three metrics specified previously. We use the Tree-structured Parzen Estimator (TPE) algorithm \citep{bergstra2011, ozaki2020} for sampling the hyperparameter space at each trial $t$ of the optimization process. Contrarily to random search, TPE samples values $x_t^\alpha$ for each hyperparameter $\alpha$ by fitting one Gaussian Mixture Model (GMM) $l(x^\alpha)$ to the set of values associated with the best objective scores in past observed trials, and another GMM $g(x^\alpha)$ to the remaining values. It then chooses the hyperparameter value $x_t^\alpha$ drawn from $l(x^\alpha)$ that maximizes the ratio $\frac{l(x^\alpha)}{g(x^\alpha)}$. For each trial, we evaluate the sampled hyperparameters using a 5-fold cross-validation approach where the folds preserve the percentage of samples of each class. We report the average results and standard deviations over the defined folds.
+We don't set the hyperparameters of the models we compare apriori as we believe they can have a significant impact on the evaluation. For that reason, we perform hyperparameter tuning using a multi-objective approach to optimize the three metrics specified previously. We use the Tree-structured Parzen Estimator (TPE) algorithm \citep{bergstra2011, ozaki2020} for sampling the hyperparameter space at each trial $t$ of the optimization process. Contrarily to random search, TPE samples values $x_t^\alpha$ for each hyperparameter $\alpha$ by fitting one Gaussian Mixture Model (GMM) $l(x^\alpha)$ to the set of values associated with the best objective scores in past observed trials, and another GMM $g(x^\alpha)$ to the remaining values. It then chooses the hyperparameter value $x_t^\alpha$ drawn from $l(x^\alpha)$ that maximizes the ratio $\frac{l(x^\alpha)}{g(x^\alpha)}$. For each trial, we evaluate the sampled hyperparameters using a 5-fold cross-validation approach where the folds preserve the percentage of samples of each class. In total, 100 trials were evaluated over a grid of X? hyperparameter combinations.
 
 \subsection{Results}
 % Justify the choice of SBERT using some of the results in their paper
-Our results based on the setup described are shown in Table \ref{table2}.
+Our results based on the setup described above are shown in Table \ref{table2}. For each trial, we report the average results and standard deviations over the cross-validation folds. The table contains the best trials for each of the Topic/Embedding model combinations according to the MinMax average of the three objective metrics. We can see that the combination that uses BERTopic and SBERT outperform the others with respect to both NMI and $C_v$ while having a within standard deviation $k$NN Classifier Accuracy to the best value.
+
+\sisetup{separate-uncertainty}
 \begin{table}[]
   \centering
   \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}llllll@{}}
+    \begin{tabular}{@{}
+      ll
+      S[detect-weight,mode=text]
+      S[detect-weight,mode=text]
+      S[detect-weight,mode=text]
+      S[detect-weight,mode=text]
+      @{}}
       \toprule
-      \textbf{Topic Model} & \textbf{Embedding Model}     & MinMax Average      & NMI            & Topic Coherence $C_v$   & $k$NN Classifier Accuracy \\ \midrule
-      BERTopic             & \multicolumn{1}{l|}{Doc2Vec} & 0.499               & 0.105          & 0.721                   & 0.224                     \\
-      BERTopic             & \multicolumn{1}{l|}{SBERT}   & \textbf{0.942}      & \textbf{0.403} & \textbf{0.763}          & \textbf{0.38}             \\
-      CTM                  & \multicolumn{1}{l|}{Doc2Vec} & 0.558               & 0.287          & 0.567                   & 0.235                     \\
-      CTM                  & \multicolumn{1}{l|}{SBERT}   & 0.704               & 0.329          & 0.576                   & 0.36                      \\
-      LDA                  & \multicolumn{1}{l|}{Doc2Vec} & 0.576               & 0.261          & 0.537                   & 0.249                     \\
-      LDA                  & \multicolumn{1}{l|}{SBERT}   & 0.71                & 0.27           & 0.544                   & 0.369                     \\ \bottomrule
+      \textbf{Topic Model} & \textbf{Embedding Model}     & MinMax Average    & NMI                    & Topic Coherence $C_v$   & $k$NN Classifier Accuracy     \\ \midrule
+      BERTopic             & \multicolumn{1}{l|}{Doc2Vec} & 0.499             & 0.105(10)              & 0.721(24)               & 0.157(13)                     \\
+      BERTopic             & \multicolumn{1}{l|}{SBERT}   & \bfseries 0.942   & \bfseries 0.363(33)    & \bfseries 0.759(8)      & 0.359(12)                     \\
+      CTM                  & \multicolumn{1}{l|}{Doc2Vec} & 0.558             & 0.230(17)              & 0.546(16)               & 0.235(29)                     \\
+      CTM                  & \multicolumn{1}{l|}{SBERT}   & 0.704             & 0.329(17)              & 0.576(20)               & 0.277(41)                     \\
+      LDA                  & \multicolumn{1}{l|}{Doc2Vec} & 0.576             & 0.248(28)              & 0.529(29)               & 0.249(14)                     \\
+      LDA                  & \multicolumn{1}{l|}{SBERT}   & 0.71              & 0.261(34)              & 0.531(29)               & \bfseries 0.369(51)           \\ \bottomrule
     \end{tabular}%
   }
   \caption{Hyperparameter Tuning Results}
   \label{table2}
 \end{table}
+
+\begin{figure}[h!]
+  \centering
+  \resizebox{0.9\textwidth}{!}{%
+    \begin{subfigure}[b]{\linewidth}
+      \includegraphics[width=\linewidth]{./assets/orig_umap_train_plot}
+      \caption{train data with original labels}
+    \end{subfigure}
+    \begin{subfigure}[b]{\linewidth}
+      \includegraphics[width=\linewidth]{./assets/top_umap_train_plot}
+      \caption{train data with topic labels}
+    \end{subfigure}
+  }
+  \resizebox{0.9\textwidth}{!}{%
+    \begin{subfigure}[b]{\linewidth}
+      \includegraphics[width=\linewidth]{./assets/orig_umap_test_plot}
+      \caption{test data with original labels}
+    \end{subfigure}
+    \begin{subfigure}[b]{\linewidth}
+      \includegraphics[width=\linewidth]{./assets/top_umap_test_plot}
+      \caption{test data with topic labels}
+    \end{subfigure}
+  }
+  \caption{Comparison between UMAP plots of train and test data with original and topic labels}
+  \label{umap_plots}
+\end{figure}
 
 \section{Conclusions}
 Explain what you have learned and how that influences your next steps. Why does what you discovered matter?

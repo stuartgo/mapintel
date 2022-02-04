@@ -193,10 +193,10 @@ We don't set the hyperparameters of the models we compare apriori as we believe 
 
 \subsection{Results}
 % Justify the choice of SBERT using some of the results in their paper
-Our results based on the setup described above are shown in Table \ref{table2}. For each trial, we report the average results and standard deviations over the cross-validation folds. The table contains the best trials for each of the Topic/Embedding model combinations according to the MinMax average of the three objective metrics. We can see that the combination that uses BERTopic and SBERT outperform the others with respect to both NMI and $C_v$ while having a within standard deviation $k$NN Classifier Accuracy to the best value.
+Our results based on the setup described above are shown in Table \ref{table2}. For each trial, we report the average results and standard deviations over the cross-validation folds. The table contains the best trials for each of the Topic/Embedding model combinations according to the MinMax average of the three objective metrics. We can see that the combination that uses BERTopic and SBERT outperform the others with respect to both NMI and $C_v$ while having a within standard deviation $k$NN Classifier Accuracy to the best value. Another interesting observation is that combinations using SBERT have generally better results.
 
 \sisetup{separate-uncertainty}
-\begin{table}[]
+\begin{table}[H]
   \centering
   \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}
@@ -216,34 +216,44 @@ Our results based on the setup described above are shown in Table \ref{table2}. 
       LDA                  & \multicolumn{1}{l|}{SBERT}   & 0.71              & 0.261(34)              & 0.531(29)               & \bfseries 0.369(51)           \\ \bottomrule
     \end{tabular}%
   }
-  \caption{Hyperparameter Tuning Results}
+  \caption{Hyperparameter tuning best results per topic and embedding model}
   \label{table2}
 \end{table}
 
-\begin{figure}[h!]
+Additionally, we present the UMAP 2-dimensional maps of the documents in the 20 newsgroups dataset. Figure \ref{umap_train_plots} shows the comparison between the distribution of the original labels and the topics assigned by the best performing model according the the MinMax average score for the train data. Likewise, Figure \ref{umap_test_plots} shows the same comparison for the test data and demonstrates the ability of the model to generalize to unseen samples. We can see that the identified topical cohorts are mostly matching with the original groups, indicating that the embeddings have learned the original labels in a fully unsupervised way. Additionaly, it is possible to see that similarly semantic topics are located close to each other in the map. This is the case of all the computation related topics such as \emph{window.server.windows.motif.display} and \emph{format.files.graphics.file.gif}. Finally, there is also an agreement between the topic meaning given by the top 5 words describing the topics and the original label description. For example, the same points that have the label \emph{sci.space} also have the topic \emph{space.launch.nasa.orbit.shuttle}.
+
+An important chracteristic of BERTopic is that it is able to identify noise, leading to a topic assignment where part of the observation are classified as outliers. This produces a cleaner map to explore the documents at the loss of samples that are not given a topic. In Figure \ref{umap_train_plots} the percentage of documents classified into the aforementioned category is 51.4\%.
+
+\begin{figure}[H]
   \centering
-  \resizebox{0.9\textwidth}{!}{%
-    \begin{subfigure}[b]{\linewidth}
+  \resizebox{1\textwidth}{!}{%
+    \begin{subfigure}[b]{0.44\linewidth}
       \includegraphics[width=\linewidth]{./assets/orig_umap_train_plot}
-      \caption{train data with original labels}
+      \caption{Original labels}
     \end{subfigure}
-    \begin{subfigure}[b]{\linewidth}
+    \begin{subfigure}[b]{0.5\linewidth}
       \includegraphics[width=\linewidth]{./assets/top_umap_train_plot}
-      \caption{train data with topic labels}
+      \caption{Topic labels}
     \end{subfigure}
   }
-  \resizebox{0.9\textwidth}{!}{%
-    \begin{subfigure}[b]{\linewidth}
+  \caption{Comparison between UMAP plots of \textbf{train data} with original and topic labels}
+  \label{umap_train_plots}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \resizebox{1\textwidth}{!}{%
+    \begin{subfigure}[b]{0.44\linewidth}
       \includegraphics[width=\linewidth]{./assets/orig_umap_test_plot}
-      \caption{test data with original labels}
+      \caption{Original labels}
     \end{subfigure}
-    \begin{subfigure}[b]{\linewidth}
+    \begin{subfigure}[b]{0.5\linewidth}
       \includegraphics[width=\linewidth]{./assets/top_umap_test_plot}
-      \caption{test data with topic labels}
+      \caption{Topic labels}
     \end{subfigure}
   }
-  \caption{Comparison between UMAP plots of train and test data with original and topic labels}
-  \label{umap_plots}
+  \caption{Comparison between UMAP plots of \textbf{test data} with original and topic labels}
+  \label{umap_test_plots}
 \end{figure}
 
 \section{Conclusions}

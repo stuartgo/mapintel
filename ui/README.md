@@ -2,7 +2,7 @@
 
 This is a streamlit-based UI application for interactive semantic searching and exploration of a large collection of news articles.
 
-![Screenshot](../outputs/figures/ui_screenshot.png)
+![Screenshot](../outputs/figures/ui_screenshot.pdf)
 
 ## Usage
 

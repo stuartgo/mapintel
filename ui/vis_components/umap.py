@@ -43,7 +43,7 @@ def umap_plot(index, x, y, text, topics, unique_topics, size=4):
         tools='pan,wheel_zoom,lasso_select,box_zoom,reset',
         active_drag="pan",
         active_scroll="wheel_zoom",
-        plot_width=1000,
+        plot_width=1500,
         plot_height=700
     )
 

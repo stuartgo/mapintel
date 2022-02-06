@@ -36,7 +36,10 @@ batch_size = 10000
 filters = []
 
 # Set page configuration
-st.set_page_config(layout="centered")
+st.set_page_config(
+    page_title = "MapIntel App",
+    layout = "wide"
+)
 curdoc().theme = 'dark_minimal'  # bokeh dark theme
 
 # Title
@@ -87,15 +90,6 @@ with st.sidebar:
                 help="Display a randomly sampled percentage of the documents to improve performance"
             )
         st.form_submit_button(label='Submit')
-    st.header("File Upload:")
-    data_file = st.file_uploader("", type=["pdf", "txt", "docx"])
-    # Upload file
-    if data_file:
-        raw_json1 = upload_doc(data_file)  # Upload documents to the doc store
-        if raw_json1['status'] == "Success":
-            st.write("Success")
-        else:
-            st.write("Fail")
 
 # Prepare filters
 if filter_category:
@@ -154,7 +148,7 @@ fig = umap_page(
     query=umap_query(question),
     unique_topics=filter_topics
 )
-st.bokeh_chart(fig, use_container_width=False)
+st.bokeh_chart(fig, use_container_width=True)
 st.write("___")
 
 # Get results for query

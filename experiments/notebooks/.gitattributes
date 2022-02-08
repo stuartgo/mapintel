@@ -1,0 +1,2 @@
+# Make ipynb files undetectable from linguist
+*.ipynb linguist-vendored

@@ -6,6 +6,7 @@
 \usepackage{float}
 \usepackage{subcaption}
 \usepackage{graphicx}
+\usepackage{multirow}
 \usepackage[authoryear]{natbib}
 \usepackage{hyperref}
 \usepackage{booktabs}
@@ -53,7 +54,7 @@ Although the previously mentioned systems have successfully been used for dealin
 Another unique characteristic of our work is the use of state-of-the-art NLP techniques. With the recent emergence of the Transformer architecture \citep{vaswani2017}, significant improvements were made in several NLP subdomains. This new architecture is based solely on the attention mechanism, providing parallelization capabilities and significant improvements in training time. Also, the Transformer can more easily learn long-range relationships between terms in the input sequence than pre-existing architectures \citep{vaswani2017}. Language models like Bidirectional Encoder Representations from Transformers (BERT) \citep{devlin2019} leverage this architecture, making up a large part of the modern NLP landscape by providing an off-the-shelf, powerful way to create state-of-the-art models for a wide range of tasks.
 
 % Specify your objective(s): what you intend to find out or express in your paper
-In this paper, we explore Transformer-based models for representing documents as semantic vectors. These vectorial representations are commonly denominated as embeddings and we intend to use them in a CI system as a mechanism for extracting information from environmental data. Furthermore, the system facilitates Information Encountering by incorporating searching and browsing mechanisms that leverage the document embeddings. We name the proposed system as MapIntel from (Competitive) Intelligence Map.
+In this paper, we explore Transformer-based models for representing documents as semantic vectors. These vectorial representations are commonly denominated as embeddings and we intend to use them in a CI system as a mechanism for extracting information from environmental data. Furthermore, the system facilitates Information Encountering by incorporating searching and browsing mechanisms that leverage the document embeddings. We name the proposed system as MapIntel from (Competitive) Intelligence Map. The code developed for this work can be accessed at \href{https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_project}{github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel\_project}.
 
 \section{Related Work}
 % Introduction: The introduction should clearly establish the focus and purpose of the literature review.
@@ -71,20 +72,19 @@ We base our \emph{searching} module on the Vector Space Model (VSM) \citep[p.~12
 % Conclusion: summarize the key findings you have taken from the literature and emphasize their significance - is this necessary?
 
 % Describe what was done, how it was done, and justify the experimental design. Enough detail to reproduce and judge the results.
-% TODO: Support the claims below (scalable, dynamic and fast) in results!
 \section{MapIntel}
 We propose MapIntel - Figure \ref{system_architecture}, a system that supports the exploration of a document collection while promoting serendipity and satisfying emerging information needs by allowing full-text queries over the entire collection.
-The system is scalable to large amounts of data, is dynamic as it regularly integrates new data, and is fast. It is composed of three main pipelines: Indexing, Query, and Visualization which objectives are respectively, to get documents and their metadata from a source to a database, to retrieve the most relevant results to a user query, and to produce an interactive interface for exploring the document collection. The code developed for this work can be accessed at \href{https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_project}{github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel\_project}.
+The system is scalable to large amounts of data, is dynamic as it regularly integrates new data, and is fast. It is composed of three main pipelines: Indexing, Query, and Visualization which objectives are respectively, to get documents and their metadata from a source to a database, to retrieve the most relevant results to a user query, and to produce an interactive interface for exploring the document collection. 
 
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.5]{./assets/system_architecture}
-  \caption{The MapIntel System Architecture}
+  \caption{The MapIntel system architecture}
   \label{system_architecture}
 \end{figure}
 
 \subsection{Indexing} \label{indexing}
-In this work we decided to focus on how NLP and particularly sentence embeddings could help in organizing, exploring, and retrieving text documents in the CI domain. Thus, we don't develop as much the precedent tasks of data collection and pre-processing as we believe it is independent of the system and can be easily integrated with it. Nevertheless, it is important to point out that the quality of the system is extremely reliant on these steps, as if we feed it non-ideal data, we will get non-ideal results. MapIntel is nothing but a set of tools to facilitate the exploration and understanding of a corpus and it will not give useful insights if the data isn't useful itself. 
+In this work we decided to focus on how NLP and particularly sentence embeddings could help in organizing, exploring, and retrieving text documents in the CI domain. Thus, we don't develop as much the precedent tasks of data collection and pre-processing as we believe they are independent of the system and can be easily integrated with it. Nevertheless, it is important to point out that the quality of the system is extremely reliant on these steps, as if we feed it non-ideal data, we will get non-ideal results. MapIntel is nothing but a set of tools to facilitate the exploration and understanding of a corpus and it will not give useful insights if the data isn't useful itself. 
 
 Once new documents are fed to the system, their respective embeddings are computed. This process is the basis of our work as it allows the encoding of the semantic identity of the document onto a vector of a given dimensionality. This semantic identity describes what is the subject of the document, and it can be used to compare documents between each other i.e. documents with the same subject will be close in the semantic space and vice-versa. We use SBERT \citep{reimers2019}, a derivative of the Transformer-based BERT model, to embed the documents using a pre-trained encoder trained on reducing the distance between queries and relevant results in the MS MARCO dataset \citep{bajaj2018}. This produces vectors of 768 dimensions, which we then reduce to 2 dimensions using the Uniform Manifold Approximation and Projection (UMAP) \citep{mcinnes2020} algorithm. UMAP constructs a topological representation of the high and low dimensional data and its goal is to minimize their cross-entropy, which measures the difference between the two representations, by adjusting the low-dimensional representation. This is another important component of MapIntel as it allows the organization and localization of the entire document collection in a 2-dimensional map, which can be used to explore and interact with the data. We opted to use UMAP over other dimensionality reduction techniques because of its improved map quality, reduction in time required to produce the output map, support for larger data set sizes, and, most importantly, its ability to update the output map with new data without having to rebuild it \citep{mcinnes2020}.
 
@@ -96,7 +96,7 @@ Finally, we load the documents, their metadata, their SBERT embeddings, their UM
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/indexing_pipeline}
-  \caption{Indexing Pipeline}
+  \caption{Indexing pipeline}
   \label{indexing_pipeline}
 \end{figure}
 
@@ -114,7 +114,7 @@ With this pipeline, we can provide relevant documents to the user given a query 
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/query_pipeline}
-  \caption{Query Pipeline}
+  \caption{Query pipeline}
   \label{query_pipeline}
 \end{figure}
 
@@ -130,7 +130,7 @@ The map provides a means to explore the documents and the different semantic coh
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/vis_pipeline}
-  \caption{Visualization Pipeline}
+  \caption{Visualization pipeline}
   \label{vis_pipeline}
 \end{figure}
 
@@ -248,24 +248,51 @@ To evaluate the MapIntel system with real data, we gathered news articles from m
       Related real-world events                          & News, Social networking sites                      \\ \bottomrule
     \end{tabular}%
   }
-  \caption{Competitive Intelligence resources on the web - \citet{dey2011}}
+  \caption{Competitive intelligence resources on the web - \citet{dey2011}}
   \label{ci_sources}
 \end{table}
 
-The API employed retrieves news articles and their metadata, including attributes such as source, author, title, description, content, category, URL, and publication date and time. We used this API to feed the system with updated data on a schedule while focusing on articles written in English from a set of predefined categories (business, entertainment, general, health, science, sports, technology). The system was fed with a total of 360,000 articles during a period of around 5 months.
+The API employed retrieves news articles and their metadata, including attributes such as source, author, title, description, content, category, URL, and publication date and time. We used this API to feed the system with updated data on a schedule while focusing on articles written in English from a set of predefined categories (business, entertainment, general, health, science, sports, technology). The system was fed with a total of 334,925 articles during a period of around 5 months.
 
 Due to API limitations, the retrieved data has its content truncated to 200 characters. To overcome this, we treat a single document unit as the concatenation of title, description, and content, providing us a semantically loaded piece of text that we can use for testing the system. Despite this limitation, we give the user the possibility of accessing the full article through its URL. We ensure that each document is unique, is written in English, and doesn't have any HTML tags or any strange pattern.
 
 Once the data is cleaned, it follows the Indexing pipeline \ref{indexing_pipeline} so it can be used downstream by the Query pipeline \ref{query_pipeline} and the Visualization pipeline \ref{vis_pipeline}. 
 
-We also built a simple web application based on the MapIntel system shown in Figure \ref{app_ui}. It is composed by 4 main components: a \textbf{search box} at the top of the page that the user can use to write any natural language query, an \textbf{interactive scatter plot} that shows the UMAP projection of the document embeddings and allows the exploration of the corpus, a \textbf{sidebar} at the left where the user can specify any additional parameter or binary filter to the query and map, and a \textbf{list of results} at the bottom that contains the documents with the highest scoring for the specified query.
-
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.6]{./assets/ui_screenshot}
-  \caption{MapIntel WebApp Interface}
+  \caption{MapIntel webapp interface}
   \label{app_ui}
 \end{figure}
+
+We also built a simple web application based on the MapIntel system. The web application is containerized and composed of 3 main modules: an Elasticsearch instance container that stores and indexes the documents, their metadata, their topics and their embeddings, a container running a FastAPI\footnote{\href{https://fastapi.tiangolo.com/}{fastapi.tiangolo.com}} server that provides a REST API to bridge the access between the database and the user interface, and a third container consisting of a Streamlit\footnote{\href{https://streamlit.io/}{streamlit.io}} server.
+
+We highlight the user interface of the app in Figure \ref{app_ui}. It is composed of 4 main components: a \textbf{search box} at the top of the page that the user can use to write any natural language query, an \textbf{interactive scatter plot} that shows the UMAP projection of the document embeddings and allows the exploration of the corpus, a \textbf{sidebar} at the left where the user can specify any additional parameter or binary filter to the query and map, and a \textbf{list of results} at the bottom that contains the documents with the highest scoring for the specified query.
+
+The app enables information searching by receiving a query through the search box together with the filters and parameters selected in the sidebar. This allows the CI analyst to write queries in Natural Language while having a finer control of the results through sidebar parameters like including or excluding specific topics and specifying a date range. We show in Table \ref{query_results} some query examples a CI analyst could make and their respective results. We can see that the results are semantically relevant for the query provided.
+
+\begin{table}[H]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}llll@{}}
+      \toprule
+      \textbf{Query}                       & \textbf{Top 3 Results (Title)}                                                                     & \textbf{Score} & \textbf{Result Topic}  \\  \midrule
+      \multirow{3}{*}{"Stock Market News"} & Stock Market Today With Jim Cramer: Microsoft Earnings Reaction - TheStreet                        & 6.90           & 7                      \\
+                                           & Stock Market Today With Jim Cramer: Home Depot Falls - TheStreet                                   & 6.27           & -1                     \\
+                                           & Stock Market Today With Jim Cramer: Apple Event Preview - TheStreet                                & 6.12           & -1                     \\  \midrule
+      \multirow{3}{*}{"Indian Elections"}  & India elections: Modi party defeated in West Bengal battleground - BBC News                        & 5.36           & 11                     \\
+                                           & At 103, India's first voter casts vote in Himachal panchayat polls                                 & 4.77           & -1                     \\
+                                           & Vote count in five Indian states under way as pandemic rages                                       & 4.44           & -1                     \\  \midrule
+      \multirow{3}{*}{"Oil Prices"}        & Oil prices near 2-year highs above \$70 as investors expect OPEC+ to confirm its supply policies   & 7.63           & -1                     \\
+                                           & Oil Prices Rally Towards \$70 As Demand Outlook Improves - OilPrice.com                            & 7.62           & -1                     \\
+                                           & Oil prices to reach \$72 by summer: Goldman Sachs - Fox Business                                   & 7.45           & 7                      \\  \bottomrule
+    \end{tabular}%
+  }
+  \caption{Example queries top 3 results and respective scores}
+  \label{query_results}
+\end{table}
+
+An additional feature of the app is the ability to browse documents through the scatter plot. This visualization shows the 2-dimensional UMAP projection of the 768-dimensional embeddings of the documents. It can be used by the CI analyst to explore the document collection and the underlying thematic groups. The map can be interacted with by zooming, panning and hovering specific regions and documents, allowing the analyst to see the content of each data point. A representation of the hovering capability and a more detailed image of the document map can be seen in Figure \ref{app_map}.
 
 \begin{figure}[H]
   \centering
@@ -274,14 +301,50 @@ We also built a simple web application based on the MapIntel system shown in Fig
   \label{app_map}
 \end{figure}
 
+Besides the searching and browsing functionality, the system can also organize the documents into semantically similar cohorts and automatically label them. This is achieved with the help of topic modeling and the resulting topic labels can be seen in Table \ref{topic_labels}. The topic labels can be particularly useful to the analyst to understand the different subjects covered by the corpus at a glance. In addition, by looking at Figure \ref{app_map} we can notice that these topics represent clusters of documents in the semantic space, which confirms that semantically similar documents have similar embeddings. 
+
+\begin{table}[H]
+  \centering
+  \resizebox{0.7\textwidth}{!}{%
+    \begin{tabular}{@{}Sll@{}}
+      \toprule
+      \textbf{Topic Number}       & \textbf{Topic Words}                          & \textbf{Topic Coherence}      \\  \midrule
+      -1                          & outliers                                      & -                             \\
+      1                           & covid, covid 19, vaccine, coronavirus         & 0.644                         \\
+      2                           & netflix, old, actor, movie                    & 0.223                         \\
+      3                           & nfl, football, team, coach                    & 0.359                         \\
+      4                           & trump, election, republican, elect            & 0.12                          \\
+      5                           & nba, lakers, james, warriors                  & 1                             \\
+      6                           & bitcoin, cyberpunk, 2077, cyberpunk 2077      & 0.336                         \\
+      7                           & stocks, china, stock, market                  & 0.413                         \\
+      8                           & space, nasa, spacex, planet                   & 0.314                         \\
+      9                           & apple, iphone, iphone 12, oneplus             & 1                             \\
+      10                          & nintendo, xbox, game, ps5                     & 1                             \\
+      11                          & prince, johnson, harry, meghan                & 1                             \\
+      12                          & tesla, electric, elon musk, vehicles          & 0.943                         \\
+      13                          & gamestop, fortnite, intel, stock              & 0.212                         \\
+      14                          & league, manchester, liverpool, premier leagu  & 1                             \\
+      15                          & mlb, mets, baseball, dodgers                  & 0.356                         \\
+      16                          & india, england, cricket, zealand              & 1                             \\
+      17                          & wwe, ufc, wrestlemania, wrestling             & 1                             \\
+      18                          & juventus, milan, roma, napoli                 & 1                             \\
+      19                          & samsung, galaxy s21, android, samsung galax   & 1                             \\
+      20                          & startup, funding, stimulus, raises            & 0.617                         \\  \bottomrule
+    \end{tabular}%
+  }
+  \caption{Topic labels and respective coherence values}
+  \label{topic_labels}
+\end{table}
+
+% Mention what is the range of the score present in the table query_results
 % Demonstrate the utility of the software for competitive intelligence and include prints of the built application.
 % Analyze the application and extract conclusions on the data
 
 \section{Conclusions}
-Explain what you have learned and how that influences your next steps. Why does what you discovered matter?
-
+% Explain what you have learned and how that influences your next steps. Why does what you discovered matter?
 % Say that the system can be applied in different contexts and not only on CI.
-Make sure that you defend your conclusions. (this is conclusions, not opinions!)
+% Make sure that you defend your conclusions. (this is conclusions, not opinions!)
+In this paper, we presented MapIntel, a new system for Information Ecountering that leverages Transformer-based document embeddings to provide efficient, natural language searching of documents, a 2-dimensional map of the document collection, and a topical organization of the corpus.
 
 \subsection{Future Work}
 % Describe your plan of action for the next several weeks of research. Detail the next steps for this team.

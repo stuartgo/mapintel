@@ -4,6 +4,11 @@ from ui.vis_components.umap import umap_plot
 
 
 def umap_page(documents: DataFrame, query: dict, unique_topics: list):
+    # Set custom data
+    custom_data = documents['answer'].str.split('#SEPTAG#', expand=True, n=1)
+    custom_data = custom_data.applymap(lambda t: "<br>".join(wrap(t.replace('#SEPTAG#', ' '), width=100)) if t else "")
+
+    # Set query row
     if query:
         query_label = query['query_text']
         if len(query_label) > 40:
@@ -20,14 +25,11 @@ def umap_page(documents: DataFrame, query: dict, unique_topics: list):
     else:
         query_label = "Query"
     
-    # Set custom data
-    custom_data = documents['answer'].str.split('#SEPTAG#', expand=True, n=1)
-    custom_data = custom_data.applymap(lambda t: "<br>".join(wrap(t.replace('#SEPTAG#', ' '), width=100)) if t else "")
-
     # Produce umap plot and get configurations
     p, config = umap_plot(
         documents=documents,
-        unique_topics=[query_label] + unique_topics,
+        unique_topics=unique_topics,
+        query_label=query_label,
         custom_data=custom_data
     )
     

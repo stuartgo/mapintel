@@ -59,9 +59,13 @@ with st.sidebar:
         with st.beta_expander("Query Options"):
             filter_category = st.multiselect(
                 "Category",
-                options = unique_topics
+                options=unique_topics,
+                default="-1_news_covid_people_2021"
             )
-            filter_category_exclude = st.checkbox("Exclude")
+            filter_category_exclude = st.checkbox(
+                "Exclude",
+                value=True
+            )
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
                 "Number of returned documents",
@@ -82,7 +86,7 @@ with st.sidebar:
                 "Percentage of documents displayed", 
                 min_value=1, 
                 max_value=100, 
-                value=1, 
+                value=10, 
                 step=1, 
                 help="Display a randomly sampled percentage of the documents to improve performance"
             )

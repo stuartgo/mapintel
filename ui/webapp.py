@@ -3,7 +3,6 @@ import sys
 from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
-from bokeh.io import curdoc
 
 dirname = os.path.dirname(__file__)
 sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
@@ -13,7 +12,6 @@ from ui.utils import (
     feedback_doc, 
     retrieve_doc, 
     get_all_docs,
-    upload_doc, 
     umap_query,
     topic_names,
     doc_count
@@ -40,7 +38,6 @@ st.set_page_config(
     page_title = "MapIntel App",
     layout = "wide"
 )
-curdoc().theme = 'dark_minimal'  # bokeh dark theme
 
 # Title
 st.write("# Mapintel App")
@@ -143,12 +140,12 @@ with st.spinner(
     )
 
 # Plot the completed UMAP plot
-fig = umap_page(
+fig, config = umap_page(
     documents=pd.DataFrame(umap_docs), 
     query=umap_query(question),
     unique_topics=filter_topics
 )
-st.bokeh_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=config)
 st.write("___")
 
 # Get results for query

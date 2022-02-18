@@ -1,3 +1,4 @@
+from textwrap import wrap
 from pandas import DataFrame
 from ui.vis_components.umap import umap_plot
 
@@ -19,13 +20,15 @@ def umap_page(documents: DataFrame, query: dict, unique_topics: list):
     else:
         query_label = "Query"
     
-    p = umap_plot(
-        index=documents.index,
-        x=documents['umap_embeddings_x'],
-        y=documents['umap_embeddings_y'],
-        text=documents['answer'],
-        topics=documents['topic'],
-        unique_topics=[query_label] + unique_topics
+    # Set custom data
+    custom_data = documents['answer'].str.split('#SEPTAG#', expand=True, n=1)
+    custom_data = custom_data.applymap(lambda t: "<br>".join(wrap(t.replace('#SEPTAG#', ' '), width=100)) if t else "")
+
+    # Produce umap plot and get configurations
+    p, config = umap_plot(
+        documents=documents,
+        unique_topics=[query_label] + unique_topics,
+        custom_data=custom_data
     )
     
-    return p
+    return p, config

@@ -22,4 +22,9 @@ Execute in this folder:
 streamlit run webapp.py
 ```
 
+### Option 3: Development in container
+```
+docker-compose --profile api --profile ui-dev up
+``` 
+
 **Requirements**: This expects a running Fast API application at `https://localhost:8000` and a running Open Distro for Elasticsearch instance at `https://localhost:9200`. Also, all python and system dependencies must be satisfied.

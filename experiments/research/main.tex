@@ -77,7 +77,7 @@ The system is scalable to large amounts of data, is dynamic as it regularly inte
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.5]{./assets/system_architecture}
-  \caption{The MapIntel system architecture}
+  \caption{\textbf{MapIntel architecture}. Composed of three main pipelines: Indexing, Query, and Visualization}
   \label{system_architecture}
 \end{figure}
 
@@ -93,16 +93,16 @@ Finally, we load the documents, their metadata, their SBERT embeddings, their UM
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/indexing_pipeline}
-  \caption{Indexing pipeline}
+  \caption{\textbf{Indexing pipeline}. Documents flow through a pre-processing step, followed by an inference step where their SBERT embeddings, UMAP embeddings and BERTopic topics are computed and indexed into a Database for future search tasks.}
   \label{indexing_pipeline}
 \end{figure}
 
-\subsection{Query}
+\subsection{Query} \label{query}
 Finding meaningful information within a large amount of data is a big part of the CI task. The ability to retrieve relevant documents from a large collection of news articles through natural language queries empowers the CI analyst with an easy and intuitive interface to scan the environment.
 
 MapIntel provides a search functionality based on Open Distro for Elasticsearch and its $k$-Nearest Neighbor ($k$NN) Search module. By utilizing the $k$NN module, we can leverage the SBERT embeddings by projecting the query string onto the same semantic space as the corpus and computing its $k$-nearest neighbors i.e. finding the $k$ documents whose embedding vectors are closest to the query embedding vector, according to some pre-defined similarity metric. Since the embedding vectors encode the semantic identity of each document, this method provides semantically relevant results for a given query. Furthermore, the $k$NN module delivers a highly performant and scalable similarity search engine by leveraging Elasticsearch’s distributed architecture and by implementing Approximate Nearest Neighbors (ANN) search based on Hierarchical Navigable Small World Graphs \citep{malkov2018}. The $k$NN module can also be combined with binary filters that help the user obtain focused results based on characteristics of the documents such as publication date and topic. These filters are applied directly to the database, reducing the search space as a result and improving the subsequent search time.
 
-Once again, we can think of the search functionality as a pipeline, illustrated in Figure \ref{query_pipeline}, where we feed a query string and some binary filters, and we obtain documents ordered by their relevancy to the query. We employ a Retrieve and Re-rank pipeline based on the work of \citet{nogueira2020a, kratzwald2019} composed by a "Retrieval Bi-Encoder + ANN" node that performs semantic search using Elasticsearch’s $k$NN module as described above, and by a "Re-Ranker Cross-Encoder" node consisting of a BERT model fine-tuned on the MS MARCO dataset that receives a document and query pair as input and predicts the probability of the document being relevant to the query. 
+Once again, we can think of the search functionality as a pipeline, illustrated in Figure \ref{query_pipeline}, where we feed a query string and some binary filters, and we obtain documents ordered by their relevancy to the query. We employ a Retrieve and Re-rank pipeline based on the works of \citet{nogueira2020a, kratzwald2019} composed by a "Retrieval Bi-Encoder + ANN" node that performs semantic search using Elasticsearch’s $k$NN module as described above, and by a "Re-Ranker Cross-Encoder" node consisting of a BERT model fine-tuned on the MS MARCO dataset that receives a document and query pair as input and predicts the probability of the document being relevant to the query. 
 
 The pipeline works by taking advantage of the characteristics of both nodes. The Bi-Encoder together with ANN search can retrieve fairly relevant candidates while dealing efficiently with a large collection of documents. The Cross-Encoder isn't as efficient since it has to be performed independently for each document, given a query. However, since attention is performed across the query and the document, the performance is higher in the second node \citep{humeau2019}. Therefore, we combine both nodes by retrieving a large set of candidates from the entire collection using the Bi-Encoder, and by filtering the most relevant candidates with the Cross-Encoder while removing noisy results.
 
@@ -111,7 +111,7 @@ With this pipeline, we can provide relevant documents to the user given a query 
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/query_pipeline}
-  \caption{Query pipeline}
+  \caption{\textbf{Query pipeline}. Given a user query or selected document, its SBERT embedding is inferred and the closest neighbors are computed, while a set of binary filters is used to reduce the search space. Following, a Cross-Encoder BERT model is used to re-score the neighbors from the previous step, and they are retrieved together with their similarity score.}
   \label{query_pipeline}
 \end{figure}
 
@@ -127,7 +127,7 @@ The map provides a means to explore the documents and the different semantic coh
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.7]{./assets/vis_pipeline}
-  \caption{Visualization pipeline}
+  \caption{\textbf{Visualization pipeline}. Given a user query or selected document, its SBERT and UMAP embedding are inferred, while a set of binary filters and a sample size is used to reduce the amount of documents retrieved. Finally, the selected documents' topics and 2-dimensional embeddings, together with the query embedding, are displayed in an interactive scatter plot.}
   \label{vis_pipeline}
 \end{figure}
 
@@ -186,7 +186,7 @@ Our results based on the setup described above are shown in Table \ref{table2}. 
       LDA                  & \multicolumn{1}{l|}{SBERT}   & 0.71              & 0.261(34)              & 0.531(29)               & \bfseries 0.369(51)           \\ \bottomrule
     \end{tabular}%
   }
-  \caption{Hyperparameter tuning best results per topic and embedding model}
+  \caption{Hyperparameter tuning best trials per topic and embedding model according to the MinMax average of the multiple objective metrics.}
   \label{table2}
 \end{table}
 
@@ -198,13 +198,15 @@ Additionally, we present the UMAP 2-dimensional maps of the documents in the 20 
     \begin{subfigure}[b]{0.44\linewidth}
       \includegraphics[width=\linewidth]{./assets/orig_umap_train_plot}
       \caption{Original labels}
+      \label{umap_train_plots:a}
     \end{subfigure}
     \begin{subfigure}[b]{0.5\linewidth}
       \includegraphics[width=\linewidth]{./assets/top_umap_train_plot}
       \caption{Topic labels}
+      \label{umap_train_plots:b}
     \end{subfigure}
   }
-  \caption{Comparison between UMAP plots of \textbf{train data} with original and topic labels}
+  \caption{Comparison between UMAP planes of \textbf{train data} with original (a) and topic labels (b).}
   \label{umap_train_plots}
 \end{figure}
 
@@ -214,17 +216,19 @@ Additionally, we present the UMAP 2-dimensional maps of the documents in the 20 
     \begin{subfigure}[b]{0.44\linewidth}
       \includegraphics[width=\linewidth]{./assets/orig_umap_test_plot}
       \caption{Original labels}
+      \label{umap_test_plots:a}
     \end{subfigure}
     \begin{subfigure}[b]{0.5\linewidth}
       \includegraphics[width=\linewidth]{./assets/top_umap_test_plot}
       \caption{Topic labels}
+      \label{umap_test_plots:b}
     \end{subfigure}
   }
-  \caption{Comparison between UMAP plots of \textbf{test data} with original and topic labels}
+  \caption{Comparison between UMAP planes of \textbf{test data} with original (a) and topic labels (b).}
   \label{umap_test_plots}
 \end{figure}
 
-An important characteristic of BERTopic is that it is able to identify noise, leading to a topic assignment where part of the observation are classified as outliers. This produces a cleaner map to explore the documents at the loss of samples that are not given a topic. In Figure \ref{umap_train_plots} the percentage of documents classified into the aforementioned category is 51.4\%.
+An important characteristic of BERTopic is that it is able to identify noise, leading to a topic assignment where part of the observation are classified as outliers. This produces a cleaner map to explore the documents at the loss of samples that are not given a topic. In Figure \ref{umap_train_plots:b} the percentage of documents classified into the aforementioned category is 51.4\%.
 
 \section{Case Study}
 This use case is based on a real-world example, related with the recurrent tasks that the intelligence analysts at AICEP - Portuguese Trade \& Investment Agency have to perform. AICEP “is a government business entity, focused in encouraging the best competitive foreign companies to invest in Portugal and in contributing to the success of Portuguese companies abroad in their internationalization processes or export activities.” Given this mandate AICEP needs to monitor the world news and make sure it is updated with world events. Additionally, analysts at AICEP are called upon to produce reports on specific markets and industries, in order to guide the Portuguese state's diplomatic efforts and private company investments. These reports are pre-formatted, however the use and integration of text data remains a challenge. This is unfortunate as recent news and text documents allows a more detailed understanding of specific problems and nuances that are difficult to capture in an alphanumeric data table. The objective of this use case is to show how MapIntel can be used to mitigate this limitation and allow the inclusion of relevant text data in the report.
@@ -246,7 +250,7 @@ To evaluate the MapIntel system with real data, we gathered news articles from m
       Related real-world events                          & News, Social networking sites                      \\ \bottomrule
     \end{tabular}%
   }
-  \caption{Competitive intelligence resources on the web - \citet{dey2011}}
+  \caption{Competitive intelligence resources on the web \citet{dey2011}.}
   \label{ci_sources}
 \end{table}
 
@@ -259,15 +263,15 @@ Once the data is cleaned, it follows the Indexing pipeline \ref{indexing_pipelin
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.6]{./assets/ui_screenshot}
-  \caption{MapIntel webapp interface}
+  \caption{\textbf{MapIntel webapp interface}. Composed of four main components: search box, interactive scatter plot, parameter sidebar, and list of results.}
   \label{app_ui}
 \end{figure}
 
-We also built a simple web application in Python based on the MapIntel system. The web application is containerized and composed of three main modules: an Elasticsearch instance container that stores and indexes the documents, their metadata, their topics and their embeddings, a container responsible for all the computations involved in the three pipelines of the system that communicates with the user interface through a FastAPI\footnote{\href{https://fastapi.tiangolo.com/}{fastapi.tiangolo.com}} server providing the necessary endpoints, and a third container consisting of a Streamlit\footnote{\href{https://streamlit.io/}{streamlit.io}} application that interacts with the data through API requests.
+We also built a simple web application in Python based on the MapIntel system. The web application is containerized and composed of three main modules: an Elasticsearch instance container that stores and indexes the documents, their metadata, their topics and their embeddings, a container responsible for all the computations involved in the three pipelines of the system that communicates with the user interface through a FastAPI\footnote{\href{https://fastapi.tiangolo.com/}{fastapi.tiangolo.com}} server providing the necessary endpoints, and a third container consisting of a Streamlit\footnote{\href{https://streamlit.io/}{streamlit.io}} application that interacts with the data through HTTP requests.
 
 We highlight the user interface of the app in Figure \ref{app_ui}. It is composed of 4 main components: a \textbf{search box} at the top of the page that the user can use to write any natural language query, an \textbf{interactive scatter plot} that shows the UMAP projection of the document embeddings and allows the exploration of the corpus, a \textbf{sidebar} at the left where the user can specify any additional parameter or binary filter to the query and map, and a \textbf{list of results} at the bottom that contains the documents with the highest scoring for the specified query.
 
-The app enables information searching by receiving a query through the search box together with the filters and parameters selected in the sidebar. This allows the CI analyst to write queries in Natural Language while having a finer control of the results through sidebar parameters like including or excluding specific topics and specifying a date range. We show in Table \ref{query_results} some query examples (without any filters) a CI analyst could make and their respective results. We can see that the results are semantically relevant for the query provided.
+The app enables information searching by receiving a query through the search box together with the filters and parameters selected in the sidebar. This allows the CI analyst to write queries in Natural Language while having a finer control of the results through sidebar parameters like including or excluding specific topics and specifying a date range. We show in Table \ref{query_results} some query examples (without any filters) a CI analyst could make and their respective results. We can see that the results are semantically relevant to the query provided.
 
 \begin{table}[H]
   \centering
@@ -279,27 +283,28 @@ The app enables information searching by receiving a query through the search bo
                                            & Stock Market Today With Jim Cramer: Home Depot Falls - TheStreet                                   & 6.27           & -1                     \\
                                            & Stock Market Today With Jim Cramer: Apple Event Preview - TheStreet                                & 6.12           & -1                     \\  \midrule
       \multirow{3}{*}{"Indian Elections"}  & India elections: Modi party defeated in West Bengal battleground - BBC News                        & 5.36           & 11                     \\
-                                           & At 103, India's first voter casts vote in Himachal panchayat polls                                 & 4.77           & -1                     \\
+                                           & At 103, India's first voter casts vote in Himachal panchayat radish polls                                 & 4.77           & -1                     \\
                                            & Vote count in five Indian states under way as pandemic rages                                       & 4.44           & -1                     \\  \midrule
       \multirow{3}{*}{"Oil Prices"}        & Oil prices near 2-year highs above \$70 as investors expect OPEC+ to confirm its supply policies   & 7.63           & -1                     \\
                                            & Oil Prices Rally Towards \$70 As Demand Outlook Improves - OilPrice.com                            & 7.62           & -1                     \\
                                            & Oil prices to reach \$72 by summer: Goldman Sachs - Fox Business                                   & 7.45           & 7                      \\  \bottomrule
     \end{tabular}%
   }
-  \caption{Example queries top 3 results and respective scores}
+  \caption{Example queries and their top 3 results and respective scores. The results are computed according to the methodology described in \ref{query} and the scores range between 0 and 1.}
   \label{query_results}
 \end{table}
 
-An additional feature of the app is the ability to browse documents through the scatter plot. This visualization shows the 2-dimensional UMAP projection of the 768-dimensional embeddings of the documents. It can be used by the analyst to explore the document collection and the underlying thematic groups. The map can be interacted with by zooming, panning and hovering specific regions and documents, allowing the analyst to see the content of each data point. A representation of the hovering capability and a more detailed image of the document map can be seen in Figure \ref{app_map}.
+An additional feature of the app is the ability to browse documents through the scatter plot. This visualization shows the 2-dimensional UMAP projection of the 768-dimensional embeddings of the documents. It can be used by the analyst to explore the document collection and the underlying thematic groups. The map can be interacted with by zooming, panning and hovering specific regions and documents, allowing the analyst to see the content of each data point. A representation of the hovering capability and a more detailed image of the document map can be seen in Figure \ref{app_map}. In addition, we integrate the \emph{searching} and \emph{browsing} modules of the system by plotting the query embedding in the UMAP plane - represented with an "X" shaped marker -, allowing a visual exploration of the relevant results \emph{i.e.} the data points close to the query. Finally, we allow searching of similar documents by providing the option to click on any point in the map and obtain their most similar documents in the list of results below. We found that this feature enhances exploration and finding of relevant documents.
+% TODO: the last feature of similar document search isn't yet implemented but should be pretty straightforward
 
 \begin{figure}[H]
   \centering
   \includegraphics[scale=0.3]{./assets/map_screenshot}
-  \caption{UMAP projection closeup}
+  \caption{\textbf{UMAP projection of the corpus}. The documents' SBERT embeddings are projected on two dimensions with UMAP and the data points are colored according to their assigned topic. The map can be used interactively by zooming, panning, hovering, and selecting points. On hovering, the document text and some metadata is displayed and on selection the document is queried against the rest of the corpus. The query is marked with an "X" in the map.}
   \label{app_map}
 \end{figure}
 
-Besides the searching and browsing functionality, the system can also organize the documents into semantically similar cohorts and automatically label them. This is achieved with the help of topic modeling and the resulting topic labels can be seen in Table \ref{topic_labels}. The topic labels can be particularly useful to the analyst to understand the different subjects covered by the corpus at a glance. In addition, by looking at Figure \ref{app_map} we can notice that these topics represent clusters of documents in the semantic space, which confirms the main assumption that semantically similar documents have similar embeddings. 
+Besides the searching and browsing functionality, the system can also organize the documents into semantically similar cohorts and automatically label them. This is achieved with the help of topic modeling - particularly BERTopic - and the resulting topic labels can be seen in Table \ref{topic_labels}. The topic labels can be particularly useful to the analyst to understand the different subjects covered by the corpus at a glance. In addition, by looking at Figure \ref{app_map} we can notice that these topics represent clusters of documents in the semantic space, which confirms the main assumption that semantically similar documents have similar embeddings. 
 
 \begin{table}[H]
   \centering
@@ -307,7 +312,7 @@ Besides the searching and browsing functionality, the system can also organize t
     \begin{tabular}{@{}Sll@{}}
       \toprule
       \textbf{Topic Number}       & \textbf{Topic Words}                          & \textbf{Topic Coherence}      \\  \midrule
-      -1                          & outliers                                      & -                             \\
+      -1                          & - (outliers)                                  & -                             \\
       1                           & covid, covid 19, vaccine, coronavirus         & 0.644                         \\
       2                           & netflix, old, actor, movie                    & 0.223                         \\
       3                           & nfl, football, team, coach                    & 0.359                         \\
@@ -330,7 +335,7 @@ Besides the searching and browsing functionality, the system can also organize t
       20                          & startup, funding, stimulus, raises            & 0.617                         \\  \bottomrule
     \end{tabular}%
   }
-  \caption{Topic labels and respective coherence values}
+  \caption{Topic labels and respective coherence values. We used the 5 words with the highest c-TF-IDF score per topic to label them and extracted the coherence value $C_v$ of these words.}
   \label{topic_labels}
 \end{table}
 % TODO: Mention what is the range of the score present in the table query_results. The score is between 0 and 1 (fix it).

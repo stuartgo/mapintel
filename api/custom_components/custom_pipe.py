@@ -1,6 +1,6 @@
 from haystack import Pipeline, logger
 from haystack import BaseComponent
-from .custom_nodes import *
+from api.custom_components.custom_nodes import *
 
 
 class CustomPipeline(Pipeline):

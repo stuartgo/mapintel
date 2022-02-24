@@ -1,87 +1,90 @@
-from bokeh.plotting import figure
-from bokeh.models import (
-    ColumnDataSource,
-    CustomJS
-)
-from .utils import cat_to_color
+import plotly.graph_objects as go
+from ui.vis_components.utils import cat_to_color
 
 
-def umap_plot(index, x, y, text, categories, size=3):
-    """Plots a scatter plot with umap projections."""
-    query_ix = categories.index[categories == "Query"]
-
-    source = ColumnDataSource(dict(
-        index=index,
-        x=x,
-        y=y,
-        texts=text,
-        categories=categories,
-        color=[i if j != query_ix else "red" for j, i in enumerate(cat_to_color(categories))],
-        marker=["circle" if i != "Query" else "x" for i in categories],
-        size=[size if i != "Query" else size*3 for i in categories],
-        alpha=[0.5 if i != "Query" else 1 for i in categories]
-    ))
-
-    TOOLTIPS = """
-        <div>
-            <div>
-                <span style="font-size: 17px; font-weight: bold;">
-                    @categories
-                </span>
-            </div>
-            <div>
-                <span>@texts{safe}</span>
-            </div>
-        </div>
-    """
-
-    p = figure(
-        tooltips=TOOLTIPS,
-        tools='pan,wheel_zoom,lasso_select,box_zoom,reset',
-        active_drag="pan",
-        active_scroll="wheel_zoom",
-        plot_width=698
+def umap_plot(documents, unique_topics, query_label, custom_data):
+    # Initialize the figure
+    fig = go.Figure(
+        layout=dict(
+            height=700,
+            width=1500,
+            legend=dict(
+                title_text="Topics (select legend entries to hide points)\n",
+                title_font_size=13,
+                itemsizing='constant'
+            )
+        )
     )
-
-    p.scatter(
-        x='x',
-        y='y',
-        size='size',
-        color='color',
-        marker='marker',
-        alpha='alpha',
-        # legend_field performs better but messes up the ordering
-        legend_group='categories',
-        source=source
-    )
-
-    p.scatter()
     
-    p.toolbar.logo = None
-    p.toolbar_location = 'below'
-    p.toolbar.autohide = True
-    p.axis.visible = False
-    p.outline_line_color = '#ffffff'
-    # p.legend.title= "Topics"
-    # p.legend.title_text_font_style = "normal"
-    # p.legend.title_text_alpha = 1
-    p.legend.label_text_alpha = 1
-    # p.add_layout(p.legend[0], 'right')
+    # Add traces for each topic
+    for c, topic in zip(cat_to_color(unique_topics), unique_topics):
+        # Get data for the selected topic
+        ix_mask = documents['topic'] == topic
+        data = documents.loc[ix_mask]
+        customd = custom_data.loc[ix_mask]
 
-    # define events
-    source.selected.js_on_change(
-        "indices",
-        CustomJS(
-            args=dict(source=source),
-            code="""
-                document.dispatchEvent(
-                    new CustomEvent(
-                        "TestSelectEvent",
-                        {detail: {indices: cb_obj.indices}}
-                    )
+        # Add topics traces
+        fig.add_trace(
+            go.Scattergl(
+                mode='markers',
+                x=data['umap_embeddings_x'], 
+                y=data['umap_embeddings_y'],
+                text=data['topic'],
+                customdata=customd,
+                opacity=0.5,  # trace opacity
+                marker=dict(
+                    size=4,
+                    color=c,
+                    opacity=0.5,  # marker opacity
+                    symbol='circle'
+                ),
+                name=topic,
+                hovertemplate = "<b>%{customdata[0]}</b><br><br>" + \
+                                "<b>Topic</b>: %{text}<br>" + \
+                                "<b>Content</b>: %{customdata[1]}" + \
+                                "<extra></extra>"
+            )
+        )
+
+    # Add query trace (last so the marker is in front)
+    ix_mask = documents['topic'] == query_label
+    data = documents.loc[ix_mask]
+    customd = custom_data.loc[ix_mask]
+    fig.add_trace(
+        go.Scattergl(
+            mode='markers',
+            x=data['umap_embeddings_x'], 
+            y=data['umap_embeddings_y'],
+            text=data['topic'],
+            opacity=0.5,  # trace opacity
+            marker=dict(
+                size=20,
+                color=cat_to_color([query_label]),
+                opacity=1,  # marker opacity
+                symbol='x-dot',
+                line=dict(
+                    color='black',
+                    width=1
                 )
-            """
+            ),
+            name=query_label,
+            hovertemplate = "<b>Query Marker</b><br><br>" + \
+                            "<b>Query</b>: %{text}<br>" + \
+                            "<extra></extra>"
         )
     )
 
-    return p
+    # Define plot configurations options
+    config = {
+        'scrollZoom': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': [
+            'select2d', 
+            'lasso2d', 
+            'autoScale2d', 
+            'toggleSpikelines', 
+            'hoverCompareCartesian'
+        ]
+    }
+
+    return fig, config

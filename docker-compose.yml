@@ -16,20 +16,13 @@ services:
             - odfe-net
         secrets:
             - dotenv-file
-        devices:  # cgroup issue with nvidia container runtime: https://github.com/NVIDIA/nvidia-docker/issues/1447#issuecomment-757034464
-            - /dev/nvidia0:/dev/nvidia0  
-            - /dev/nvidiactl:/dev/nvidiactl
-            - /dev/nvidia-modeset:/dev/nvidia-modeset
-            - /dev/nvidia-uvm:/dev/nvidia-uvm
-            - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tool
         deploy:
             resources:
                 reservations:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
         volumes:
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+            - ./artifacts:/home/user/artifacts
     ui:
         build:
             context: .
@@ -77,8 +70,7 @@ services:
         secrets:
             - dotenv-file
         volumes:
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+            - ./artifacts:/home/user/artifacts
     ui-cpu:
         build:
             context: .
@@ -110,35 +102,6 @@ services:
         volumes:
             - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
     ################################## GPU/CPU Independent services ##################################
-    experiments:
-        build:
-            context: .
-            dockerfile: experiments/Dockerfile
-        profiles:
-            - experiments
-        depends_on:
-            - odfe-node1
-        ports:
-            - 9999:9999
-        networks:
-            - odfe-net
-        secrets:
-            - dotenv-file
-        devices:  # cgroup issue with nvidia container runtime: https://github.com/NVIDIA/nvidia-docker/issues/1447#issuecomment-757034464
-            - /dev/nvidia0:/dev/nvidia0  
-            - /dev/nvidiactl:/dev/nvidiactl
-            - /dev/nvidia-modeset:/dev/nvidia-modeset
-            - /dev/nvidia-uvm:/dev/nvidia-uvm
-            - /dev/nvidia-uvm-tools:/dev/nvidia-uvm-tool
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - capabilities: [gpu]  # Enable container to use gpu resources from host
-        volumes:
-            - ./experiments:/home/user/experiments
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
     odfe-node1:
         image: amazon/opendistro-for-elasticsearch:1.13.2
         container_name: odfe-node1

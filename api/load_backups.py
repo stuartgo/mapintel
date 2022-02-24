@@ -63,6 +63,6 @@ def backups_load(backups_dir, clean_backup_file):
             progress_bar.update(batch_size)
 
 if __name__ == '__main__':
-    clean_backup_file = os.path.join(dirname, '../data/backups/mongodb_cleaned_docs.json')
-    backups_dir = os.path.join(dirname, '../data/backups/')
+    clean_backup_file = os.path.join(dirname, '../artifacts/backups/mongodb_cleaned_docs.json')
+    backups_dir = os.path.join(dirname, '../artifacts/backups/')
     backups_load(backups_dir, clean_backup_file)

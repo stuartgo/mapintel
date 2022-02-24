@@ -1,92 +1,90 @@
-from bokeh.plotting import figure
-from bokeh.models import CDSView, ColumnDataSource, GroupFilter
+import plotly.graph_objects as go
 from ui.vis_components.utils import cat_to_color
 
 
-def umap_plot(index, x, y, text, topics, unique_topics, size=4):
-    """Plots a scatter plot with umap projections."""
-    
-    # Creating the ColumnDataSource
-    topic_label = unique_topics[0]
-    text = list(map(lambda x: x.split("#SEPTAG#"), text))
-    source = ColumnDataSource(dict(
-        index=index,
-        x=x,
-        y=y,
-        categories=topics,
-        title=list(map(lambda x: x[0], text)),
-        body=list(map(lambda x: "\n".join(x[1:]) if len(x)>1 else "", text)),
-        marker=["circle" if categ != topic_label else "x" for categ in topics],
-        size=[size if categ != topic_label else size*5 for categ in topics],
-        alpha=[0.5 if categ != topic_label else 1 for categ in topics],
-        color=cat_to_color(topics)
-    ))
-
-    # Defining the Tooltip format
-    TOOLTIPS = """
-        <div>
-            <div>
-                <span style="font-size: 15px; font-weight: bold;">@title{safe}</span>
-            </div>
-            <div>
-                <span style="color: @color;">@categories</span>
-            </div>
-            <div>
-                <span>@body{safe}</span>
-            </div>
-        </div>
-    """
-
+def umap_plot(documents, unique_topics, query_label, custom_data):
     # Initialize the figure
-    p = figure(
-        tooltips=TOOLTIPS,
-        tools='pan,wheel_zoom,lasso_select,box_zoom,reset',
-        active_drag="pan",
-        active_scroll="wheel_zoom",
-        plot_width=1000,
-        plot_height=700
+    fig = go.Figure(
+        layout=dict(
+            height=700,
+            width=1500,
+            legend=dict(
+                title_text="Topics (select legend entries to hide points)\n",
+                title_font_size=13,
+                itemsizing='constant'
+            )
+        )
+    )
+    
+    # Add traces for each topic
+    for c, topic in zip(cat_to_color(unique_topics), unique_topics):
+        # Get data for the selected topic
+        ix_mask = documents['topic'] == topic
+        data = documents.loc[ix_mask]
+        customd = custom_data.loc[ix_mask]
+
+        # Add topics traces
+        fig.add_trace(
+            go.Scattergl(
+                mode='markers',
+                x=data['umap_embeddings_x'], 
+                y=data['umap_embeddings_y'],
+                text=data['topic'],
+                customdata=customd,
+                opacity=0.5,  # trace opacity
+                marker=dict(
+                    size=4,
+                    color=c,
+                    opacity=0.5,  # marker opacity
+                    symbol='circle'
+                ),
+                name=topic,
+                hovertemplate = "<b>%{customdata[0]}</b><br><br>" + \
+                                "<b>Topic</b>: %{text}<br>" + \
+                                "<b>Content</b>: %{customdata[1]}" + \
+                                "<extra></extra>"
+            )
+        )
+
+    # Add query trace (last so the marker is in front)
+    ix_mask = documents['topic'] == query_label
+    data = documents.loc[ix_mask]
+    customd = custom_data.loc[ix_mask]
+    fig.add_trace(
+        go.Scattergl(
+            mode='markers',
+            x=data['umap_embeddings_x'], 
+            y=data['umap_embeddings_y'],
+            text=data['topic'],
+            opacity=0.5,  # trace opacity
+            marker=dict(
+                size=20,
+                color=cat_to_color([query_label]),
+                opacity=1,  # marker opacity
+                symbol='x-dot',
+                line=dict(
+                    color='black',
+                    width=1
+                )
+            ),
+            name=query_label,
+            hovertemplate = "<b>Query Marker</b><br><br>" + \
+                            "<b>Query</b>: %{text}<br>" + \
+                            "<extra></extra>"
+        )
     )
 
-    # Plot the scatter plots for each topic label
-    for topic in unique_topics:
-        view = CDSView(
-            source=source, 
-            filters=[GroupFilter(column_name="categories", group=topic)]
-        )
-        p.scatter(
-            x='x',
-            y='y',
-            size='size',
-            color='color',
-            marker='marker',
-            alpha='alpha',
-            legend_label=topic,
-            source=source,
-            view=view
-        )
-    
-    # Set figure attributes
-    ## General plot configs
-    p.toolbar.logo = None
-    p.toolbar_location = 'below'
-    p.toolbar.autohide = True
-    p.axis.visible = True
-    p.outline_line_color = '#ffffff'
+    # Define plot configurations options
+    config = {
+        'scrollZoom': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': [
+            'select2d', 
+            'lasso2d', 
+            'autoScale2d', 
+            'toggleSpikelines', 
+            'hoverCompareCartesian'
+        ]
+    }
 
-    ## Legend position and interactivity configs
-    p.add_layout(p.legend[0], 'right')
-    p.legend.click_policy = "hide"
-    p.legend.inactive_fill_alpha = 0.5
-    p.legend.inactive_fill_color = "darkgray"
-
-    # Legend title configs
-    p.legend.title = "Topics (select legend entries to hide points)"
-    p.legend.title_text_font_style = "normal"
-    p.legend.title_text_alpha = 1
-    p.legend.title_text_color = "whitesmoke"
-
-    ## Legend label configs
-    p.legend.label_text_alpha = 1
-    p.legend.label_text_font_size = "9pt"
-
-    return p
+    return fig, config

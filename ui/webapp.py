@@ -3,17 +3,15 @@ import sys
 from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
-from bokeh.io import curdoc
 
 dirname = os.path.dirname(__file__)
-sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
+sys.path.append(os.path.join(dirname, "../"))
 
 from ui.ui_components.umap_search import umap_page
 from ui.utils import (
     feedback_doc, 
     retrieve_doc, 
     get_all_docs,
-    upload_doc, 
     umap_query,
     topic_names,
     doc_count
@@ -36,8 +34,10 @@ batch_size = 10000
 filters = []
 
 # Set page configuration
-st.set_page_config(layout="centered")
-curdoc().theme = 'dark_minimal'  # bokeh dark theme
+st.set_page_config(
+    page_title = "MapIntel App",
+    layout = "wide"
+)
 
 # Title
 st.write("# Mapintel App")
@@ -59,9 +59,13 @@ with st.sidebar:
         with st.beta_expander("Query Options"):
             filter_category = st.multiselect(
                 "Category",
-                options = unique_topics
+                options=unique_topics,
+                default="-1_news_covid_people_2021"
             )
-            filter_category_exclude = st.checkbox("Exclude")
+            filter_category_exclude = st.checkbox(
+                "Exclude",
+                value=True
+            )
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
                 "Number of returned documents",
@@ -82,20 +86,11 @@ with st.sidebar:
                 "Percentage of documents displayed", 
                 min_value=1, 
                 max_value=100, 
-                value=1, 
+                value=10, 
                 step=1, 
                 help="Display a randomly sampled percentage of the documents to improve performance"
             )
         st.form_submit_button(label='Submit')
-    st.header("File Upload:")
-    data_file = st.file_uploader("", type=["pdf", "txt", "docx"])
-    # Upload file
-    if data_file:
-        raw_json1 = upload_doc(data_file)  # Upload documents to the doc store
-        if raw_json1['status'] == "Success":
-            st.write("Success")
-        else:
-            st.write("Fail")
 
 # Prepare filters
 if filter_category:
@@ -149,12 +144,12 @@ with st.spinner(
     )
 
 # Plot the completed UMAP plot
-fig = umap_page(
+fig, config = umap_page(
     documents=pd.DataFrame(umap_docs), 
     query=umap_query(question),
     unique_topics=filter_topics
 )
-st.bokeh_chart(fig, use_container_width=False)
+st.plotly_chart(fig, use_container_width=True, config=config)
 st.write("___")
 
 # Get results for query

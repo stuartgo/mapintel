@@ -1,9 +1,12 @@
 version: "3.8"
 services:
+    ################################## GPU services - default ##################################
     api:
         build:
             context: .
             dockerfile: api/Dockerfile  # Utilize the GPU to improve indexing and search
+        profiles:
+            - api
         ports:
             - 8000:8000
         restart: always  # The policy always restarts the container until its removal
@@ -18,9 +21,39 @@ services:
                 reservations:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
-        volumes:  
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+        volumes:
+            - ./artifacts:/home/user/artifacts
+    ui:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui
+        depends_on:
+            - api
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api:8000
+        networks:
+            - odfe-net
+    ui-dev:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-dev
+        depends_on:
+            - api
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api:8000
+        networks:
+            - odfe-net
+        volumes:
+            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
+    ################################## CPU services - alternative ##################################
     api-cpu:
         build:
             context: .
@@ -36,61 +69,39 @@ services:
             - odfe-net
         secrets:
             - dotenv-file
-        volumes:  
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
-    ui:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api:8000
-        networks:
-            - odfe-net
-        volumes:  
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
-    ui-dev:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui-dev
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api:8000
-        networks:
-            - odfe-net
-        volumes:  
-            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
-    experiments:
-        build:
-            context: .
-            dockerfile: experiments/Dockerfile
-        profiles:
-            - experiments
-        ports:
-            - 9999:9999
-        networks:
-            - odfe-net
-        secrets:
-            - dotenv-file
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - capabilities: [gpu]  # Enable container to use gpu resources from host
         volumes:
-            - ./experiments:/home/user/experiments
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+            - ./artifacts:/home/user/artifacts
+    ui-cpu:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-cpu
+        depends_on:
+            - api-cpu
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api-cpu:8000
+        networks:
+            - odfe-net
+    ui-dev-cpu:
+        build:
+            context: .
+            dockerfile: ui/Dockerfile
+        profiles:
+            - ui-dev-cpu
+        depends_on:
+            - api-cpu
+        ports:
+            - 8501:8501
+        environment:
+            - API_ENDPOINT=http://api-cpu:8000
+        networks:
+            - odfe-net
+        volumes:
+            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
+    ################################## GPU/CPU Independent services ##################################
     odfe-node1:
         image: amazon/opendistro-for-elasticsearch:1.13.2
         container_name: odfe-node1

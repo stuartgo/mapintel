@@ -1,44 +1,36 @@
-import numpy as np
+from textwrap import wrap
 from pandas import DataFrame
-from streamlit_bokeh_events import streamlit_bokeh_events
-from vis_components import umap_plot
+from ui.vis_components.umap import umap_plot
 
 
+def umap_page(documents: DataFrame, query: dict, unique_topics: list):
+    # Set custom data
+    custom_data = documents['answer'].str.split('#SEPTAG#', expand=True, n=1)
+    custom_data = custom_data.applymap(lambda t: "<br>".join(wrap(t.replace('#SEPTAG#', ' '), width=100)) if t else "")
 
-def umap_page(documents: DataFrame, query: dict):
+    # Set query row
     if query:
+        query_label = query['query_text']
+        if len(query_label) > 40:
+            query_label = query_label[:40] + "..."
         documents = documents.append(
             {
                 "answer": query['query_text'],
                 "umap_embeddings_x": query['query_umap'][0],
                 "umap_embeddings_y": query['query_umap'][1],
-                "topic": "Query"
+                "topic": query_label
             },
             ignore_index=True
         )
-
-    p = umap_plot(
-        index=documents.index,
-        x=documents['umap_embeddings_x'],
-        y=documents['umap_embeddings_y'],
-        text=documents['answer'],
-        categories=documents['topic'].str.capitalize()
+    else:
+        query_label = "Query"
+    
+    # Produce umap plot and get configurations
+    p, config = umap_plot(
+        documents=documents,
+        unique_topics=unique_topics,
+        query_label=query_label,
+        custom_data=custom_data
     )
     
-    query_text = documents.loc[documents['topic'] == "Query", "answer"]
-    event_result = streamlit_bokeh_events(
-        events="TestSelectEvent",
-        bokeh_plot=p,
-        key=f'umap_plot_{documents.shape[0]}_{query_text}',
-        debounce_time=1000,
-        refresh_on_update=False
-    )
-
-    # Get mask of selected documents
-    if event_result and "TestSelectEvent" in event_result:
-        indices = event_result["TestSelectEvent"].get("indices", [])
-        mask = documents.loc[indices, 'document_id'].tolist()
-    else:
-        mask = None
-
-    return mask
+    return p, config

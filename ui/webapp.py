@@ -1,16 +1,19 @@
+import os
+import sys
 from datetime import date, timedelta
 import pandas as pd
 import streamlit as st
-from bokeh.io import curdoc
 
-from ui_components import umap_page
-from utils import (
+dirname = os.path.dirname(__file__)
+sys.path.append(os.path.join(dirname, "../"))
+
+from ui.ui_components.umap_search import umap_page
+from ui.utils import (
     feedback_doc, 
     retrieve_doc, 
     get_all_docs,
-    upload_doc, 
     umap_query,
-    umap_inference,
+    topic_names,
     doc_count
 )
 
@@ -25,15 +28,16 @@ from utils import (
 
 # Init variables
 default_question = "Stock Market News"
-debug_mode = False
+unique_topics = topic_names()
+debug = False
 batch_size = 10000
-umap_sample_size = 10000
-only_umap = True
 filters = []
 
 # Set page configuration
-st.set_page_config(layout="centered")
-curdoc().theme = 'dark_minimal'  # bokeh dark theme
+st.set_page_config(
+    page_title = "MapIntel App",
+    layout = "wide"
+)
 
 # Title
 st.write("# Mapintel App")
@@ -47,18 +51,21 @@ with st.sidebar:
         with mid:  # Use columns to avoid slider labels being off-window
             filter_date = st.slider(
                 "Date range", 
+                min_value=date(2020,1,1),
                 value=(date(2020,1,1), end_of_week),
                 step=timedelta(7), 
                 format="DD-MM-YY"
             )
         with st.beta_expander("Query Options"):
-            # TODO: remove hard encoding of unique categories. When creating the topic modeling endpoint, 
-            # put the unique categories in the results and pass it here
-            unique_categories = ['Business', 'Entertainment', 'General', 'Health', 'Science', 'Sports', 'Technology']
             filter_category = st.multiselect(
                 "Category",
-                options = unique_categories
-            )        
+                options=unique_topics,
+                default="-1_news_covid_people_2021"
+            )
+            filter_category_exclude = st.checkbox(
+                "Exclude",
+                value=True
+            )
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
                 "Number of returned documents",
@@ -74,40 +81,38 @@ with st.sidebar:
                 value=100, 
                 step=1
             )
-            if debug_mode:
-                debug = st.checkbox("Show debug info")
-            else:
-                debug = None
         with st.beta_expander("Visualization Options"):
             umap_perc = st.slider(
                 "Percentage of documents displayed", 
                 min_value=1, 
                 max_value=100, 
-                value=1, 
+                value=10, 
                 step=1, 
                 help="Display a randomly sampled percentage of the documents to improve performance"
             )
         st.form_submit_button(label='Submit')
-    st.header("File Upload:")
-    data_file = st.file_uploader("", type=["pdf", "txt", "docx"])
-    # Upload file
-    if data_file:
-        raw_json1 = upload_doc(data_file)  # Upload documents to the doc store
-        raw_json2 = umap_inference()  # Get respective umap embedding
-        if raw_json1['status'] == "Success" and raw_json2['status'] == "Success":
-            st.write("Success")
-        else:
-            st.write("Fail")
 
 # Prepare filters
 if filter_category:
+    filter_topics = list(map(lambda x: x.lower(), filter_category))
+
+    # If filters should be excluded
+    if filter_category_exclude:
+        filter_topics = list(set(unique_topics).difference(set(filter_topics)))
+
+    # Sort filters
+    filter_topics.sort(key=lambda x: int(x.split("_")[0]))
+
     filters.append(
         {
             "terms": {
-                "category": list(map(lambda x: x.lower(), filter_category))
+                "topic_label": filter_topics
             }
         }
     )
+else:
+    filter_topics = unique_topics
+
 filters.append(
     {
         "range": {
@@ -139,19 +144,13 @@ with st.spinner(
     )
 
 # Plot the completed UMAP plot
-umap_ids = umap_page(
+fig, config = umap_page(
     documents=pd.DataFrame(umap_docs), 
-    query=umap_query(question)
+    query=umap_query(question),
+    unique_topics=filter_topics
 )
+st.plotly_chart(fig, use_container_width=True, config=config)
 st.write("___")
-
-# If there is any UMAP selection, then retrieve_doc will only consider those documents
-if umap_ids:
-    pass
-    # TODO: What do we want to do with the selected docs? Maybe some summary 
-    # characteristics of them? I don't think that using the set as the basis of
-    # the query is that useful (because most likely it won't contain the KNN and
-    # we aren't limited by searching on the whole doc store because of Aprox-KNN)
 
 # Get results for query
 with st.spinner(
@@ -176,9 +175,10 @@ for result in results:
     # Define columns for answer text and image
     col1, _, col2 = st.beta_columns([6, 1, 3])
     with col1:
-        st.write(result["answer"])
+        title, description, content = result["answer"].split("#SEPTAG#")
+        st.write(f"### {title}\n{description}\n\n{content}")
     with col2:
-        if result['image_url'] is not None:
+        if result['image_url'] is not None and result['image_url'] != "null":
             image_url = result['image_url']
         else:
             image_url = 'http://www.jennybeaumont.com/wp-content/uploads/2015/03/placeholder.gif'
@@ -200,7 +200,7 @@ for result in results:
                 , unsafe_allow_html=True
             )
 
-    "**Relevance:** ", result["relevance"], "**Source:** ", result["source"], "**Published At:** ", result["publishedat"]
+    "**Relevance:** ", result["relevance"], "**Topic:** ", result["topic"], "**Published At:** ", result["publishedat"][:-4].replace('T', ', ')
 
     # Define columns for feedback buttons
     button_col1, button_col2, _ = st.beta_columns([1, 1, 8])

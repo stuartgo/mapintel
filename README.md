@@ -1,4 +1,4 @@
-# Mapintel
+# MapIntel Project
 
 The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.
 
@@ -8,54 +8,44 @@ Some components of the project require the existence of a **.env file** under th
 
 - NEWSAPIKEY: Holds the key for using the API to obtain the updated news-articles. A News API key can be obtained by [creating an account](https://newsapi.org/register) with News API. 
 
-You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. To launch the Mapintel UI application, run the following command from the root folder of the Mapintel repository:
+You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. The project has a default option to use of a CUDA-enabled GPU to improve its performance but we also made the project compatible without this resource. Please follow the options bellow:
+
+To launch the MapIntel UI application with a CUDA-enabled GPU, run the following command from the root folder of the MapIntel repository:
 ```
-docker-compose --profile ui up
-```
-To launch the Experiments container, run the following command from the root folder of the Mapintel repository:
-```
-docker-compose --profile experiments up
+docker-compose --profile api --profile ui up
 ```
 
-If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains al,l the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
+To launch the MapIntel UI application with CPU only, run the following command from the root folder of the MapIntel repository:
+```
+docker-compose --profile api-cpu --profile ui-cpu up --build
+```
 
-The project makes use of a CUDA-enabled GPU to improve its performance. Making the project compatible without this resource is something we intend to provide in the future. Any contributions in this aspect are appreciated.
+Research associated with the MapIntel system can be found in a separate repository at [github.com/dfhssilva/mapintel_research](https://github.com/dfhssilva/mapintel_research).
 
-Further usage information is present in the README files inside the *api*, *experiments* and *ui* folders.
+If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
+
+Further usage information is present in the README files inside the *api*, and *ui* folders.
 
 ## Project Organization
 
-    ├── api                <- API based on FastAPI that connects the database with the rest of the application
-    |
-    ├── data               <- Stores any data produced and used by the project
-    |   |
-    |   ├── backups        <- Backups of NewsAPI documents
-    │   ├── external       <- Data from third party sources
-    │   ├── interim        <- Intermediate data that has been transformed
-    │   ├── processed      <- The final, canonical data sets for modeling
-    │   └── raw            <- The original, immutable data dump
-    |
-    ├── experiments        <- Performs experiments using data from the Open Distro for Elasticsearch instance
-    |   |
-    │   ├── notebooks      <- Jupyter notebooks: each with an experimental purpose described in the first cell
-    |   ├── src            <- Source code for use in experiments
-    |   └── setup.py       <- Makes src pip installable (pip install -e .) so src can be imported
-    |
-    ├── outputs            <- Trained and serialized models, model predictions, model summaries and other outputs
-    |   |
-    │   ├── figures        <- Figures resulting from experiments
-    │   ├── ocr            <- Optical Character Recognition ouptuts
-    |   ├── saved_embeddings    <- Saved document embeddings 
-    │   └── saved_models   <- Saved machine learning models
+    ├── api                         <- API based on FastAPI that connects the database with the rest of the application
+    │   │
+    │   ├── controller              <- Defines the FastAPI endpoints
+    │   └── custom_components       <- Custom classes and functions
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    |   |
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    |
-    ├── ui                 <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
+    ├── artifacts                   <- Artifacts (data, outputs, results, models, etc)
+    │   │
+    │   ├── figures                 <- Figures
+    │   ├── backups                 <- Backups of NewsAPI documents 
+    │   └── saved_models            <- Trained and serialized models
     │
-    ├── .env               <- Stores your secrets and config variables
-    ├── docker-compose.yml <- The docker-compose file for reproducing the analysis environment using containers
+    ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
+    │   │
+    │   ├── ui_components           <- Defines UI related functions
+    │   └── vis_components          <- Defines Visualization functions
+    │
+    ├── .env                        <- Stores your secrets and config variables
+    ├── docker-compose.yml
     ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project
-    └── requirements.txt   <- The requirements file for locally reproducing the analysis environment
+    ├── README.md
+    └── requirements.txt            <- The requirements file for locally reproducing the analysis environment

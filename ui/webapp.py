@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 dirname = os.path.dirname(__file__)
-sys.path.append(os.path.join(dirname, "../"))  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
+sys.path.append(os.path.join(dirname, "../"))
 
 from ui.ui_components.umap_search import umap_page
 from ui.utils import (

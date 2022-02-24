@@ -149,5 +149,5 @@ def clean_backups(backups_dir):
 
 
 if __name__ == "__main__":
-    backups_dir = os.path.join(dirname, '../../data/backups')
+    backups_dir = os.path.join(dirname, '../../artifacts/backups')
     clean_backups(backups_dir)

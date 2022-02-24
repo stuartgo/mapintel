@@ -22,8 +22,7 @@ services:
                     devices:
                         - capabilities: [gpu]  # Enable container to use gpu resources from host
         volumes:
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+            - ./artifacts:/home/user/artifacts
     ui:
         build:
             context: .
@@ -71,8 +70,7 @@ services:
         secrets:
             - dotenv-file
         volumes:
-            - ./data:/home/user/data
-            - ./outputs:/home/user/outputs
+            - ./artifacts:/home/user/artifacts
     ui-cpu:
         build:
             context: .

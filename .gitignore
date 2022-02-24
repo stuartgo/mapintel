@@ -1,7 +1,5 @@
 # Custom
-experiments/notebooks/mlruns/
-sompy/
-outputs/
+artifacts/
 venv/
 
 # Byte-compiled / optimized / DLL files

@@ -1,4 +1,4 @@
-# Mapintel
+# MapIntel Project
 
 The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.
 
@@ -10,51 +10,37 @@ Some components of the project require the existence of a **.env file** under th
 
 You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. The project has a default option to use of a CUDA-enabled GPU to improve its performance but we also made the project compatible without this resource. Please follow the options bellow:
 
-To launch the Mapintel UI application with a CUDA-enabled GPU, run the following command from the root folder of the Mapintel repository:
+To launch the MapIntel UI application with a CUDA-enabled GPU, run the following command from the root folder of the MapIntel repository:
 ```
 docker-compose --profile api --profile ui up
 ```
 
-To launch the Mapintel UI application with CPU only, run the following command from the root folder of the Mapintel repository:
+To launch the MapIntel UI application with CPU only, run the following command from the root folder of the MapIntel repository:
 ```
 docker-compose --profile api-cpu --profile ui-cpu up --build
 ```
 
-To execute the Mapintel system evaluation, run the experiments/results.py file after having installed all the necessary dependencies (check the experiments folder README file for additional details):
-```
-python experiments/results.py
-```
+Research associated with the MapIntel system can be found in a separate repository at [github.com/dfhssilva/mapintel_research](https://github.com/dfhssilva/mapintel_research).
 
 If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
 
-Further usage information is present in the README files inside the *api*, *experiments* and *ui* folders.
+Further usage information is present in the README files inside the *api*, and *ui* folders.
 
 ## Project Organization
 
     ├── api                         <- API based on FastAPI that connects the database with the rest of the application
-    |   |
+    │   │
     │   ├── controller              <- Defines the FastAPI endpoints
     │   └── custom_components       <- Custom classes and functions
-    |
-    ├── data
-    |   |
-    │   ├── experiments             <- Experiments' data
-    │   └── backups                 <- Backups of NewsAPI documents
-    |
-    ├── experiments                 <- Performs experiments using data from the Open Distro for Elasticsearch instance
-    |   |
-    │   |── notebooks               <- Jupyter notebooks: each with an experimental purpose described in the first cell
-    │   |── results.py              <- Experiments script. Execution should produce experiments results.
-    │   └── research                <- LaTeX documents corresponding to research articles 
-    |
-    ├── outputs
-    |   |
+    │
+    ├── artifacts                   <- Artifacts (data, outputs, results, models, etc)
+    │   │
     │   ├── figures                 <- Figures
-    |   ├── experiments             <- Experiments' outputs
+    │   ├── backups                 <- Backups of NewsAPI documents 
     │   └── saved_models            <- Trained and serialized models
-    |
+    │
     ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
-    |   |
+    │   │
     │   ├── ui_components           <- Defines UI related functions
     │   └── vis_components          <- Defines Visualization functions
     │

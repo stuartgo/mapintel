@@ -20,7 +20,7 @@ To launch the MapIntel UI application with CPU only, run the following command f
 docker-compose --profile api-cpu --profile ui-cpu up --build
 ```
 
-Research associated with the MapIntel system can be found in a separate repository at [github.com/dfhssilva/mapintel_research](https://github.com/dfhssilva/mapintel_research).
+Research associated with the MapIntel system can be found in a separate repository at [github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research).
 
 If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
 

@@ -6,7 +6,7 @@ def umap_plot(documents, unique_topics, query_label, custom_data):
     # Initialize the figure
     fig = go.Figure(
         layout=dict(
-            height=700,
+            height=850,
             width=1500,
             legend=dict(
                 title_text="Topics (select legend entries to hide points)\n",

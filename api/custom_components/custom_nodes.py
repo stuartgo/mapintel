@@ -1,20 +1,20 @@
 """
 See https://github.com/deepset-ai/haystack/issues/955 for further context
 """
-import os
 import logging
+import os
 from copy import deepcopy
 from typing import Dict, Generator, List, Optional, Union
 
 import numpy as np
 from elasticsearch.helpers import bulk, scan
-from tqdm.auto import tqdm
-from haystack.utils import get_batches_from_generator
 from haystack import Document
 from haystack.document_store.base import BaseDocumentStore
 from haystack.document_store.elasticsearch import OpenDistroElasticsearchDocumentStore
-from haystack.retriever.base import BaseRetriever
 from haystack.reader.base import BaseReader
+from haystack.retriever.base import BaseRetriever
+from haystack.utils import get_batches_from_generator
+from tqdm.auto import tqdm
 
 from api.custom_components.bertopic import BERTopic2
 from api.custom_components.top2vec import Top2Vec2
@@ -33,7 +33,7 @@ class TopicRetriever(BaseRetriever):
         hdbscan_args: dict = None,
         vectorizer_args: dict = None,
         top_k: int = 10,
-        progress_bar: bool = True
+        progress_bar: bool = True,
     ):
         """
         :param document_store: An instance of DocumentStore from which to retrieve documents.
@@ -51,7 +51,7 @@ class TopicRetriever(BaseRetriever):
 
         # # save init parameters to enable export of component config as YAML
         # self.set_config(
-        #     document_store=document_store, embedding_model=embedding_model, umap_args=umap_args, 
+        #     document_store=document_store, embedding_model=embedding_model, umap_args=umap_args,
         #     hdbscan_args=hdbscan_args, top_k=top_k
         # )
 
@@ -66,14 +66,24 @@ class TopicRetriever(BaseRetriever):
 
         logger.info(f"Init retriever using embeddings of model {embedding_model}")
         if self.model_format == "top2vec":
-            raise NotImplementedError("model_format='top2vec' isn't fully implemented yet.")
+            raise NotImplementedError(
+                "model_format='top2vec' isn't fully implemented yet."
+            )
             # self.embedding_encoder = _Top2VecEncoder(self)
         elif self.model_format == "bertopic":
             self.embedding_encoder = _BERTopicEncoder(self)
         else:
-            raise ValueError("Argument model_format can only take the values 'top2vec' or 'bertopic'.")
+            raise ValueError(
+                "Argument model_format can only take the values 'top2vec' or 'bertopic'."
+            )
 
-    def retrieve(self, query: str, filters: dict = None, top_k: Optional[int] = None, index: str = None) -> List[Document]:
+    def retrieve(
+        self,
+        query: str,
+        filters: dict = None,
+        top_k: Optional[int] = None,
+        index: str = None,
+    ) -> List[Document]:
         """
         Scan through documents in DocumentStore and return a small number documents
         that are most relevant to the query.
@@ -87,8 +97,9 @@ class TopicRetriever(BaseRetriever):
         if index is None:
             index = self.document_store.index
         query_emb = self.embed_queries(texts=[query])
-        documents = self.document_store.query_by_embedding(query_emb=query_emb[0], filters=filters,
-                                                           top_k=top_k, index=index)
+        documents = self.document_store.query_by_embedding(
+            query_emb=query_emb[0], filters=filters, top_k=top_k, index=index
+        )
         return documents
 
     def embed_queries(self, texts: List[str]) -> List[np.ndarray]:
@@ -100,7 +111,9 @@ class TopicRetriever(BaseRetriever):
         # for backward compatibility: cast pure str input
         if isinstance(texts, str):
             texts = [texts]
-        assert isinstance(texts, list), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
+        assert isinstance(
+            texts, list
+        ), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
         return self.embedding_encoder.embed_queries(texts)
 
     def embed_queries_umap(self, texts: List[str]) -> List[np.ndarray]:
@@ -112,12 +125,16 @@ class TopicRetriever(BaseRetriever):
         # for backward compatibility: cast pure str input
         if isinstance(texts, str):
             texts = [texts]
-        assert isinstance(texts, list), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
+        assert isinstance(
+            texts, list
+        ), "Expecting a list of texts, i.e. create_embeddings(texts=['text1',...])"
         return self.embedding_encoder.embed_queries_umap(texts)
 
-    def embed_passages(self, docs: List[Document], embeddings: np.array = None) -> List[np.ndarray]:
+    def embed_passages(
+        self, docs: List[Document], embeddings: np.array = None
+    ) -> List[np.ndarray]:
         """
-        Create embeddings for a list of passages. Produces the original embeddings, the UMAP embeddings, 
+        Create embeddings for a list of passages. Produces the original embeddings, the UMAP embeddings,
         the topic number and the topic label of each document.
         :param docs: List of documents to embed
         :return: Embeddings, one per input passage
@@ -127,8 +144,12 @@ class TopicRetriever(BaseRetriever):
     def run_indexing(self, documents: List[dict], **kwargs):
         documents = deepcopy(documents)
         document_objects = [Document.from_dict(doc) for doc in documents]
-        embeddings, umap_embeddings, topic_numbers, topic_labels = self.embed_passages(document_objects)
-        for doc, emb, umap_emb, topn, topl in zip(documents, embeddings, umap_embeddings, topic_numbers, topic_labels):
+        embeddings, umap_embeddings, topic_numbers, topic_labels = self.embed_passages(
+            document_objects
+        )
+        for doc, emb, umap_emb, topn, topl in zip(
+            documents, embeddings, umap_embeddings, topic_numbers, topic_labels
+        ):
             doc["embedding"] = emb
             doc["umap_embeddings"] = umap_emb
             doc["topic_number"] = topn
@@ -138,22 +159,21 @@ class TopicRetriever(BaseRetriever):
 
     def train(self, docs: List[Document], embeddings: np.array = None):
         """
-        Trains the underlying embedding encoder model. If model_format="top2vec", a Top2Vec model 
+        Trains the underlying embedding encoder model. If model_format="top2vec", a Top2Vec model
         will be trained, otherwise, if model_format="bertopic", a BERTopic model will be trained.
         :param docs: List of documents to train the model on.
         """
         self.embedding_encoder.train(docs, embeddings)
-    
+
     def get_topic_names(self) -> List[str]:
         return self.embedding_encoder.topic_names
 
 
-class _BERTopicEncoder():
-    def __init__(
-            self,
-            retriever: TopicRetriever
-    ):  
-        self.saved_model_path = os.path.join(dirname, '../../artifacts/saved_models/bertopic.pkl')
+class _BERTopicEncoder:
+    def __init__(self, retriever: TopicRetriever):
+        self.saved_model_path = os.path.join(
+            dirname, "../../artifacts/saved_models/bertopic.pkl"
+        )
         self.embedding_model = retriever.embedding_model
         self.umap_args = retriever.umap_args
         self.hdbscan_args = retriever.hdbscan_args
@@ -164,7 +184,8 @@ class _BERTopicEncoder():
             logger.warning(
                 f"You are using a Sentence Transformer with the {retriever.document_store.similarity} function. "
                 f"We recommend using cosine instead. "
-                f"This can be set when initializing the DocumentStore")
+                f"This can be set when initializing the DocumentStore"
+            )
 
         # Initializing the model
         try:
@@ -181,7 +202,7 @@ class _BERTopicEncoder():
         # texts can be a list of strings or a list of [title, text]
         # emb = self.model.embedding_model.embedding_model.encode(texts, batch_size=200, show_progress_bar=self.show_progress_bar)
         emb = self.model.embedding_model.embed(texts, verbose=self.show_progress_bar)
-        emb = [r for r in emb]  # get back list of numpy embedding vectors 
+        emb = [r for r in emb]  # get back list of numpy embedding vectors
         return emb
 
     def embed_queries_umap(self, texts: List[str]) -> List[np.ndarray]:
@@ -189,46 +210,43 @@ class _BERTopicEncoder():
         umap_embeddings = self.model.umap_model.transform(np.array(embeddings))
         umap_embeddings = [i for i in umap_embeddings]
         return umap_embeddings
-    
-    def embed_passages(self, docs: List[Document], embeddings: np.array = None) -> List[np.ndarray]:
+
+    def embed_passages(
+        self, docs: List[Document], embeddings: np.array = None
+    ) -> List[np.ndarray]:
         self._check_is_trained()
         passages = [[d.meta["name"] if d.meta and "name" in d.meta else "", d.text] for d in docs]  # type: ignore
-        embeddings, umap_embeddings, topic_numbers, _ = self.model.transform(passages, embeddings)
+        embeddings, umap_embeddings, topic_numbers, _ = self.model.transform(
+            passages, embeddings
+        )
         topic_labels = [self.model.topic_names[i] for i in topic_numbers]
         return [embeddings, umap_embeddings, topic_numbers, topic_labels]
 
     def train(self, docs: List[Document], embeddings: np.array = None):
         # Initializing the BERTopic model
-        from umap import UMAP
         from hdbscan import HDBSCAN
         from sklearn.feature_extraction.text import CountVectorizer
+        from umap import UMAP
+
         if self.umap_args:
             umap_model = UMAP(**self.umap_args)
         else:
             umap_model = UMAP(
-                n_neighbors=15, 
-                n_components=2, 
-                metric='cosine',
-                random_state=1
-        )
+                n_neighbors=15, n_components=2, metric="cosine", random_state=1
+            )
         if self.hdbscan_args:
             hdbscan_model = HDBSCAN(**self.hdbscan_args)
         else:
             hdbscan_model = HDBSCAN(
-                min_cluster_size=15, 
-                metric='euclidean',
-                prediction_data=True
+                min_cluster_size=15, metric="euclidean", prediction_data=True
             )
         if self.vectorizer_args:
             vectorizer_model = CountVectorizer(**self.vectorizer_args)
-            n_gram_range = self.vectorizer_args.get(['ngram_range'], (1,1))
+            n_gram_range = self.vectorizer_args.get(["ngram_range"], (1, 1))
         else:
-            vectorizer_model = CountVectorizer(
-                ngram_range=(1, 2),
-                stop_words="english"
-            )
+            vectorizer_model = CountVectorizer(ngram_range=(1, 2), stop_words="english")
             n_gram_range = (1, 2)
-        
+
         self.model = BERTopic2(
             n_gram_range=n_gram_range,
             nr_topics=20,
@@ -236,7 +254,7 @@ class _BERTopicEncoder():
             embedding_model=self.embedding_model,
             umap_model=umap_model,
             hdbscan_model=hdbscan_model,
-            vectorizer_model=vectorizer_model
+            vectorizer_model=vectorizer_model,
         )
 
         logger.info(f"Beginning training of BERTopic with {len(docs)} documents.")
@@ -244,18 +262,17 @@ class _BERTopicEncoder():
         self.topic_names = list(self.model.topic_names.values())
         logger.info(f"Saving fitted BERTopic model to disk.")
         self.model.save(self.saved_model_path, save_embedding_model=False)
-    
+
     def _check_is_trained(self):
         if self.model is None:
             raise ValueError("The BERTopic model isn't either loaded or trained yet.")
 
 
-class _Top2VecEncoder():
-    def __init__(
-            self,
-            retriever: TopicRetriever
-    ):  
-        self.saved_model_path = os.path.join(dirname, '../../artifacts/saved_models/top2vec.pkl')
+class _Top2VecEncoder:
+    def __init__(self, retriever: TopicRetriever):
+        self.saved_model_path = os.path.join(
+            dirname, "../../artifacts/saved_models/top2vec.pkl"
+        )
         self.embedding_model = retriever.embedding_model
         self.umap_args = retriever.umap_args
         self.hdbscan_args = retriever.hdbscan_args
@@ -266,22 +283,25 @@ class _Top2VecEncoder():
             logger.warning(
                 f"You are using a Sentence Transformer with the {self.document_store.similarity} function. "
                 f"We recommend using cosine instead. "
-                f"This can be set when initializing the DocumentStore")
+                f"This can be set when initializing the DocumentStore"
+            )
 
-    def embed(self, texts: Union[List[List[str]], List[str], str]) -> List[np.ndarray]:        
+    def embed(self, texts: Union[List[List[str]], List[str], str]) -> List[np.ndarray]:
         # texts can be a list of strings or a list of [title, text]
         # get back list of numpy embedding vectors
         self.model._check_model_status()  # Setting the embed attribute based on the embedding_model
-        emb = self.model.embed(texts, batch_size=200, show_progress_bar=self.show_progress_bar)
+        emb = self.model.embed(
+            texts, batch_size=200, show_progress_bar=self.show_progress_bar
+        )
         emb = [r for r in emb]
         return emb
 
     def embed_queries(self, texts: List[str]) -> List[np.ndarray]:
         # Initializing the top2vec model
         self.init_model()
-            
-        return self.embed(texts)     
-    
+
+        return self.embed(texts)
+
     def embed_passages(self, docs: List[Document]) -> List[np.ndarray]:
         # Initializing the top2vec model
         self.init_model(docs)
@@ -300,14 +320,15 @@ class _Top2VecEncoder():
         # Produce topic labels by concatenating top 5 words
         topic_labels = ["_".join(words[:5]) for words in topic_words]
         return topic_labels
-    
+
     def init_model(self, docs=None):
         try:
             logger.info("Loading the Top2Vec model from disk.")
             self.model = Top2Vec2.load(self.saved_model_path)
             # Ensure the embedding model matches
-            assert self.model.embedding_model == self.embedding_model, \
-                "The Top2Vec embedding model doesn't match the embedding model in the Retriever."
+            assert (
+                self.model.embedding_model == self.embedding_model
+            ), "The Top2Vec embedding model doesn't match the embedding model in the Retriever."
             # TODO: Ensure the umap_args and hdbscan_args match as well
         except Exception as e:
             logger.info(f"The Top2Vec model hasn't been trained or isn't valid: {e}")
@@ -315,12 +336,18 @@ class _Top2VecEncoder():
                 self.train()
             else:
                 if docs is None:
-                    raise RuntimeError("There isn't enough documents in the database for training the Top2Vec model.")
+                    raise RuntimeError(
+                        "There isn't enough documents in the database for training the Top2Vec model."
+                    )
                 else:
                     if len(docs) > 1000:
-                        self.train(docs=list(map(lambda d: d.text, docs)))  # training the Top2Vec model with the uploaded documents
+                        self.train(
+                            docs=list(map(lambda d: d.text, docs))
+                        )  # training the Top2Vec model with the uploaded documents
                     else:
-                        raise RuntimeError("There isn't enough documents in the database or in the upload for training the Top2Vec model.")        
+                        raise RuntimeError(
+                            "There isn't enough documents in the database or in the upload for training the Top2Vec model."
+                        )
 
     def train(self, docs=None):
         if docs is None:
@@ -328,10 +355,14 @@ class _Top2VecEncoder():
             logger.info("Getting all documents from Document Store.")
             docs = self.document_store.get_all_documents(return_embedding=False)
             docs = list(map(lambda d: d.text, docs))
-            logger.info(f"Beginning training of Top2Vec with {len(docs)} internal documents.")
+            logger.info(
+                f"Beginning training of Top2Vec with {len(docs)} internal documents."
+            )
         else:
-            logger.info(f"Beginning training of Top2Vec with {len(docs)} external documents.")
-        
+            logger.info(
+                f"Beginning training of Top2Vec with {len(docs)} external documents."
+            )
+
         self.model = Top2Vec2(
             docs,
             embedding_model=self.embedding_model,
@@ -339,10 +370,11 @@ class _Top2VecEncoder():
             workers=None,
             use_embedding_model_tokenizer=True,
             umap_args=self.umap_args,
-            hdbscan_args=self.hdbscan_args
+            hdbscan_args=self.hdbscan_args,
         )
         self.model.hierarchical_topic_reduction(20)  # reduce the number of topics
         self.model.save(self.saved_model_path)
+
 
 class CrossEncoderReRanker(BaseReader):
     """
@@ -356,7 +388,7 @@ class CrossEncoderReRanker(BaseReader):
     def __init__(
         self,
         cross_encoder: str = "cross-encoder/ms-marco-TinyBERT-L-6",
-        top_k: int = 10
+        top_k: int = 10,
     ):
         """
         :param cross_encoder: Local path or name of cross-encoder model in Hugging Face's model hub such as ``'cross-encoder/ms-marco-TinyBERT-L-6'``
@@ -373,15 +405,19 @@ class CrossEncoderReRanker(BaseReader):
         try:
             from sentence_transformers import CrossEncoder
         except ImportError:
-            raise ImportError("Can't find package `sentence-transformers` \n"
-                              "You can install it via `pip install sentence-transformers` \n"
-                              "For details see https://github.com/UKPLab/sentence-transformers ")
+            raise ImportError(
+                "Can't find package `sentence-transformers` \n"
+                "You can install it via `pip install sentence-transformers` \n"
+                "For details see https://github.com/UKPLab/sentence-transformers "
+            )
         # pretrained embedding models coming from: https://github.com/UKPLab/sentence-transformers#pretrained-models
 
         # CrossEncoder uses cuda device if available
         self.cross_encoder = CrossEncoder(cross_encoder)
 
-    def predict(self, query: str, documents: List[Document], top_k: Optional[int] = None):
+    def predict(
+        self, query: str, documents: List[Document], top_k: Optional[int] = None
+    ):
         """
         Use the cross-encoder to find answers for a query in the supplied list of Document.
         Returns dictionaries containing answers sorted by (desc.) probability.
@@ -390,11 +426,11 @@ class CrossEncoderReRanker(BaseReader):
             |{
             |    'query': 'What is the capital of the United States?',
             |    'answers':[
-            |                 {'answer': 'Washington, D.C. (also known as simply Washington or D.C., 
-            |                  and officially as the District of Columbia) is the capital of 
-            |                  the United States. It is a federal district. The President of 
-            |                  the USA and many major national government offices are in the 
-            |                  territory. This makes it the political center of the United 
+            |                 {'answer': 'Washington, D.C. (also known as simply Washington or D.C.,
+            |                  and officially as the District of Columbia) is the capital of
+            |                  the United States. It is a federal district. The President of
+            |                  the USA and many major national government offices are in the
+            |                  territory. This makes it the political center of the United
             |                  States of America.',
             |                 'score': 0.717,
             |                 'document_id': 213
@@ -415,116 +451,134 @@ class CrossEncoderReRanker(BaseReader):
         cross_scores = self.cross_encoder.predict(cross_inp)
         answers = [
             {
-                'answer': documents[idx].text, 
-                'score': cross_scores[idx],
-                'document_id': documents[idx].id,
-                'meta': documents[idx].meta
+                "answer": documents[idx].text,
+                "score": cross_scores[idx],
+                "document_id": documents[idx].id,
+                "meta": documents[idx].meta,
             }
             for idx in range(len(documents))
         ]
 
         # Sort answers by the cross-encoder scores and select top-k
-        answers = sorted(
-            answers, key=lambda k: k["score"], reverse=True
-        )
+        answers = sorted(answers, key=lambda k: k["score"], reverse=True)
         answers = answers[:top_k]
 
-        results = {"query": query,
-                   "answers": answers}
+        results = {"query": query, "answers": answers}
 
         return results
 
-    def predict_batch(self, query_doc_list: List[dict], top_k: Optional[int] = None,  batch_size: Optional[int] = None):
-        raise NotImplementedError("Batch prediction not yet available in CrossEncoderReRanker.")
+    def predict_batch(
+        self,
+        query_doc_list: List[dict],
+        top_k: Optional[int] = None,
+        batch_size: Optional[int] = None,
+    ):
+        raise NotImplementedError(
+            "Batch prediction not yet available in CrossEncoderReRanker."
+        )
 
 
 class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore):
-    def query_by_embedding(self,
-                            query_emb: np.ndarray,
-                            filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
-                            top_k: int = 10,
-                            index: Optional[str] = None,
-                            return_embedding: Optional[bool] = None) -> List[Document]:
-            """
-            Find the document that is most similar to the provided `query_emb` by using a vector similarity metric.
-            :param query_emb: Embedding of the query (e.g. gathered from DPR)
-            :param filters: Optional filters to narrow down the search space. Follows Open Distro for 
-            Elasticsearch syntax: https://opendistro.github.io/for-elasticsearch-docs/docs/elasticsearch/bool/. Example: 
-                [
-                    {
-                        "terms": {
-                            "author": [
-                                "Alan Silva", 
-                                "Mark Costa",
-                            ]
-                        }
-                    },
-                    {
-                        "range": {
-                            "timestamp": {
-                                "gte": "01-01-2021",
-                                "lt": "01-06-2021" 
-                            }
-                        }
+    def query_by_embedding(
+        self,
+        query_emb: np.ndarray,
+        filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
+        top_k: int = 10,
+        index: Optional[str] = None,
+        return_embedding: Optional[bool] = None,
+    ) -> List[Document]:
+        """
+        Find the document that is most similar to the provided `query_emb` by using a vector similarity metric.
+        :param query_emb: Embedding of the query (e.g. gathered from DPR)
+        :param filters: Optional filters to narrow down the search space. Follows Open Distro for
+        Elasticsearch syntax: https://opendistro.github.io/for-elasticsearch-docs/docs/elasticsearch/bool/. Example:
+            [
+                {
+                    "terms": {
+                        "author": [
+                            "Alan Silva",
+                            "Mark Costa",
+                        ]
                     }
-                ]
-            :param top_k: How many documents to return
-            :param index: Index name for storing the docs and metadata
-            :param return_embedding: To return document embedding
-            :return:
-            """
-            if index is None:
-                index = self.index
-
-            if return_embedding is None:
-                return_embedding = self.return_embedding
-
-            if not self.embedding_field:
-                raise RuntimeError("Please specify arg `embedding_field` in ElasticsearchDocumentStore()")
-            else:
-                # +1 in similarity to avoid negative numbers (for cosine sim)
-                body = {
-                    "size": top_k,
-                    "query": {
-                        "bool": {
-                            "must": [
-                                self._get_vector_similarity_query(query_emb, top_k)
-                            ]
+                },
+                {
+                    "range": {
+                        "timestamp": {
+                            "gte": "01-01-2021",
+                            "lt": "01-06-2021"
                         }
                     }
                 }
-                if filters:
-                    body = self._filter_adapter(body, filters)
+            ]
+        :param top_k: How many documents to return
+        :param index: Index name for storing the docs and metadata
+        :param return_embedding: To return document embedding
+        :return:
+        """
+        if index is None:
+            index = self.index
 
-                excluded_meta_data: Optional[list] = None
+        if return_embedding is None:
+            return_embedding = self.return_embedding
 
-                if self.excluded_meta_data:
-                    excluded_meta_data = deepcopy(self.excluded_meta_data)
+        if not self.embedding_field:
+            raise RuntimeError(
+                "Please specify arg `embedding_field` in ElasticsearchDocumentStore()"
+            )
+        else:
+            # +1 in similarity to avoid negative numbers (for cosine sim)
+            body = {
+                "size": top_k,
+                "query": {
+                    "bool": {
+                        "must": [self._get_vector_similarity_query(query_emb, top_k)]
+                    }
+                },
+            }
+            if filters:
+                body = self._filter_adapter(body, filters)
 
-                    if return_embedding is True and self.embedding_field in excluded_meta_data:
-                        excluded_meta_data.remove(self.embedding_field)
-                    elif return_embedding is False and self.embedding_field not in excluded_meta_data:
-                        excluded_meta_data.append(self.embedding_field)
-                elif return_embedding is False:
-                    excluded_meta_data = [self.embedding_field]
+            excluded_meta_data: Optional[list] = None
 
-                if excluded_meta_data:
-                    body["_source"] = {"excludes": excluded_meta_data}
+            if self.excluded_meta_data:
+                excluded_meta_data = deepcopy(self.excluded_meta_data)
 
-                logger.debug(f"Retriever query: {body}")
-                result = self.client.search(index=index, body=body, request_timeout=300)["hits"]["hits"]
+                if (
+                    return_embedding is True
+                    and self.embedding_field in excluded_meta_data
+                ):
+                    excluded_meta_data.remove(self.embedding_field)
+                elif (
+                    return_embedding is False
+                    and self.embedding_field not in excluded_meta_data
+                ):
+                    excluded_meta_data.append(self.embedding_field)
+            elif return_embedding is False:
+                excluded_meta_data = [self.embedding_field]
 
-                documents = [
-                    self._convert_es_hit_to_document(hit, adapt_score_for_embedding=True, return_embedding=return_embedding)
-                    for hit in result
-                ]
-                return documents
-    
+            if excluded_meta_data:
+                body["_source"] = {"excludes": excluded_meta_data}
+
+            logger.debug(f"Retriever query: {body}")
+            result = self.client.search(index=index, body=body, request_timeout=300)[
+                "hits"
+            ]["hits"]
+
+            documents = [
+                self._convert_es_hit_to_document(
+                    hit,
+                    adapt_score_for_embedding=True,
+                    return_embedding=return_embedding,
+                )
+                for hit in result
+            ]
+            return documents
+
     def get_document_count(
-        self, 
+        self,
         filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         index: Optional[str] = None,
-        only_documents_without_embedding: bool = False
+        only_documents_without_embedding: bool = False,
     ) -> int:
         """
         Return the number of documents in the document store.
@@ -533,15 +587,17 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
 
         body: dict = {"query": {"bool": {}}}
         if only_documents_without_embedding:
-            body['query']['bool']['must_not'] = [{"exists": {"field": self.embedding_field}}]
+            body["query"]["bool"]["must_not"] = [
+                {"exists": {"field": self.embedding_field}}
+            ]
 
         if filters:
             body = self._filter_adapter(body, filters)
-        
+
         result = self.client.count(index=index, body=body)
         count = result["count"]
         return count
-    
+
     def get_all_documents(
         self,
         index: Optional[str] = None,
@@ -559,7 +615,10 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         :param batch_size: When working with large number of documents, batching can help reduce memory footprint.
         """
         result = self.get_all_documents_generator(
-            index=index, filters=filters, return_embedding=return_embedding, batch_size=batch_size
+            index=index,
+            filters=filters,
+            return_embedding=return_embedding,
+            batch_size=batch_size,
         )
         documents = list(result)
         return documents
@@ -589,9 +648,13 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         if return_embedding is None:
             return_embedding = self.return_embedding
 
-        result = self._get_all_documents_in_index(index=index, filters=filters, batch_size=batch_size)
+        result = self._get_all_documents_in_index(
+            index=index, filters=filters, batch_size=batch_size
+        )
         for hit in result:
-            document = self._convert_es_hit_to_document(hit, return_embedding=return_embedding)
+            document = self._convert_es_hit_to_document(
+                hit, return_embedding=return_embedding
+            )
             yield document
 
     def _get_all_documents_in_index(
@@ -610,9 +673,13 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
             body = self._filter_adapter(body, filters)
 
         if only_documents_without_embedding:
-            body['query']['bool']['must_not'] = [{"exists": {"field": self.embedding_field}}]
+            body["query"]["bool"]["must_not"] = [
+                {"exists": {"field": self.embedding_field}}
+            ]
 
-        result = scan(self.client, query=body, index=index, size=batch_size, scroll="1d")
+        result = scan(
+            self.client, query=body, index=index, size=batch_size, scroll="1d"
+        )
         yield from result
 
     def _filter_adapter(
@@ -629,12 +696,9 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
                 if type(values) != list:
                     raise ValueError(
                         f'Wrong filter format for key "{key}": Please provide a list of allowed values for each key. '
-                        'Example: {"name": ["some", "more"], "category": ["only_one"]} ')
-                filter_clause.append(
-                    {
-                        "terms": {key: values}
-                    }
-                )
+                        'Example: {"name": ["some", "more"], "category": ["only_one"]} '
+                    )
+                filter_clause.append({"terms": {key: values}})
             query_body["query"]["bool"]["filter"] = filter_clause
         else:
             query_body["query"]["bool"]["filter"] = filters
@@ -646,7 +710,7 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         index: Optional[str] = None,
         filters: Optional[Union[List[dict], Dict[str, List[str]]]] = None,
         update_existing_embeddings: bool = True,
-        batch_size: int = 10_000
+        batch_size: int = 10_000,
     ):
         """
         Updates the embeddings in the the document store using the encoding model specified in the retriever.
@@ -665,52 +729,76 @@ class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore
         if index is None:
             index = self.index
 
-        if self.refresh_type == 'false':
+        if self.refresh_type == "false":
             self.client.indices.refresh(index=index)
 
         if not self.embedding_field:
-            raise RuntimeError("Specify the arg `embedding_field` when initializing ElasticsearchDocumentStore()")
+            raise RuntimeError(
+                "Specify the arg `embedding_field` when initializing ElasticsearchDocumentStore()"
+            )
 
         if update_existing_embeddings:
             document_count = self.get_document_count(index=index)
             logger.info(f"Updating embeddings for all {document_count} docs ...")
         else:
-            document_count = self.get_document_count(index=index, filters=filters,
-                                                     only_documents_without_embedding=True)
-            logger.info(f"Updating embeddings for {document_count} docs without embeddings ...")
+            document_count = self.get_document_count(
+                index=index, filters=filters, only_documents_without_embedding=True
+            )
+            logger.info(
+                f"Updating embeddings for {document_count} docs without embeddings ..."
+            )
 
         result = self._get_all_documents_in_index(
             index=index,
             filters=filters,
             batch_size=batch_size,
-            only_documents_without_embedding=not update_existing_embeddings
+            only_documents_without_embedding=not update_existing_embeddings,
         )
 
         logging.getLogger("elasticsearch").setLevel(logging.CRITICAL)
 
-        with tqdm(total=document_count, position=0, unit=" Docs", desc="Updating embeddings") as progress_bar:
+        with tqdm(
+            total=document_count, position=0, unit=" Docs", desc="Updating embeddings"
+        ) as progress_bar:
             for result_batch in get_batches_from_generator(result, batch_size):
-                document_batch = [self._convert_es_hit_to_document(hit, return_embedding=False) for hit in result_batch]
+                document_batch = [
+                    self._convert_es_hit_to_document(hit, return_embedding=False)
+                    for hit in result_batch
+                ]
                 embeddings, umap_embeddings, topic_numbers, topic_labels = retriever.embed_passages(document_batch)  # type: ignore
                 assert len(document_batch) == len(embeddings)
 
                 if embeddings[0].shape[0] != self.embedding_dim:
-                    raise RuntimeError(f"Embedding dim. of model ({embeddings[0].shape[0]})"
-                                       f" doesn't match embedding dim. in DocumentStore ({self.embedding_dim})."
-                                       "Specify the arg `embedding_dim` when initializing ElasticsearchDocumentStore()")
+                    raise RuntimeError(
+                        f"Embedding dim. of model ({embeddings[0].shape[0]})"
+                        f" doesn't match embedding dim. in DocumentStore ({self.embedding_dim})."
+                        "Specify the arg `embedding_dim` when initializing ElasticsearchDocumentStore()"
+                    )
                 doc_updates = []
-                for doc, emb, umap_emb, topn, topl in zip(document_batch, embeddings, umap_embeddings, topic_numbers, topic_labels):
-                    update = {"_op_type": "update",
-                              "_index": index,
-                              "_id": doc.id,
-                              "doc": {
-                                  self.embedding_field: emb.tolist(),
-                                  "umap_embeddings": umap_emb.tolist(),
-                                  "topic_number": topn,
-                                  "topic_label": topl
-                                  },
-                              }
+                for doc, emb, umap_emb, topn, topl in zip(
+                    document_batch,
+                    embeddings,
+                    umap_embeddings,
+                    topic_numbers,
+                    topic_labels,
+                ):
+                    update = {
+                        "_op_type": "update",
+                        "_index": index,
+                        "_id": doc.id,
+                        "doc": {
+                            self.embedding_field: emb.tolist(),
+                            "umap_embeddings": umap_emb.tolist(),
+                            "topic_number": topn,
+                            "topic_label": topl,
+                        },
+                    }
                     doc_updates.append(update)
 
-                bulk(self.client, doc_updates, request_timeout=300, refresh=self.refresh_type)
+                bulk(
+                    self.client,
+                    doc_updates,
+                    request_timeout=300,
+                    refresh=self.refresh_type,
+                )
                 progress_bar.update(batch_size)

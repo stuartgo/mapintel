@@ -1,5 +1,5 @@
-from haystack import Pipeline, logger
-from haystack import BaseComponent
+from haystack import BaseComponent, Pipeline, logger
+
 from api.custom_components.custom_nodes import *
 
 
@@ -18,17 +18,29 @@ class CustomPipeline(Pipeline):
 
             component_params = definitions[name].get("params", {})
             component_type = definitions[name]["type"]
-            logger.debug(f"Loading component `{name}` of type `{definitions[name]['type']}`")
+            logger.debug(
+                f"Loading component `{name}` of type `{definitions[name]['type']}`"
+            )
 
             for key, value in component_params.items():
                 # Component params can reference to other components. For instance, a Retriever can reference a
                 # DocumentStore defined in the YAML. All references should be recursively resolved.
-                if isinstance(value, str) and value in definitions.keys():  # check if the param value is a reference to another component.
-                    if value not in components.keys():  # check if the referenced component is already loaded.
-                        cls._load_or_get_component(name=value, definitions=definitions, components=components)
-                    component_params[key] = components[value]  # substitute reference (string) with the component object.
+                if (
+                    isinstance(value, str) and value in definitions.keys()
+                ):  # check if the param value is a reference to another component.
+                    if (
+                        value not in components.keys()
+                    ):  # check if the referenced component is already loaded.
+                        cls._load_or_get_component(
+                            name=value, definitions=definitions, components=components
+                        )
+                    component_params[key] = components[
+                        value
+                    ]  # substitute reference (string) with the component object.
 
-            instance = BaseComponent.load_from_args(component_type=component_type, **component_params)
+            instance = BaseComponent.load_from_args(
+                component_type=component_type, **component_params
+            )
             components[name] = instance
         except Exception as e:
             try:

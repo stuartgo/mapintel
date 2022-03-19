@@ -4,9 +4,9 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 
+from api.config import ROOT_PATH
 from api.controller.errors.http_error import http_error_handler
 from api.controller.router import router as api_router
-from api.config import ROOT_PATH
 
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 logger = logging.getLogger(__name__)
@@ -15,12 +15,18 @@ logging.getLogger("haystack").setLevel(logging.INFO)
 
 
 def get_application() -> FastAPI:
-    application = FastAPI(title="Mapintel-API", debug=True, version="0.1", root_path=ROOT_PATH)
+    application = FastAPI(
+        title="Mapintel-API", debug=True, version="0.1", root_path=ROOT_PATH
+    )
 
     # This middleware enables allow all cross-domain requests to the API from a browser. For production
     # deployments, it could be made more restrictive.
     application.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     application.add_exception_handler(HTTPException, http_error_handler)

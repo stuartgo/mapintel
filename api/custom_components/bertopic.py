@@ -1,27 +1,30 @@
-from typing import List, Tuple, Union
 import logging
-import joblib
-import numpy as np
+from typing import List, Tuple, Union
 
 import hdbscan
-from umap import UMAP
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.preprocessing import normalize
-from sklearn.metrics.pairwise import cosine_similarity
-
+import joblib
+import numpy as np
 from bertopic import BERTopic
-from bertopic._utils import check_documents_type, check_embeddings_shape, check_is_fitted
+from bertopic._utils import (
+    check_documents_type,
+    check_embeddings_shape,
+    check_is_fitted,
+)
 from bertopic.backend._utils import select_backend
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import normalize
+from umap import UMAP
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
 class BERTopic2(BERTopic):
-    def transform(self,
-                  documents: Union[str, List[str]],
-                  embeddings: np.ndarray = None) -> Tuple[List[int], np.ndarray]:
-        """ After having fit a model, use transform to predict new instances
+    def transform(
+        self, documents: Union[str, List[str]], embeddings: np.ndarray = None
+    ) -> Tuple[List[int], np.ndarray]:
+        """After having fit a model, use transform to predict new instances
         Arguments:
             documents: A single document or a list of documents to fit on
             embeddings: Pre-trained document embeddings. These can be used
@@ -61,15 +64,19 @@ class BERTopic2(BERTopic):
             documents = [documents]
 
         if embeddings is None:
-            embeddings = self._extract_embeddings(documents,
-                                                  method="document",
-                                                  verbose=self.verbose)
+            embeddings = self._extract_embeddings(
+                documents, method="document", verbose=self.verbose
+            )
 
         umap_embeddings = self.umap_model.transform(embeddings)
-        predictions, _ = hdbscan.approximate_predict(self.hdbscan_model, umap_embeddings)
+        predictions, _ = hdbscan.approximate_predict(
+            self.hdbscan_model, umap_embeddings
+        )
 
         if self.calculate_probabilities:
-            probabilities = hdbscan.membership_vector(self.hdbscan_model, umap_embeddings)
+            probabilities = hdbscan.membership_vector(
+                self.hdbscan_model, umap_embeddings
+            )
         else:
             probabilities = None
 
@@ -80,10 +87,8 @@ class BERTopic2(BERTopic):
         return embeddings, umap_embeddings, predictions, probabilities
 
     @classmethod
-    def load(cls,
-            path: str,
-            embedding_model=None):
-        """ Loads the model from the specified path
+    def load(cls, path: str, embedding_model=None):
+        """Loads the model from the specified path
         Arguments:
             path: the location and name of the BERTopic file you want to load
             embedding_model: If the embedding_model was not saved to save space or to load
@@ -97,7 +102,7 @@ class BERTopic2(BERTopic):
         BERTopic.load("my_model", embedding_model="paraphrase-MiniLM-L6-v2")
         ```
         """
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             if embedding_model:
                 topic_model = joblib.load(file)
                 topic_model.embedding_model = embedding_model

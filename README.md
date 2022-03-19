@@ -36,7 +36,6 @@ Further usage information is present in the README files inside the *api*, and *
     ├── artifacts                   <- Artifacts (data, outputs, results, models, etc)
     │   │
     │   ├── figures                 <- Figures
-    │   ├── backups                 <- Backups of NewsAPI documents 
     │   └── saved_models            <- Trained and serialized models
     │
     ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles

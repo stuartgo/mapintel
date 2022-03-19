@@ -1,10 +1,11 @@
+import json
+import logging
+import os
 import re
+
 from bs4 import BeautifulSoup
 from langdetect import detect
 from tqdm.auto import tqdm
-import logging
-import os
-import json
 
 dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
@@ -24,12 +25,12 @@ def _text_cleaner(text):
     # Removes HTML tags
     text = BeautifulSoup(text, features="lxml").get_text()
     # Remove escaped characters
-    escapes = ''.join([chr(char) for char in range(1, 32)])
-    text = text.translate(str.maketrans('', '', escapes))
+    escapes = "".join([chr(char) for char in range(1, 32)])
+    text = text.translate(str.maketrans("", "", escapes))
     # Remove patterns
-    expressions = ['… [+ [0-9]*chars]$', '…', 'https?://\S+']
+    expressions = ["… [+ [0-9]*chars]$", "…", "https?://\S+"]
     for i in expressions:
-        text = re.sub(i, '', text)
+        text = re.sub(i, "", text)
     return text
 
 
@@ -70,19 +71,25 @@ def string_cleaner(doc):
         tuple: string: cleaned text, bool: whether to include the document
     """
     concat_text = " ".join(
-        map(lambda x: '' if x is None else x, [doc['title'], doc['description'], doc['content']])
+        map(
+            lambda x: "" if x is None else x,
+            [doc["title"], doc["description"], doc["content"]],
+        )
     )
     # Check if concatenated text is in English or not
-    if detect(concat_text) != 'en' or _detect_non_english(concat_text):
+    if detect(concat_text) != "en" or _detect_non_english(concat_text):
         return None
     else:
         # Clean the text in 'title', 'description' and 'content' fields
-        for key in ['title', 'description', 'content']:
+        for key in ["title", "description", "content"]:
             if doc[key]:
                 doc[key] = _text_cleaner(doc[key])
         # Concatenating the fields with #SEPTAG# to separate them in the future
-        doc['concat_text'] = "#SEPTAG#".join(
-            map(lambda x: '' if x is None else x, [doc['title'], doc['description'], doc['content']])
+        doc["concat_text"] = "#SEPTAG#".join(
+            map(
+                lambda x: "" if x is None else x,
+                [doc["title"], doc["description"], doc["content"]],
+            )
         )
         return doc
 
@@ -90,64 +97,61 @@ def string_cleaner(doc):
 def documents_cleaner(documents):
     # Cleaning the documents
     logger.info("Cleaning the documents.")
-    dicts=[]
-    with tqdm(total=len(documents), position=0, unit="Docs", desc="Cleaning documents") as progress_bar:
+    dicts = []
+    with tqdm(
+        total=len(documents), position=0, unit="Docs", desc="Cleaning documents"
+    ) as progress_bar:
         for doc in documents:
             # TODO: make the for loop faster (parallelization?)
-            if (doc['description']=='' or doc['description']==None) and (doc['content']=='' or doc['content']==None):
+            if (doc["description"] == "" or doc["description"] == None) and (
+                doc["content"] == "" or doc["content"] == None
+            ):
                 # Don't include documents without content and description
                 continue
             doc = string_cleaner(doc)
             if doc:
                 dicts.append(
                     {
-                        'text': doc['concat_text'], 
-                        'meta': {
-                            'source': doc['source'],
-                            'publishedat': doc['publishedAt'],
-                            'url': doc['url'],
-                            'urltoimage': doc['urlToImage'],
-                            'category': doc['category']
-                        }
+                        "text": doc["concat_text"],
+                        "meta": {
+                            "source": doc["source"],
+                            "publishedat": doc["publishedAt"],
+                            "url": doc["url"],
+                            "urltoimage": doc["urlToImage"],
+                            "category": doc["category"],
+                        },
                     }
                 )
             progress_bar.update()
-    
+
     # Go over results_list and remove duplicates based on 'text'f
     logger.info("Removing the duplicated documents.")
     holder = {}
     for d in dicts:
-        holder.setdefault(d['text'], d['meta'])  # each key is unique
+        holder.setdefault(d["text"], d["meta"])  # each key is unique
     # Reformat into list of dictionaries
-    dicts = [{'text': k, 'meta': v} for k, v in holder.items()]
+    dicts = [{"text": k, "meta": v} for k, v in holder.items()]
 
     return dicts
 
 
-def clean_backups(backups_dir):
+def clean_backups(backup_files):
     # Check there is documents to load
-    backup_files = ["mongodb_top_headlines.json", "mongodb_everything.json"]
-    
-    if not all([os.path.isfile(os.path.join(backups_dir, i)) for i in backup_files]):
+    if not all([os.path.isfile(i) for i in backup_files]):
         logger.info("No backup files to load into the document store.")
     else:
         # Load each JSON in backups and add everything to documents
         logger.info(f"Loading the raw backups: {backup_files}.")
         documents = []
         for bak in backup_files:
-            with open(os.path.join(backups_dir, bak), 'r') as file:
+            with open(bak, "r") as file:
                 for line in file:
                     documents.append(json.loads(line))
-        
+
         # Cleaning the documents
         dicts = documents_cleaner(documents)
 
         # Exporting the cleaned documents to a json
         logger.info("Exporting the cleaned documents.")
-        with open(os.path.join(backups_dir, 'mongodb_cleaned_docs.json'), 'w') as f:
+        with open("mongodb_cleaned_docs.json", "w") as f:
             f.write(json.dumps(dicts))
-
-
-if __name__ == "__main__":
-    backups_dir = os.path.join(dirname, '../../artifacts/backups')
-    clean_backups(backups_dir)

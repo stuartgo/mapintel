@@ -1,11 +1,6 @@
 from fastapi import APIRouter
 
-from api.controller import (
-    upload, 
-    search,
-    feedback, 
-    topic
-)
+from api.controller import feedback, search, topic, upload
 
 router = APIRouter()
 

@@ -1,22 +1,23 @@
 import json
 import logging
 import time
-from random import sample
 from pathlib import Path
+from random import sample
 from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.custom_components.custom_pipe import CustomPipeline
-from api.config import PIPELINE_YAML_PATH, LOG_LEVEL, QUERY_PIPELINE_NAME
+from api.config import LOG_LEVEL, PIPELINE_YAML_PATH, QUERY_PIPELINE_NAME
 from api.controller.utils import RequestLimiter
+from api.custom_components.custom_pipe import CustomPipeline
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 
 router = APIRouter()
+
 
 class Request(BaseModel):
     query: str
@@ -50,7 +51,9 @@ class Response_count(BaseModel):
     num_documents: int
 
 
-PIPELINE = CustomPipeline.load_from_yaml(Path(PIPELINE_YAML_PATH), pipeline_name=QUERY_PIPELINE_NAME)
+PIPELINE = CustomPipeline.load_from_yaml(
+    Path(PIPELINE_YAML_PATH), pipeline_name=QUERY_PIPELINE_NAME
+)
 logger.info(f"Loaded pipeline nodes: {PIPELINE.graph.nodes.keys()}")
 
 # TODO make this generic for other pipelines with different naming
@@ -59,11 +62,12 @@ document_store = retriever.document_store if retriever else None
 
 concurrency_limiter = RequestLimiter(4)
 
+
 @router.post("/query", response_model=Response)
 def query(request: Request):
     """Query endpoint.
 
-    Performs a query on the document store based on semantic search and approximate 
+    Performs a query on the document store based on semantic search and approximate
     nearest neighbors. Also, applies boolean filters to the documents before performing
     semantic search.
     """
@@ -83,9 +87,7 @@ def all_docs_generator(request: Request_generator):
     having to hold all documents in memory.
     """
     result_generator = document_store.get_all_documents_generator(
-        filters=request.filters,
-        return_embedding=False,
-        batch_size=request.batch_size
+        filters=request.filters, return_embedding=False, batch_size=request.batch_size
     )
     # Define answers generator (adds procedures to the previous generator)
     answers = _encoded_results(result_generator)
@@ -95,7 +97,7 @@ def all_docs_generator(request: Request_generator):
 @router.get("/doc-count", response_model=Response_count)
 def doc_count(request: Request_count):
     """Doc Count endpoint.
-    
+
     Gets the number of documents in the document store that satisfy a particular
     boolean filter.
     """
@@ -108,22 +110,28 @@ def _encoded_results(results):
     for idx, doc in enumerate(results):
         if idx > 0:
             yield "#SEP#"  # delimiter
-        yield json.dumps(
-            {
-                'answer': doc.text,
-                'document_id': doc.id,
-                'meta': doc.meta
-            }
-        )
+        yield json.dumps({"answer": doc.text, "document_id": doc.id, "meta": doc.meta})
 
 
 def _process_request(pipeline, request) -> Response:
     start_time = time.time()
 
-    result = pipeline.run(query=request.query, filters=request.filters,
-        top_k_retriever=request.top_k_retriever, top_k_reader=request.top_k_reader)
+    result = pipeline.run(
+        query=request.query,
+        filters=request.filters,
+        top_k_retriever=request.top_k_retriever,
+        top_k_reader=request.top_k_reader,
+    )
 
     end_time = time.time()
-    logger.info(json.dumps({"request": request.dict(), "response": str(result), "time": f"{(end_time - start_time):.2f}"}))
+    logger.info(
+        json.dumps(
+            {
+                "request": request.dict(),
+                "response": str(result),
+                "time": f"{(end_time - start_time):.2f}",
+            }
+        )
+    )
 
     return result

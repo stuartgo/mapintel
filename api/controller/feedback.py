@@ -1,9 +1,10 @@
 import json
 import logging
-from typing import Dict, Union, List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
 from api.controller.search import document_store
 
 router = APIRouter()
@@ -13,12 +14,23 @@ logger = logging.getLogger(__name__)
 
 # TODO: Change the haystack.schema.Label so we don't need to pass is_correct_document (redundant).
 class ExtractiveQAFeedback(BaseModel):
-    question: str = Field(..., description="The question input by the user, i.e., the query.")
-    answer: str = Field(..., description="The answer string. Text of the document with document_id.")
-    document_id: str = Field(..., description="The document in the query result for which feedback is given.")
+    question: str = Field(
+        ..., description="The question input by the user, i.e., the query."
+    )
+    answer: str = Field(
+        ..., description="The answer string. Text of the document with document_id."
+    )
+    document_id: str = Field(
+        ..., description="The document in the query result for which feedback is given."
+    )
     model_id: Optional[int] = Field(None, description="The model used for the query.")
-    is_correct_answer: bool = Field(..., description="Whether the answer is relevant or not.")
-    is_correct_document: bool = Field(..., description="Whether the document is relevant or not. Same as is_correct_answer.",)
+    is_correct_answer: bool = Field(
+        ..., description="Whether the answer is relevant or not."
+    )
+    is_correct_document: bool = Field(
+        ...,
+        description="Whether the document is relevant or not. Same as is_correct_answer.",
+    )
 
 
 class FilterRequest(BaseModel):
@@ -29,7 +41,7 @@ class FilterRequest(BaseModel):
 def user_feedback(feedback: ExtractiveQAFeedback):
     """Feedback endpoint.
 
-    Writes the feedback labels of responses to a query into the document store. 
+    Writes the feedback labels of responses to a query into the document store.
     """
     document_store.write_labels([{"origin": "user-feedback", **feedback.dict()}])
 

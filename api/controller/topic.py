@@ -1,13 +1,14 @@
 import logging
 from pathlib import Path
 from typing import List, Optional
-import numpy as np
-from api.custom_components.custom_pipe import CustomPipeline
-from api.config import PIPELINE_YAML_PATH, LOG_LEVEL, INDEXING_NU_PIPELINE_NAME
 
+import numpy as np
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from api.config import INDEXING_NU_PIPELINE_NAME, LOG_LEVEL, PIPELINE_YAML_PATH
 from api.controller.utils import RequestLimiter
+from api.custom_components.custom_pipe import CustomPipeline
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
@@ -33,12 +34,15 @@ class Request_training(BaseModel):
 class Response(BaseModel):
     status: str
 
+
 class Response_topic_names(BaseModel):
     status: str
     topic_names: List[str]
 
 
-PIPELINE = CustomPipeline.load_from_yaml(Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME)
+PIPELINE = CustomPipeline.load_from_yaml(
+    Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME
+)
 logger.info(f"Loaded pipeline nodes: {PIPELINE.graph.nodes.keys()}")
 concurrency_limiter = RequestLimiter(4)
 
@@ -59,26 +63,30 @@ def umap_query(request: Request_query):
         logger.info("Obtaining the UMAP embedding of the query.")
         results = retriever.embed_queries_umap([request.query])
 
-        return {'status': 'Success', 'query_text': request.query, 'query_umap': results[0].tolist()}
+        return {
+            "status": "Success",
+            "query_text": request.query,
+            "query_umap": results[0].tolist(),
+        }
 
 
 @router.get("/topic-names", response_model=Response_topic_names)
 def topic_names():
     """Topic Names endpoint.
-    
+
     Gets the unique topic names in the document store.
     """
-    return {'status': 'Success', 'topic_names': retriever.get_topic_names()}
-            
+    return {"status": "Success", "topic_names": retriever.get_topic_names()}
+
 
 @router.post("/topic-training", response_model=Response)
 def topic_training(request: Request_training):
-    """ Topic model training endpoint.
+    """Topic model training endpoint.
 
     Trains the Retriever's topic model with the documents in the database and updates
-    the instances in the database using the new model. This endpoint can be used to 
+    the instances in the database using the new model. This endpoint can be used to
     update the topic model on a regular basis. Saves the trained model to disk.
-    
+
     Note: this endpoint requires a considerable amount of allocated memory to be performed.
     """
     try:
@@ -90,11 +98,11 @@ def topic_training(request: Request_training):
                     "range": {
                         "publishedat": {
                             "gte": request.date_range[0],
-                            "lte": request.date_range[1]
+                            "lte": request.date_range[1],
                         }
                     }
                 }
-            ]
+            ],
         )
         # Add procedures to the previous generator - avoid unnecessary fields in memory
         result = list(zip(*_encoded_results(result_generator)))
@@ -102,18 +110,15 @@ def topic_training(request: Request_training):
 
         # Training the topic model - passing both documents and embeddings
         retriever.train(docs, embeddings)
-        
+
         # Updates the instances in the database using the new trained topic model
         if request.update_documents:
-            document_store.update_embeddings(
-                retriever, 
-                update_existing_embeddings=True 
-            )
+            document_store.update_embeddings(retriever, update_existing_embeddings=True)
 
-        return {'status': 'Success'}
+        return {"status": "Success"}
     except Exception as e:
         logger.error(e)
-        return {'status': 'Fail'}
+        return {"status": "Fail"}
 
 
 def _encoded_results(results):

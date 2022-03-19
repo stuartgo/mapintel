@@ -135,18 +135,16 @@ def documents_cleaner(documents):
     return dicts
 
 
-def clean_backups(backups_dir):
+def clean_backups(backup_files):
     # Check there is documents to load
-    backup_files = ["mongodb_top_headlines.json", "mongodb_everything.json"]
-
-    if not all([os.path.isfile(os.path.join(backups_dir, i)) for i in backup_files]):
+    if not all([os.path.isfile(i) for i in backup_files]):
         logger.info("No backup files to load into the document store.")
     else:
         # Load each JSON in backups and add everything to documents
         logger.info(f"Loading the raw backups: {backup_files}.")
         documents = []
         for bak in backup_files:
-            with open(os.path.join(backups_dir, bak), "r") as file:
+            with open(bak, "r") as file:
                 for line in file:
                     documents.append(json.loads(line))
 
@@ -155,10 +153,5 @@ def clean_backups(backups_dir):
 
         # Exporting the cleaned documents to a json
         logger.info("Exporting the cleaned documents.")
-        with open(os.path.join(backups_dir, "mongodb_cleaned_docs.json"), "w") as f:
+        with open("mongodb_cleaned_docs.json", "w") as f:
             f.write(json.dumps(dicts))
-
-
-if __name__ == "__main__":
-    backups_dir = os.path.join(dirname, "../../artifacts/backups")
-    clean_backups(backups_dir)

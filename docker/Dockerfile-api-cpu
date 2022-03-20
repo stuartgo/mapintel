@@ -4,7 +4,6 @@ WORKDIR /home/user
 
 RUN apt-get update && apt-get install -y curl git pkg-config cmake wget
 
-# Install packages
 # Install pytorch with cpu support
 RUN pip3 install numpy scipy Cython
 RUN pip3 install torch==1.9.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
@@ -18,4 +17,4 @@ COPY ./api /home/user/api
 EXPOSE 8000
 
 # cmd for initializing the container
-CMD ["api/init_container.sh"]
+CMD ["api/init_api.sh"]

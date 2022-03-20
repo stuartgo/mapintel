@@ -1,8 +1,7 @@
-import json
 import logging
 from typing import Dict, List, Optional, Union
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from api.controller.search import document_store

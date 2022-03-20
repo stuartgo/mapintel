@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y python3.7 python3.7-dev python3.7-distu
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
 RUN update-alternatives --set python3 /usr/bin/python3.7
 
-# Install packages
 # Install pytorch with gpu support
 RUN pip3 install numpy scipy Cython
 RUN pip3 install torch==1.9.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
@@ -23,4 +22,4 @@ COPY ./api /home/user/api
 EXPOSE 8000
 
 # cmd for running the API (note: "--preload" is not working with cuda)
-CMD ["api/init_container.sh"]
+CMD ["api/init_api.sh"]

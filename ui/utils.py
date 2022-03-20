@@ -8,7 +8,6 @@ import streamlit as st
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8000")
 DOC_REQUEST = "query"
 DOC_FEEDBACK = "feedback"
-DOC_UPLOAD = "file-upload"
 DOC_REQUEST_GENERATOR = "all-docs-generator"
 UMAP_QUERY = "umap-query"
 TOPIC_NAMES = "topic-names"
@@ -156,11 +155,4 @@ def feedback_doc(
         "is_correct_document": is_correct_document,
     }
     response_raw = requests.post(url, json=req).json()
-    return response_raw
-
-
-def upload_doc(file):
-    url = f"{API_ENDPOINT}/{DOC_UPLOAD}"
-    files = [("file", file)]
-    response_raw = requests.post(url, files=files).json()
     return response_raw

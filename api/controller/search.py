@@ -2,7 +2,6 @@ import json
 import logging
 import time
 from pathlib import Path
-from random import sample
 from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter

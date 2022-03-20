@@ -5,15 +5,8 @@ import hdbscan
 import joblib
 import numpy as np
 from bertopic import BERTopic
-from bertopic._utils import (
-    check_documents_type,
-    check_embeddings_shape,
-    check_is_fitted,
-)
+from bertopic._utils import check_embeddings_shape, check_is_fitted
 from bertopic.backend._utils import select_backend
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import normalize
 from umap import UMAP
 
 logger = logging.getLogger(__name__)

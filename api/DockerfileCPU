@@ -4,12 +4,6 @@ WORKDIR /home/user
 
 RUN apt-get update && apt-get install -y curl git pkg-config cmake wget
 
-# Install PDF converter
-RUN wget --no-check-certificate https://dl.xpdfreader.com/xpdf-tools-linux-4.03.tar.gz && \
-    tar -xvf xpdf-tools-linux-4.03.tar.gz && cp xpdf-tools-linux-4.03/bin64/pdftotext /usr/local/bin
-
-RUN apt-get install libpoppler-cpp-dev pkg-config -y --fix-missing
-
 # Install packages
 # Install pytorch with cpu support
 RUN pip3 install numpy scipy Cython

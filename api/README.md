@@ -22,8 +22,6 @@ The API consists of 4 modules: Search, Topic, Upload, and Feedback. Each module 
 > Trains the Retriever's topic model with the documents in the database and updates the instances in the database using the new model. This endpoint can be used to update the topic model on a regular basis. Saves the trained model to disk.
 
 ### Upload
-- file-upload: 
-> Receives a document as input from any file type, extracts its text content, preprocesses it, gets the corresponding embeddings, and adds it to the document store.
 - news-upload: 
 > Gets the latest news from NewsAPI and respective metadata, cleans the documents, and runs them through the indexing pipeline to be stored in the database.
 

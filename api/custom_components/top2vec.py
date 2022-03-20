@@ -8,7 +8,6 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from gensim.parsing.preprocessing import strip_tags
 from gensim.utils import simple_preprocess
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.preprocessing import normalize
 from top2vec import Top2Vec
 
 try:

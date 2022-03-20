@@ -1,4 +1,4 @@
-# MapIntel Project
+# MapIntel Project :mag_right:
 
 MapIntel is a system for acquiring intelligence from vast collections of text data by representing each document as a multidimensional vector that captures its own semantics. The system is designed to handle complex Natural Language queries and visual exploration of the corpus.
 
@@ -6,11 +6,11 @@ The system searching module uses a retriever and re-ranker engine that first fin
 
 MapIntel can be used to explore many different types of corpora. As an example, we use it to explore a corpus of news articles (330K entries) we collected from [NewsAPI](https://newsapi.org/) from October 2020 to June 2021.
 
-![MapIntel UI screenshot](./artifacts/figures/ui_screenshot.pdf)
+![MapIntel UI screenshot](./artifacts/figures/ui_screenshot.png)
 
 ## MapIntel Research
 
-Research associated with the MapIntel system can be found at [github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research). It contains publications, scripts for experiments, and Jupyter Notebooks to explore some of the technical concepts underlying the system.
+Research associated with the MapIntel system can be found at [mapintel_research](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research). It contains publications, scripts for experiments, and Jupyter Notebooks to explore some of the technical concepts underlying the system.
 
 ## MapIntel Data
 
@@ -42,7 +42,7 @@ mapintel-project-api-gpu-1  | [45] [INFO] Waiting for application startup.
 mapintel-project-api-gpu-1  | [45] [INFO] Application startup complete.
 ```
 
-the application will be available at [localhost:8501](localhost:8501), while the rest API will be available at [localhost:8000/docs#](localhost:8000/docs#).
+the application will be available at localhost:8501, while the rest API will be available at localhost:8000/docs#.
 
 ## Important settings :warning:
 
@@ -52,7 +52,7 @@ Before running MapIntel using the docker images, make sure that the **.env file*
 
 ## MapIntel Architecture
 
-![MapIntel architecture](./artifacts/figures/system_architecture.pdf)
+![MapIntel architecture](./artifacts/figures/system_architecture.png)
 
 The MapIntel system is composed of three main pipelines: Indexing, Query, and Visualization whose objectives are to get documents and their metadata from a source to a database, retrieve the most relevant results to a user query, and produce an interactive interface for exploring the document collection, respectively.
 
@@ -60,7 +60,7 @@ For a detailed explanation of the system architecture we suggest the reading of 
 
 ## REST API reference
 
-The API at [localhost:8000/docs#](localhost:8000/docs#) consists of 4 distinct modules: Search, Topic, Upload, and Feedback. Below is a list of the API endpoints grouped according to the 4 modules.
+The API at localhost:8000/docs# consists of 4 distinct modules: Search, Topic, Upload, and Feedback. Below is a list of the API endpoints grouped according to the 4 modules.
 
 ### Search
 - query: 

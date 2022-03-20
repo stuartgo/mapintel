@@ -1,126 +1,64 @@
 version: "3.8"
 services:
-    ################################## GPU services - default ##################################
-    api:
-        build:
-            context: .
-            dockerfile: api/Dockerfile  # Utilize the GPU to improve indexing and search
-        profiles:
-            - api
-        ports:
-            - 8000:8000
-        restart: always  # The policy always restarts the container until its removal
-        depends_on:
-            - odfe-node1
-        networks:
-            - odfe-net
-        secrets:
-            - dotenv-file
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - capabilities: [gpu]  # Enable container to use gpu resources from host
-        volumes:
-            - ./artifacts:/home/user/artifacts
-    ui:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui
-        depends_on:
-            - api
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api:8000
-        networks:
-            - odfe-net
-    ui-dev:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui-dev
-        depends_on:
-            - api
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api:8000
-        networks:
-            - odfe-net
-        volumes:
-            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
-    ################################## CPU services - alternative ##################################
-    api-cpu:
-        build:
-            context: .
-            dockerfile: api/DockerfileCPU
-        profiles:
-            - api-cpu  # uses cpu over gpu if profile set that way
-        ports:
-            - 8000:8000
-        restart: always  # The policy always restarts the container until its removal
-        depends_on:
-            - odfe-node1
-        networks:
-            - odfe-net
-        secrets:
-            - dotenv-file
-        volumes:
-            - ./artifacts:/home/user/artifacts
-    ui-cpu:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui-cpu
-        depends_on:
-            - api-cpu
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api-cpu:8000
-        networks:
-            - odfe-net
-    ui-dev-cpu:
-        build:
-            context: .
-            dockerfile: ui/Dockerfile
-        profiles:
-            - ui-dev-cpu
-        depends_on:
-            - api-cpu
-        ports:
-            - 8501:8501
-        environment:
-            - API_ENDPOINT=http://api-cpu:8000
-        networks:
-            - odfe-net
-        volumes:
-            - ./ui:/home/user/ui  # Set a bind mount for developing directly on the container
-    ################################## GPU/CPU Independent services ##################################
-    odfe-node1:
-        image: amazon/opendistro-for-elasticsearch:1.13.2
-        container_name: odfe-node1
-        environment:
-            - node.name=odfe-node1
-            - discovery.type=single-node
-        volumes:
-            - odfe-data1:/usr/share/elasticsearch/data
-        ports:
-            - 9200:9200
-        networks:
-            - odfe-net
+  api-cpu: &api-cpu
+    image: ghcr.io/nova-ims-innovation-and-analytics-lab/mapintel-api-cpu:latest
+    profiles:
+      - cpu
+    hostname: api
+    ports:
+      - 8000:8000
+    restart: always
+    depends_on:
+      - odfe-node1
+    networks:
+      - odfe-net
+    secrets:
+      - dotenv-file
+    volumes:
+      - ./artifacts:/home/user/artifacts
+  api-gpu:
+    <<: *api-cpu
+    image: ghcr.io/nova-ims-innovation-and-analytics-lab/mapintel-api-gpu:latest
+    profiles:
+      - gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  odfe-node1:
+    image: amazon/opendistro-for-elasticsearch:1.13.2
+    container_name: odfe-node1
+    environment:
+      - node.name=odfe-node1
+      - discovery.type=single-node
+    volumes:
+      - odfe-data1:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - odfe-net
+  ui: &ui
+    image: ghcr.io/nova-ims-innovation-and-analytics-lab/mapintel-ui:latest
+    ports:
+      - 8501:8501
+    environment:
+      - API_ENDPOINT=http://api:8000
+    networks:
+      - odfe-net
+  ui-dev:
+    <<: *ui
+    profiles:
+      - dev
+    volumes:
+      - ./ui:/home/user/ui
 
-volumes: # Creating volumes by specifying them under the top-level volumes section
-    odfe-data1: # empty entries will be created according to the "platform's default configuration"
+volumes:
+  odfe-data1: # empty entries will be created according to the "platform's default configuration"
 
-networks: # Creating networks by specifying them under the top-level networks section
-    odfe-net:
+networks:
+  odfe-net:
 
 secrets:
-    dotenv-file:
-        file: ./.env
+  dotenv-file:
+    file: ./.env

@@ -1,30 +1,92 @@
 # MapIntel Project
 
-The project aims to explore new solutions in the area of text mining, more specifically the idea is to explore new vectorization techniques with unsupervised neural networks and produce an analytic visual environment to explore and access the text documents.
+MapIntel is a system for acquiring intelligence from vast collections of text data by representing each document as a multidimensional vector that captures its own semantics. The system is designed to handle complex Natural Language queries and visual exploration of the corpus.
 
-## Usage
+The system searching module uses a retriever and re-ranker engine that first finds the closest neighbors to the query embedding and then sifts the results through a cross-encoder model that identifies the most relevant documents. The browsing module also leverages the embeddings by projecting them onto two dimensions while preserving the multidimensional landscape, resulting in a map where semantically related documents form topical clusters which we capture using topic modeling. This map aims at promoting a fast overview of the corpus while allowing a more detailed exploration and interactive information encountering process.
 
-Some components of the project require the existence of a **.env file** under the root folder of the project. This file holds all the private variables necessary for executing parts of the code. Because of its private nature, the file isn't versioned and needs to be created by the user. All variables should be stored as key-value pairs e.g. *VARIABLE_NAME = "variable_value"*. Below is a list of the existing variables and how each affects the project:
+MapIntel can be used to explore many different types of corpora. As an example, we use it to explore a corpus of news articles (330K entries) we collected from [NewsAPI](https://newsapi.org/) from October 2020 to June 2021.
 
-- NEWSAPIKEY: Holds the key for using the API to obtain the updated news-articles. A News API key can be obtained by [creating an account](https://newsapi.org/register) with News API. 
+![MapIntel UI screenshot](./artifacts/figures/ui_screenshot.pdf)
 
-You can either run the different project components locally or in containers using the `docker-compose` tool. We advise to run them with docker as it provides a convenient and straightforward experience, allowing for easy reproduction of results. The project has a default option to use of a CUDA-enabled GPU to improve its performance but we also made the project compatible without this resource. Please follow the options bellow:
+## MapIntel Research
 
-To launch the MapIntel UI application with a CUDA-enabled GPU, run the following command from the root folder of the MapIntel repository:
+Research associated with the MapIntel system can be found at [github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research). It contains publications, scripts for experiments, and Jupyter Notebooks to explore some of the technical concepts underlying the system.
+
+## MapIntel Data
+
+This project consists of a web application with user interface and backend, which relies on some input data. The [mapintel_data](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_data) project contains the pipeline for collection and storage of the NewsAPI corpus.
+
+## Docker images
+
+It is possible to run a local version of MapIntel, required that [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed. This can be achieved by using the docker images provided in the [container registry](https://github.com/orgs/NOVA-IMS-Innovation-and-Analytics-Lab/packages?repo_name=mapintel_project). There are separate images for server backend, both with a CPU (mapintel-api-cpu) and GPU (mapintel-api-gpu) host, and frontend (mapintel-ui). In addition, it uses the official [Open Distro for Elasticsearch (ODFE)](https://hub.docker.com/r/amazon/opendistro-for-elasticsearch) image.
+
+### Run MapIntel from docker images
+
+- For production workloads (if you just want to test it locally you might not need to do this), ODFE server image requires the following command to be run (as root) to work properly:
+`sysctl -w vm.max_map_count=262144`
+
+More information [here](https://opendistro.github.io/for-elasticsearch-docs/docs/install/docker/#important-settings) and [here](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html).
+
+- Create and start the containers by running the following command from the project directory:
+  - if the host has a CUDA-enabled GPU:
+    `docker-compose --profile gpu up`
+  - else:
+    `docker-compose --profile cpu up`
+
+This will pull the latest docker images from the registry and run the containers. When the containers are up, it will check whether there are any records in the database and if there is none, it will download the data dump, embed the documents and index them. This process can take a considerable amount of time, specially if the host doesn't have a CUDA-enabled GPU.
+
+After seeing this message:
 ```
-docker-compose --profile api --profile ui up
+mapintel-project-api-gpu-1  | [45] [INFO] Started server process [45]
+mapintel-project-api-gpu-1  | [45] [INFO] Waiting for application startup.
+mapintel-project-api-gpu-1  | [45] [INFO] Application startup complete.
 ```
 
-To launch the MapIntel UI application with CPU only, run the following command from the root folder of the MapIntel repository:
-```
-docker-compose --profile api-cpu --profile ui-cpu up --build
-```
+the application will be available at [localhost:8501](localhost:8501), while the rest API will be available at [localhost:8000/docs#](localhost:8000/docs#).
 
-Research associated with the MapIntel system can be found in a separate repository at [github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research).
+## Important settings :warning:
 
-If you intend to run the project locally, then you will need to ensure every system and python dependency is satisfied. The requirements.txt file in the root folder contains all the python dependencies, while the system dependencies are scattered across the Dockerfiles in the same folders. Local reproducibility of results is something we intend to improve in the future and contribution in this area is much appreciated.
+Before running MapIntel using the docker images, make sure that the **.env file** exists. This file contains sensitive Environmental Variables that should not be versioned. As an example, we provide the .env.example file that contains all the key-value pairs that should exists in the .env file. Below, we give a description of these variables:
 
-Further usage information is present in the README files inside the *api*, and *ui* folders.
+- NEWSAPIKEY: The NewsAPI key. It can be obtained by [creating an account](https://newsapi.org/register) with NewsAPI.
+
+## MapIntel Architecture
+
+![MapIntel architecture](./artifacts/figures/system_architecture.pdf)
+
+The MapIntel system is composed of three main pipelines: Indexing, Query, and Visualization whose objectives are to get documents and their metadata from a source to a database, retrieve the most relevant results to a user query, and produce an interactive interface for exploring the document collection, respectively.
+
+For a detailed explanation of the system architecture we suggest the reading of the [MapIntel paper](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_research/blob/main/docs/main.pdf), section 3.
+
+## REST API reference
+
+The API at [localhost:8000/docs#](localhost:8000/docs#) consists of 4 distinct modules: Search, Topic, Upload, and Feedback. Below is a list of the API endpoints grouped according to the 4 modules.
+
+### Search
+- query: 
+> Performs a query on the document store based on semantic search and approximate nearest neighbors. Also, applies boolean filters to the documents before performing semantic search.
+- all-docs-generator: 
+> Returns a Streaming Response consisting of a generator that iterates over the document store, given a set of boolean filters. The documents aren't iterated in any particular order.
+- doc-count: 
+> Gets the number of documents in the document store that satisfy a particular boolean filter.
+
+### Topic
+- umap-query: 
+> Loads the TopicRetriever with its trained Topic model. Uses the underlying trained UMAP model to call transform() on the embedding of the query string and returns the resulting 2-dimensional UMAP embedding.
+- topic-names: 
+> Gets the unique topic names in the document store.
+- topic-training: 
+> Trains the Retriever's topic model with the documents in the database and updates the instances in the database using the new model. This endpoint can be used to update the topic model on a regular basis. Saves the trained model to disk.
+
+### Upload
+- news-upload: 
+> Gets the latest news from NewsAPI and respective metadata, cleans the documents, and runs them through the indexing pipeline to be stored in the database.
+
+### Feedback
+- feedback: 
+> Writes the feedback labels of responses to a query into the document store.
+- eval-feedback: 
+> Return basic accuracy metrics based on the user feedback. Which ratio of documents was relevant? You can supply filters in the request to only use a certain subset of labels.
 
 ## Project Organization
 
@@ -38,13 +100,14 @@ Further usage information is present in the README files inside the *api*, and *
     │   ├── figures                 <- Figures
     │   └── saved_models            <- Trained and serialized models
     │
+    ├── docker                      <- Dockerfiles and build script
+    │
     ├── ui                          <- UI based on Streamlit that allows interactive semantic searching and exploration of a large collection of news articles
     │   │
     │   ├── ui_components           <- Defines UI related functions
     │   └── vis_components          <- Defines Visualization functions
     │
-    ├── .env                        <- Stores your secrets and config variables
+    ├── .env                        <- Stores sensitive Environmental Variables (**need to create**)
     ├── docker-compose.yml
     ├── LICENSE
-    ├── README.md
-    └── requirements.txt            <- The requirements file for locally reproducing the analysis environment
+    └── README.md

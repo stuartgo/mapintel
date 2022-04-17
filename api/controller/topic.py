@@ -48,7 +48,7 @@ concurrency_limiter = RequestLimiter(4)
 
 # TODO make this generic for other pipelines with different naming
 retriever = PIPELINE.get_node(name="Retriever")
-document_store = retriever.document_store if retriever else None
+document_store = retriever.document_store
 
 
 @router.post("/umap-query", response_model=Response_query)
@@ -71,7 +71,7 @@ def umap_query(request: Request_query):
 
 
 @router.get("/topic-names", response_model=Response_topic_names)
-def topic_names():
+def get_topic_names():
     """Topic Names endpoint.
 
     Gets the unique topic names in the document store.

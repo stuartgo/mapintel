@@ -3,8 +3,8 @@ import os
 import sys
 from pathlib import Path
 
+import requests
 from haystack.utils import get_batches_from_generator
-from requests import request
 from tqdm.auto import tqdm
 
 dirname = os.path.dirname(__file__)
@@ -29,7 +29,17 @@ except KeyError:
     raise KeyError
 
 
-def backups_load(s3_url):
+def get_dump_data(dump):
+    logger.info(f"Loading the {dump} data dump.")
+    docs = requests.get(
+        f"https://awsmisc.s3.eu-west-2.amazonaws.com/backups/{dump}.json"
+    ).json()
+    texts = list(map(lambda x: x["text"], docs))
+
+    return docs, texts
+
+
+def load_index_docs(dump):
     # Check there isn't documents already in the Document Store
     doc_count = INDEXING_PIPELINE.get_node("DocumentStore").get_document_count()
     logger.info(f"Document Store contains {doc_count} documents.")
@@ -39,20 +49,18 @@ def backups_load(s3_url):
         )
         return None
     else:
-        # Load the cleaned json backup from s3 bucket
-        logger.info("Loading the cleaned backup from S3 bucket.")
-        documents = request("get", s3_url).json()
+        # Load the data dump
+        documents, texts = get_dump_data(dump)
 
         # Training the Retriever
-        text = list(map(lambda x: x["text"].replace("#SEPTAG#", " "), documents))
         try:
-            if len(text) > 50000:
+            if len(texts) > 50000:
                 # RANDOM SAMPLE TO FIT IN MEMORY
                 from random import sample, seed
 
                 seed(10)
-                text = sample(text, 50000)
-            INDEXING_PIPELINE.get_node("Retriever").train(text)
+                texts = sample(texts, 50000)
+            INDEXING_PIPELINE.get_node("Retriever").train(texts)
 
         except Exception as e:
             logger.warning(e)
@@ -69,7 +77,8 @@ def backups_load(s3_url):
 
 
 if __name__ == "__main__":
-    s3_url = (
-        "https://awsmisc.s3.eu-west-2.amazonaws.com/backups/mongodb_cleaned_docs.json"
-    )
-    backups_load(s3_url)
+    # Receive dump name from cli arguments
+    dump = sys.argv[1]
+
+    # Populate database
+    load_index_docs(dump)

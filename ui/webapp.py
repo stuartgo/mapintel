@@ -10,12 +10,12 @@ sys.path.append(os.path.join(dirname, "../"))
 
 from ui.ui_components.umap_search import umap_page
 from ui.utils import (
-    doc_count,
-    feedback_doc,
+    count_docs,
+    feedback_answer,
     get_all_docs,
+    get_query_umap,
+    get_topic_names,
     retrieve_doc,
-    topic_names,
-    umap_query,
 )
 
 # TODO: A problem with the application is that when setting the slider value the query
@@ -29,7 +29,9 @@ from ui.utils import (
 
 # Init variables
 default_question = "Stock Market News"
-unique_topics = topic_names()
+topic_labels = get_topic_names()
+outlier_topic_label = [i for i in topic_labels if i.split("_")[0] == "-1"][0]
+
 debug = False
 batch_size = 10000
 filters = []
@@ -56,7 +58,7 @@ with st.sidebar:
             )
         with st.beta_expander("Query Options"):
             filter_category = st.multiselect(
-                "Category", options=unique_topics, default="-1_news_covid_people_2021"
+                "Category", options=topic_labels, default=outlier_topic_label
             )
             filter_category_exclude = st.checkbox("Exclude", value=True)
         with st.beta_expander("Results Options"):
@@ -91,21 +93,21 @@ if filter_category:
 
     # If filters should be excluded
     if filter_category_exclude:
-        filter_topics = list(set(unique_topics).difference(set(filter_topics)))
+        filter_topics = list(set(topic_labels).difference(set(filter_topics)))
 
     # Sort filters
     filter_topics.sort(key=lambda x: int(x.split("_")[0]))
 
     filters.append({"terms": {"topic_label": filter_topics}})
 else:
-    filter_topics = unique_topics
+    filter_topics = topic_labels
 
 filters.append(
     {
         "range": {
-            "publishedat": {
-                "gte": filter_date[0].strftime("%Y-%m-%d"),
-                "lte": filter_date[1].strftime("%Y-%m-%d"),
+            "timestamp": {
+                "gte": filter_date[0].strftime("%d-%m-%Y"),
+                "lte": filter_date[1].strftime("%d-%m-%Y"),
             }
         }
     }
@@ -114,9 +116,8 @@ filters.append(
 # Search bar
 question = st.text_input(label="Please provide your query:", value=default_question)
 
-# TODO: create a umatrix endpoint much like the umap one and use it to display the umatrix?
 # Sampling the docs and passing them to the UMAP plot
-doc_num = doc_count(filters)
+doc_num = count_docs(filters)
 sample_size = int(umap_perc / 100 * doc_num)
 st.subheader("UMAP")
 with st.spinner(
@@ -127,13 +128,18 @@ with st.spinner(
         filters=filters, batch_size=batch_size, sample_size=sample_size
     )
 
-# Plot the completed UMAP plot
-fig, config = umap_page(
-    documents=pd.DataFrame(umap_docs),
-    query=umap_query(question),
-    unique_topics=filter_topics,
-)
-st.plotly_chart(fig, use_container_width=True, config=config)
+if len(umap_docs) > 0:
+    # Plot the completed UMAP plot
+    fig, config = umap_page(
+        documents=pd.DataFrame(umap_docs),
+        query=get_query_umap(question),
+        unique_topics=filter_topics,
+    )
+    st.plotly_chart(fig, use_container_width=True, config=config)
+else:
+    st.write(
+        """No documents extracted with the applied filters and sample size. Try to increase the sample size or change the filters to be more inclusive."""
+    )
 st.write("___")
 
 # Get results for query
@@ -159,8 +165,7 @@ for result in results:
     # Define columns for answer text and image
     col1, _, col2 = st.beta_columns([6, 1, 3])
     with col1:
-        title, description, content = result["answer"].split("#SEPTAG#")
-        st.write(f"### {title}\n{description}\n\n{content}")
+        st.write(f"### {result['title']}\n{result['snippet']}")
     with col2:
         if result["image_url"] is not None and result["image_url"] != "null":
             image_url = result["image_url"]
@@ -185,22 +190,22 @@ for result in results:
             )
 
     "**Relevance:** ", result["relevance"], "**Topic:** ", result[
-        "topic"
-    ], "**Published At:** ", result["publishedat"][:-4].replace("T", ", ")
+        "topic_label"
+    ], "**Published At:** ", result["timestamp"]
 
     # Define columns for feedback buttons
     button_col1, button_col2, _ = st.beta_columns([1, 1, 8])
     if button_col1.button(
         "👍", key=(result["answer"] + str(count)), help="Relevant document"
     ):
-        raw_json_feedback = feedback_doc(
+        raw_json_feedback = feedback_answer(
             question, result["answer"], result["document_id"], 1, "true", "true"
         )
         st.success("Thanks for your feedback")
     if button_col2.button(
         "👎", key=(result["answer"] + str(count)), help="Irrelevant document"
     ):
-        raw_json_feedback = feedback_doc(
+        raw_json_feedback = feedback_answer(
             question, result["answer"], result["document_id"], 1, "false", "false"
         )
         st.success("Thanks for your feedback!")

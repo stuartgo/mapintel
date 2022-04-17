@@ -57,7 +57,7 @@ logger.info(f"Loaded pipeline nodes: {PIPELINE.graph.nodes.keys()}")
 
 # TODO make this generic for other pipelines with different naming
 retriever = PIPELINE.get_node(name="Retriever")
-document_store = retriever.document_store if retriever else None
+document_store = retriever.document_store
 
 concurrency_limiter = RequestLimiter(4)
 

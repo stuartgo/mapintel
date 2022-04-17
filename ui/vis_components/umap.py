@@ -1,9 +1,11 @@
+from textwrap import wrap
+
 import plotly.graph_objects as go
 
 from ui.vis_components.utils import cat_to_color
 
 
-def umap_plot(documents, unique_topics, query_label, custom_data):
+def umap_plot(documents, unique_topics, query_label):
     # Initialize the figure
     fig = go.Figure(
         layout=dict(
@@ -20,9 +22,11 @@ def umap_plot(documents, unique_topics, query_label, custom_data):
     # Add traces for each topic
     for c, topic in zip(cat_to_color(unique_topics), unique_topics):
         # Get data for the selected topic
-        ix_mask = documents["topic"] == topic
-        data = documents.loc[ix_mask]
-        customd = custom_data.loc[ix_mask]
+        topic_mask = documents["topic_label"] == topic
+        data = documents.loc[topic_mask]
+        hover_data = data[["title", "snippet"]].applymap(
+            lambda x: "<br>".join(wrap(x, width=100)) if x else ""
+        )
 
         # Add topics traces
         fig.add_trace(
@@ -30,8 +34,8 @@ def umap_plot(documents, unique_topics, query_label, custom_data):
                 mode="markers",
                 x=data["umap_embeddings_x"],
                 y=data["umap_embeddings_y"],
-                text=data["topic"],
-                customdata=customd,
+                text=data["topic_label"],
+                customdata=hover_data,
                 opacity=0.5,  # trace opacity
                 marker=dict(
                     size=4, color=c, opacity=0.5, symbol="circle"  # marker opacity
@@ -45,15 +49,14 @@ def umap_plot(documents, unique_topics, query_label, custom_data):
         )
 
     # Add query trace (last so the marker is in front)
-    ix_mask = documents["topic"] == query_label
-    data = documents.loc[ix_mask]
-    customd = custom_data.loc[ix_mask]
+    query_mask = documents["topic_label"] == query_label
+    data = documents.loc[query_mask]
     fig.add_trace(
         go.Scattergl(
             mode="markers",
             x=data["umap_embeddings_x"],
             y=data["umap_embeddings_y"],
-            text=data["topic"],
+            text=data["topic_label"],
             opacity=0.5,  # trace opacity
             marker=dict(
                 size=20,

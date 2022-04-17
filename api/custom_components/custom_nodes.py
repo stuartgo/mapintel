@@ -17,7 +17,6 @@ from haystack.utils import get_batches_from_generator
 from tqdm.auto import tqdm
 
 from api.custom_components.bertopic import BERTopic2
-from api.custom_components.top2vec import Top2Vec2
 
 dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
@@ -65,12 +64,7 @@ class TopicRetriever(BaseRetriever):
         self.progress_bar = progress_bar
 
         logger.info(f"Init retriever using embeddings of model {embedding_model}")
-        if self.model_format == "top2vec":
-            raise NotImplementedError(
-                "model_format='top2vec' isn't fully implemented yet."
-            )
-            # self.embedding_encoder = _Top2VecEncoder(self)
-        elif self.model_format == "bertopic":
+        if self.model_format == "bertopic":
             self.embedding_encoder = _BERTopicEncoder(self)
         else:
             raise ValueError(
@@ -264,116 +258,8 @@ class _BERTopicEncoder:
         self.model.save(self.saved_model_path, save_embedding_model=False)
 
     def _check_is_trained(self):
-        if self.model is None:
+        if self.model is None or self.topic_names is None:
             raise ValueError("The BERTopic model isn't either loaded or trained yet.")
-
-
-class _Top2VecEncoder:
-    def __init__(self, retriever: TopicRetriever):
-        self.saved_model_path = os.path.join(
-            dirname, "../../artifacts/saved_models/top2vec.pkl"
-        )
-        self.embedding_model = retriever.embedding_model
-        self.umap_args = retriever.umap_args
-        self.hdbscan_args = retriever.hdbscan_args
-        self.show_progress_bar = retriever.progress_bar
-        self.document_store = retriever.document_store
-
-        if self.document_store.similarity != "cosine":
-            logger.warning(
-                f"You are using a Sentence Transformer with the {self.document_store.similarity} function. "
-                f"We recommend using cosine instead. "
-                f"This can be set when initializing the DocumentStore"
-            )
-
-    def embed(self, texts: Union[List[List[str]], List[str], str]) -> List[np.ndarray]:
-        # texts can be a list of strings or a list of [title, text]
-        # get back list of numpy embedding vectors
-        self.model._check_model_status()  # Setting the embed attribute based on the embedding_model
-        emb = self.model.embed(
-            texts, batch_size=200, show_progress_bar=self.show_progress_bar
-        )
-        emb = [r for r in emb]
-        return emb
-
-    def embed_queries(self, texts: List[str]) -> List[np.ndarray]:
-        # Initializing the top2vec model
-        self.init_model()
-
-        return self.embed(texts)
-
-    def embed_passages(self, docs: List[Document]) -> List[np.ndarray]:
-        # Initializing the top2vec model
-        self.init_model(docs)
-
-        passages = [[d.meta["name"] if d.meta and "name" in d.meta else "", d.text] for d in docs]  # type: ignore
-        embeddings = self.embed(passages)
-        umap_embeddings = self.model.get_umap().transform(embeddings)
-        topic_numbers = self.model.doc_top_reduced
-        topic_labels = self.create_topic_labels()
-        return [embeddings, umap_embeddings, topic_numbers, topic_labels]
-
-    def create_topic_labels(self):
-        # TODO: Give more importance to words with higher score and that are unique to a cluster.
-        # Get topic words
-        topic_words, _, _ = self.model.get_topics(20, reduced=True)
-        # Produce topic labels by concatenating top 5 words
-        topic_labels = ["_".join(words[:5]) for words in topic_words]
-        return topic_labels
-
-    def init_model(self, docs=None):
-        try:
-            logger.info("Loading the Top2Vec model from disk.")
-            self.model = Top2Vec2.load(self.saved_model_path)
-            # Ensure the embedding model matches
-            assert (
-                self.model.embedding_model == self.embedding_model
-            ), "The Top2Vec embedding model doesn't match the embedding model in the Retriever."
-            # TODO: Ensure the umap_args and hdbscan_args match as well
-        except Exception as e:
-            logger.info(f"The Top2Vec model hasn't been trained or isn't valid: {e}")
-            if self.document_store.get_document_count() > 1000:
-                self.train()
-            else:
-                if docs is None:
-                    raise RuntimeError(
-                        "There isn't enough documents in the database for training the Top2Vec model."
-                    )
-                else:
-                    if len(docs) > 1000:
-                        self.train(
-                            docs=list(map(lambda d: d.text, docs))
-                        )  # training the Top2Vec model with the uploaded documents
-                    else:
-                        raise RuntimeError(
-                            "There isn't enough documents in the database or in the upload for training the Top2Vec model."
-                        )
-
-    def train(self, docs=None):
-        if docs is None:
-            # Get all documents from Document Store
-            logger.info("Getting all documents from Document Store.")
-            docs = self.document_store.get_all_documents(return_embedding=False)
-            docs = list(map(lambda d: d.text, docs))
-            logger.info(
-                f"Beginning training of Top2Vec with {len(docs)} internal documents."
-            )
-        else:
-            logger.info(
-                f"Beginning training of Top2Vec with {len(docs)} external documents."
-            )
-
-        self.model = Top2Vec2(
-            docs,
-            embedding_model=self.embedding_model,
-            keep_documents=False,  # we don't need to keep the documents as the search isn't performed through top2vec
-            workers=None,
-            use_embedding_model_tokenizer=True,
-            umap_args=self.umap_args,
-            hdbscan_args=self.hdbscan_args,
-        )
-        self.model.hierarchical_topic_reduction(20)  # reduce the number of topics
-        self.model.save(self.saved_model_path)
 
 
 class CrossEncoderReRanker(BaseReader):

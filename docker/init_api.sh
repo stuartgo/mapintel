@@ -17,8 +17,21 @@
 #     echo "msmarco-distilbert-base-v4 already exists."
 # fi
 
-# Load backups (wait 20 sec for ODFE node initialization)
-sleep 20 && python3 api/load_backups.py
+# Load backups (wait 15 sec for ODFE node initialization)
+sleep 15
+echo "####################################################################"
+echo "Training the embedding models and indexing the documents and their embeddings. This may take some time..."
+echo "####################################################################"
+
+python3 api/load_backups.py $1
 
 # Launch application
+echo "####################################################################"
+echo ""
+echo "MapIntel application is ready!"
+echo ""
+echo "Server is available at http://localhost:8501"
+echo ""
+echo "####################################################################"
+
 gunicorn api.application:app -b 0.0.0.0 -k uvicorn.workers.UvicornWorker --workers 1 --timeout 180

@@ -14,7 +14,16 @@ Research associated with the MapIntel system can be found at [mapintel_research]
 
 ## MapIntel Data
 
-This project consists of a web application with user interface and backend, which relies on some input data. The [mapintel_data](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_data) project contains the pipeline for collection and storage of the NewsAPI corpus.
+This project consists of a web application with user interface and backend, which relies on some input data. The [mapintel_data](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel_data) project contains the pipeline for collection and preprocessing of different corpora.
+
+New corpora can be easily added to the system, just follow the instructions in the mapintel_data repository. New corpora should be structured as a json file with the following key-value pairs:
+- *text*: text that the model will use to represent the document;
+- *title*: title used by the user interface to represent the document;
+- *url*: url used to access the full original document from its source;
+- *timestamp*: datetime string that marks the release of the original document. Formatted as "%d-%m-%Y %H:%M:%S";
+- *snippet*: **optional** excerpt of the document displayed in the user interface. If not given, text will be used for this function;
+- *image_url*: **optional** headline image url of the document used in the user interface. If not given, a placeholder image is used instead;
+
 
 ## Docker images
 
@@ -37,12 +46,16 @@ This will pull the latest docker images from the registry and run the containers
 
 After seeing this message:
 ```
-mapintel-project-api-gpu-1  | [45] [INFO] Started server process [45]
-mapintel-project-api-gpu-1  | [45] [INFO] Waiting for application startup.
-mapintel-project-api-gpu-1  | [45] [INFO] Application startup complete.
+mapintel-project-api-gpu-1   | ####################################################################
+mapintel-project-api-gpu-1   | 
+mapintel-project-api-gpu-1   | MapIntel application is ready!
+mapintel-project-api-gpu-1   | 
+mapintel-project-api-gpu-1   | Server is available at http://localhost:8501
+mapintel-project-api-gpu-1   | 
+mapintel-project-api-gpu-1   | ####################################################################
 ```
 
-the application will be available at localhost:8501, while the rest API will be available at localhost:8000/docs#.
+the application will be available at localhost:8501, while the REST API will be available at localhost:8000/docs#.
 
 ## Important settings :warning:
 

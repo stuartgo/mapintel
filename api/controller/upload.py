@@ -9,8 +9,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from api.config import INDEXING_NU_PIPELINE_NAME, PIPELINE_YAML_PATH
-from api.custom_components.custom_pipe import CustomPipeline
-from api.custom_components.text_cleaner import documents_cleaner
+from api.custom_components.custom_pipeline import CustomPipeline
+from src.text_cleaner import documents_cleaner
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

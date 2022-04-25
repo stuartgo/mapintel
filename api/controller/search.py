@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from api.config import LOG_LEVEL, PIPELINE_YAML_PATH, QUERY_PIPELINE_NAME
 from api.controller.utils import RequestLimiter
-from api.custom_components.custom_pipe import CustomPipeline
+from api.custom_components.custom_pipeline import CustomPipeline
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)

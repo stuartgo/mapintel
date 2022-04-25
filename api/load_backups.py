@@ -13,7 +13,7 @@ sys.path.append(
 )  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
 
 from api.config import INDEXING_NU_PIPELINE_NAME, PIPELINE_YAML_PATH
-from api.custom_components.custom_pipe import CustomPipeline
+from api.custom_components.custom_pipeline import CustomPipeline
 
 logger = logging.getLogger(__file__)
 

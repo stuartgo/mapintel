@@ -16,7 +16,7 @@ from haystack.retriever.base import BaseRetriever
 from haystack.utils import get_batches_from_generator
 from tqdm.auto import tqdm
 
-from api.custom_components.bertopic import BERTopic2
+from src.bertopic import BERTopic2
 
 dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)

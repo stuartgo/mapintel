@@ -8,7 +8,7 @@ import streamlit as st
 dirname = os.path.dirname(__file__)
 sys.path.append(os.path.join(dirname, "../"))
 
-from ui.ui_components.umap_search import umap_page
+from ui.custom_components.umap import umap_page
 from ui.utils import (
     count_docs,
     feedback_answer,

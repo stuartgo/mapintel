@@ -12,8 +12,7 @@ services:
       - odfe-node1
     networks:
       - odfe-net
-    secrets:
-      - dotenv-file
+    env_file: .env
     command: ["newsapi"]
     volumes:
       - ./artifacts:/home/user/artifacts
@@ -59,7 +58,3 @@ volumes:
 
 networks:
   odfe-net:
-
-secrets:
-  dotenv-file:
-    file: ./.env

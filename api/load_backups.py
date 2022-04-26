@@ -1,56 +1,78 @@
+import json
 import logging
 import os
 import sys
-from pathlib import Path
+from os import path
 
 import requests
 from haystack.utils import get_batches_from_generator
 from tqdm.auto import tqdm
 
 dirname = os.path.dirname(__file__)
-sys.path.append(
-    os.path.join(dirname, "../")
-)  # Necessary so we can import custom modules from api. See: https://realpython.com/lessons/module-search-path/
+sys.path.append(os.path.join(dirname, "../"))
 
-from api.config import INDEXING_NU_PIPELINE_NAME, PIPELINE_YAML_PATH
-from api.custom_components.custom_pipeline import CustomPipeline
+from api.utils import load_pipeline_from_yaml
 
 logger = logging.getLogger(__file__)
-
-try:
-    logger.info("Loading Indexing Pipeline from yaml file.")
-    INDEXING_PIPELINE = CustomPipeline.load_from_yaml(
-        Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME
-    )
-except KeyError:
-    logger.info(
-        "Indexing Pipeline not found in the YAML configuration. News Upload API will not be available."
-    )
-    raise KeyError
+indexing_pipeline = load_pipeline_from_yaml("indexing")
+DEBUG = os.getenv("DEBUG", 0)
 
 
-def get_dump_data(dump):
-    logger.info(f"Loading the {dump} data dump.")
+def download_dump_data(dump):
     docs = requests.get(
         f"https://awsmisc.s3.eu-west-2.amazonaws.com/backups/{dump}.json"
     ).json()
-    texts = list(map(lambda x: x["text"], docs))
+    return docs
+
+
+def read_dump_data(dump_path):
+    with open(dump_path, "r") as file:
+        docs = json.load(file)
+    return docs
+
+
+def write_dump_data(dump_path, data):
+    with open(dump_path, "w") as file:
+        json.dump(data, file)
+
+
+def extract_texts_from_dump(data):
+    texts = list(map(lambda x: x["text"], data))
+    return texts
+
+
+def get_dump_data(dump):
+    dump_path = path.join(dirname, f"../artifacts/{dump}.json")
+    if path.exists(dump_path):
+        logger.info(f"Reading the {dump} data dump from disk.")
+        docs = read_dump_data(dump_path)
+    else:
+        logger.info(f"Downloading the {dump} data dump.")
+        docs = download_dump_data(dump)
+        write_dump_data(dump_path, docs)
+    if DEBUG:
+        docs = docs[:100]
+    texts = extract_texts_from_dump(docs)
 
     return docs, texts
 
 
 def load_index_docs(dump):
     # Check there isn't documents already in the Document Store
-    doc_count = INDEXING_PIPELINE.get_node("DocumentStore").get_document_count()
+    doc_count = indexing_pipeline.get_node("DocumentStore").get_document_count()
     logger.info(f"Document Store contains {doc_count} documents.")
     if doc_count > 0:
         logger.info(
-            "Document Store already contains documents. Backup loading should be the first doucument insertion in the Document Store."
+            "Document Store already contains documents. Skipping loading of documents."
         )
         return None
     else:
         # Load the data dump
         documents, texts = get_dump_data(dump)
+        if DEBUG:
+            logger.info(f"Loading the {dump} data dump in DEBUG mode.")
+        else:
+            logger.info(f"Loading the {dump} data dump.")
 
         # Training the Retriever
         try:
@@ -60,19 +82,22 @@ def load_index_docs(dump):
 
                 seed(10)
                 texts = sample(texts, 50000)
-            INDEXING_PIPELINE.get_node("Retriever").train(texts)
+            logger.info(
+                "Training the Retriever component. This might take some time..."
+            )
+            indexing_pipeline.get_node("Retriever").train(texts)
 
         except Exception as e:
             logger.warning(e)
 
         # Embeds the documents in dicts and writes them to the document store
-        logger.info("Running indexing pipeline.")
+        logger.info("Running indexing pipeline. This might take some time...")
         batch_size = 30000  # Inserting in batches to not run out of memory
         with tqdm(
             total=len(documents), position=0, unit="Docs", desc="Indexing documents"
         ) as progress_bar:
             for batch in get_batches_from_generator(documents, batch_size):
-                INDEXING_PIPELINE.run(documents=batch)
+                indexing_pipeline.run(documents=batch)
                 progress_bar.update(batch_size)
 
 

@@ -16,7 +16,7 @@ from haystack.retriever.base import BaseRetriever
 from haystack.utils import get_batches_from_generator
 from tqdm.auto import tqdm
 
-from src.bertopic import BERTopic2
+from src.bertopic import CustomBERTopic
 
 dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
@@ -28,9 +28,9 @@ class TopicRetriever(BaseRetriever):
         document_store: BaseDocumentStore,
         embedding_model: str,
         model_format: str = "bertopic",
-        umap_args: dict = None,
-        hdbscan_args: dict = None,
-        vectorizer_args: dict = None,
+        umap_args: Optional[dict] = None,
+        hdbscan_args: Optional[dict] = None,
+        vectorizer_args: Optional[dict] = None,
         top_k: int = 10,
         progress_bar: bool = True,
     ):
@@ -74,9 +74,9 @@ class TopicRetriever(BaseRetriever):
     def retrieve(
         self,
         query: str,
-        filters: dict = None,
+        filters: Optional[dict] = None,
         top_k: Optional[int] = None,
-        index: str = None,
+        index: Optional[str] = None,
     ) -> List[Document]:
         """
         Scan through documents in DocumentStore and return a small number documents
@@ -125,7 +125,7 @@ class TopicRetriever(BaseRetriever):
         return self.embedding_encoder.embed_queries_umap(texts)
 
     def embed_passages(
-        self, docs: List[Document], embeddings: np.array = None
+        self, docs: List[Document], embeddings: Optional[np.ndarray] = None
     ) -> List[np.ndarray]:
         """
         Create embeddings for a list of passages. Produces the original embeddings, the UMAP embeddings,
@@ -151,7 +151,7 @@ class TopicRetriever(BaseRetriever):
         output = {**kwargs, "documents": documents}
         return output, "output_1"
 
-    def train(self, docs: List[Document], embeddings: np.array = None):
+    def train(self, docs: List[Document], embeddings: Optional[np.ndarray] = None):
         """
         Trains the underlying embedding encoder model. If model_format="top2vec", a Top2Vec model
         will be trained, otherwise, if model_format="bertopic", a BERTopic model will be trained.
@@ -184,7 +184,9 @@ class _BERTopicEncoder:
         # Initializing the model
         try:
             logger.info("Loading the BERTopic model from disk.")
-            self.model = BERTopic2.load(self.saved_model_path, self.embedding_model)
+            self.model = CustomBERTopic.load(
+                self.saved_model_path, self.embedding_model
+            )
             self.topic_names = list(self.model.topic_names.values())
         except Exception as e:
             logger.info(f"The BERTopic model hasn't been successfuly loaded: {e}")
@@ -241,7 +243,7 @@ class _BERTopicEncoder:
             vectorizer_model = CountVectorizer(ngram_range=(1, 2), stop_words="english")
             n_gram_range = (1, 2)
 
-        self.model = BERTopic2(
+        self.model = CustomBERTopic(
             n_gram_range=n_gram_range,
             nr_topics=20,
             low_memory=True,
@@ -364,7 +366,7 @@ class CrossEncoderReRanker(BaseReader):
         )
 
 
-class OpenDistroElasticsearchDocumentStore2(OpenDistroElasticsearchDocumentStore):
+class CustomOpenDistroElasticsearchDocumentStore(OpenDistroElasticsearchDocumentStore):
     def query_by_embedding(
         self,
         query_emb: np.ndarray,

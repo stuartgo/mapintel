@@ -4,16 +4,16 @@ from typing import List, Tuple, Union
 import hdbscan
 import joblib
 import numpy as np
+
 from bertopic import BERTopic
 from bertopic._utils import check_embeddings_shape, check_is_fitted
 from bertopic.backend._utils import select_backend
-from umap import UMAP
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class BERTopic2(BERTopic):
+class CustomBERTopic(BERTopic):
     def transform(
         self, documents: Union[str, List[str]], embeddings: np.ndarray = None
     ) -> Tuple[List[int], np.ndarray]:

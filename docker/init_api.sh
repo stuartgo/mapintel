@@ -19,10 +19,6 @@
 
 # Load backups (wait 15 sec for ODFE node initialization)
 sleep 15
-echo "####################################################################"
-echo "Training the embedding models and indexing the documents and their embeddings. This may take some time..."
-echo "####################################################################"
-
 python3 api/load_backups.py $1
 
 # Launch application

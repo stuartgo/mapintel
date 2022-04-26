@@ -1,21 +1,20 @@
 import json
 import logging
 import time
-from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from api.config import LOG_LEVEL, PIPELINE_YAML_PATH, QUERY_PIPELINE_NAME
 from api.controller.utils import RequestLimiter
-from api.custom_components.custom_pipeline import CustomPipeline
+from api.utils import load_document_store, load_pipeline_from_yaml
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-
 router = APIRouter()
+query_pipeline = load_pipeline_from_yaml("query")
+document_store = load_document_store()
+concurrency_limiter = RequestLimiter(4)
 
 
 class Request(BaseModel):
@@ -50,18 +49,6 @@ class Response_count(BaseModel):
     num_documents: int
 
 
-PIPELINE = CustomPipeline.load_from_yaml(
-    Path(PIPELINE_YAML_PATH), pipeline_name=QUERY_PIPELINE_NAME
-)
-logger.info(f"Loaded pipeline nodes: {PIPELINE.graph.nodes.keys()}")
-
-# TODO make this generic for other pipelines with different naming
-retriever = PIPELINE.get_node(name="Retriever")
-document_store = retriever.document_store
-
-concurrency_limiter = RequestLimiter(4)
-
-
 @router.post("/query", response_model=Response)
 def query(request: Request):
     """Query endpoint.
@@ -71,7 +58,7 @@ def query(request: Request):
     semantic search.
     """
     with concurrency_limiter.run():
-        result = _process_request(PIPELINE, request)
+        result = _process_request(query_pipeline, request)
         return result
 
 
@@ -105,7 +92,7 @@ def doc_count(request: Request_count):
 
 
 def _encoded_results(results):
-    """https://github.com/encode/starlette/issues/419#issuecomment-470077657"""
+    """Reference: https://github.com/encode/starlette/issues/419#issuecomment-470077657."""
     for idx, doc in enumerate(results):
         if idx > 0:
             yield "#SEP#"  # delimiter

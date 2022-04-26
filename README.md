@@ -59,9 +59,10 @@ the application will be available at localhost:8501, while the REST API will be 
 
 ## Important settings :warning:
 
-Before running MapIntel using the docker images, make sure that the **.env file** exists. This file contains sensitive Environmental Variables that should not be versioned. As an example, we provide the .env.example file that contains all the key-value pairs that should exists in the .env file. Below, we give a description of these variables:
+Before running MapIntel using the docker images, make sure that the **.env file** exists. This file contains Environmental Variables. As an example, we provide the .env.example file that contains all the key-value pairs that should exists in the .env file. Below, we give a description of these variables:
 
 - NEWSAPIKEY: The NewsAPI key. It can be obtained by [creating an account](https://newsapi.org/register) with NewsAPI.
+- DEBUG: Whether to run the application in DEBUG mode. Takes 0 or 1 value. By passing DEBUG=1 the system will load only a small portion of the corpus, making the process of creating the database faster.
 
 ## MapIntel Architecture
 
@@ -120,7 +121,7 @@ The API at localhost:8000/docs# consists of 4 distinct modules: Search, Topic, U
     │   ├── ui_components           <- Defines UI related functions
     │   └── vis_components          <- Defines Visualization functions
     │
-    ├── .env                        <- Stores sensitive Environmental Variables (**need to create**)
+    ├── .env                        <- Stores Environmental Variables (**need to create**)
     ├── docker-compose.yml
     ├── LICENSE
     └── README.md

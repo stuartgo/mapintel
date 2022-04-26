@@ -1,8 +1,9 @@
 version: '0.8'
+# TODO: Pass this yaml when docker-compose up is run so we can pass arbitrary configurations to the app after the images are built
 
 components:    # define all the building-blocks for Pipeline
   - name: DocumentStore
-    type: OpenDistroElasticsearchDocumentStore2
+    type: CustomOpenDistroElasticsearchDocumentStore
     params:
       host: odfe-node1
       port: 9200
@@ -26,7 +27,7 @@ components:    # define all the building-blocks for Pipeline
       top_k: 10
 
 pipelines:
-  - name: query    # pipeline to be called when performing a free-text query
+  - name: query
     type: Query
     nodes:
       - name: Retriever
@@ -34,7 +35,7 @@ pipelines:
       - name: Reader
         inputs: [Retriever]
 
-  - name: indexing_news_uploads    # pipeline to be called to get document from NewsAPI to the document store
+  - name: indexing
     type: Indexing
     nodes:
       - name: Retriever

@@ -4,12 +4,11 @@ from typing import Dict, List, Optional, Union
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from api.controller.search import document_store
-
-router = APIRouter()
+from api.utils import load_document_store
 
 logger = logging.getLogger(__name__)
-
+router = APIRouter()
+document_store = load_document_store()
 
 # TODO: Change the haystack.schema.Label so we don't need to pass is_correct_document (redundant).
 class ExtractiveQAFeedback(BaseModel):

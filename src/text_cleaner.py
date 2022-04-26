@@ -9,7 +9,6 @@ from tqdm.auto import tqdm
 
 dirname = os.path.dirname(__file__)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 def _text_cleaner(text):

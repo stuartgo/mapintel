@@ -1,36 +1,17 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import newsapi
-from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from api.config import INDEXING_NU_PIPELINE_NAME, PIPELINE_YAML_PATH
-from api.custom_components.custom_pipeline import CustomPipeline
+from api.utils import load_pipeline_from_yaml
 from src.text_cleaner import documents_cleaner
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# Loading News Upload Indexing Pipeline
-try:
-    INDEXING_NU_PIPELINE = CustomPipeline.load_from_yaml(
-        Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME
-    )
-except KeyError:
-    INDEXING_NU_PIPELINE = None
-    logger.info(
-        "News Upload Indexing Pipeline not found in the YAML configuration. News Upload API will not be available."
-    )
-
-# Getting NewsAPI key and establish connection to NewsAPI
-load_dotenv(
-    "/run/secrets/dotenv-file"
-)  # hard-coded: path to secret passed through docker-compose
-NEWSAPIKEY = os.environ.get("NEWSAPIKEY")
+indexing_pipeline = load_pipeline_from_yaml("indexing")
 
 
 class Response(BaseModel):
@@ -45,10 +26,12 @@ def news_upload():
     and runs them through the indexing pipeline to be stored in the database.
     """
     try:
+        NEWSAPIKEY = os.environ.get("NEWSAPIKEY")
+
         # Open NewsApi connection
         news_client = newsapi.NewsApiClient(api_key=NEWSAPIKEY)
 
-        if not INDEXING_NU_PIPELINE:
+        if not indexing_pipeline:
             raise HTTPException(
                 status_code=501, detail="Indexing Pipeline is not configured."
             )
@@ -101,7 +84,7 @@ def news_upload():
 
         # Embeds the documents in dicts and writes them to the document store
         logger.info("Running indexing pipeline.")
-        INDEXING_NU_PIPELINE.run(documents=dicts)
+        indexing_pipeline.run(documents=dicts)
     except:
         return {"status": "Fail"}
     else:

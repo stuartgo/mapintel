@@ -1,19 +1,18 @@
 import logging
-from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from api.config import INDEXING_NU_PIPELINE_NAME, LOG_LEVEL, PIPELINE_YAML_PATH
 from api.controller.utils import RequestLimiter
-from api.custom_components.custom_pipeline import CustomPipeline
+from api.utils import load_document_store, load_retriever
 
 logger = logging.getLogger(__name__)
-logger.setLevel(LOG_LEVEL)
-
 router = APIRouter()
+retriever = load_retriever()
+document_store = load_document_store()
+concurrency_limiter = RequestLimiter(4)
 
 
 class Request_query(BaseModel):
@@ -38,17 +37,6 @@ class Response(BaseModel):
 class Response_topic_names(BaseModel):
     status: str
     topic_names: List[str]
-
-
-PIPELINE = CustomPipeline.load_from_yaml(
-    Path(PIPELINE_YAML_PATH), pipeline_name=INDEXING_NU_PIPELINE_NAME
-)
-logger.info(f"Loaded pipeline nodes: {PIPELINE.graph.nodes.keys()}")
-concurrency_limiter = RequestLimiter(4)
-
-# TODO make this generic for other pipelines with different naming
-retriever = PIPELINE.get_node(name="Retriever")
-document_store = retriever.document_store
 
 
 @router.post("/umap-query", response_model=Response_query)

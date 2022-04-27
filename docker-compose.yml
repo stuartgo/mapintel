@@ -13,7 +13,7 @@ services:
     networks:
       - odfe-net
     env_file: .env
-    command: ["newsapi"]
+    command: ["arquivo"]
     volumes:
       - ./artifacts:/home/user/artifacts
   api-gpu:

@@ -85,7 +85,7 @@ def load_index_docs(dump):
             logger.info(
                 "Training the Retriever component. This might take some time..."
             )
-            indexing_pipeline.get_node("Retriever").train(texts)
+            indexing_pipeline.get_node("Retriever").train(texts, save_model=True)
 
         except Exception as e:
             logger.warning(e)

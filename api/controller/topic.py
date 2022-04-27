@@ -84,7 +84,7 @@ def topic_training(request: Request_training):
             filters=[
                 {
                     "range": {
-                        "publishedat": {
+                        "timestamp": {
                             "gte": request.date_range[0],
                             "lte": request.date_range[1],
                         }
@@ -111,6 +111,6 @@ def topic_training(request: Request_training):
 
 def _encoded_results(results):
     for hit in results:
-        document = hit.text.replace("#SEPTAG#", " ")
+        document = hit.text
         embedding = hit.embedding
         yield document, embedding

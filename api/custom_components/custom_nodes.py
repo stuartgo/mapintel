@@ -151,13 +151,21 @@ class TopicRetriever(BaseRetriever):
         output = {**kwargs, "documents": documents}
         return output, "output_1"
 
-    def train(self, docs: List[Document], embeddings: Optional[np.ndarray] = None):
+    def train(
+        self,
+        docs: List[Document],
+        embeddings: Optional[np.ndarray] = None,
+        save_model=False,
+    ):
         """
         Trains the underlying embedding encoder model. If model_format="top2vec", a Top2Vec model
         will be trained, otherwise, if model_format="bertopic", a BERTopic model will be trained.
         :param docs: List of documents to train the model on.
         """
-        self.embedding_encoder.train(docs, embeddings)
+        if save_model:
+            self.embedding_encoder.train(docs, embeddings).save_model()
+        else:
+            self.embedding_encoder.train(docs, embeddings)
 
     def get_topic_names(self) -> List[str]:
         return self.embedding_encoder.topic_names
@@ -208,7 +216,7 @@ class _BERTopicEncoder:
         return umap_embeddings
 
     def embed_passages(
-        self, docs: List[Document], embeddings: np.array = None
+        self, docs: List[Document], embeddings: Optional[np.ndarray] = None
     ) -> List[np.ndarray]:
         self._check_is_trained()
         passages = [[d.meta["name"] if d.meta and "name" in d.meta else "", d.text] for d in docs]  # type: ignore
@@ -218,7 +226,7 @@ class _BERTopicEncoder:
         topic_labels = [self.model.topic_names[i] for i in topic_numbers]
         return [embeddings, umap_embeddings, topic_numbers, topic_labels]
 
-    def train(self, docs: List[Document], embeddings: np.array = None):
+    def train(self, docs: List[Document], embeddings: Optional[np.ndarray] = None):
         # Initializing the BERTopic model
         from hdbscan import HDBSCAN
         from sklearn.feature_extraction.text import CountVectorizer
@@ -252,12 +260,18 @@ class _BERTopicEncoder:
             hdbscan_model=hdbscan_model,
             vectorizer_model=vectorizer_model,
         )
-
         logger.info(f"Beginning training of BERTopic with {len(docs)} documents.")
         self.model = self.model.fit(docs, embeddings)
         self.topic_names = list(self.model.topic_names.values())
-        logger.info(f"Saving fitted BERTopic model to disk.")
-        self.model.save(self.saved_model_path, save_embedding_model=False)
+
+        return self
+
+    def save_model(self, path=None):
+        self._check_is_trained()
+        if path is None:
+            path = self.saved_model_path
+        logger.info(f"Saving fitted BERTopic model to {path}.")
+        self.model.save(path, save_embedding_model=False)
 
     def _check_is_trained(self):
         if self.model is None or self.topic_names is None:

@@ -24,22 +24,27 @@ New corpora can be easily added to the system by following the instructions belo
 - *snippet*: **optional** excerpt of the document displayed in the user interface. If not given, text will be used for this function;
 - *image_url*: **optional** headline image url of the document used in the user interface. If not given, a placeholder image is used instead;
 
-Example of a single document representation:
-``` python
-{
-  'text': 'Eagles to start Jalen Mills at cornerback, Marcus Epps at safety against 49ers | Report - Bleeding Green Nation Secondary change up. The Philadelphia Eagles will be starting Jalen Mills at cornerback and Marcus Epps at safety in their Week 4 game against the San Francisco 49ers, according to one report:#Eagles lineup changes, pe',
-  'image_url': 'https://cdn.vox-cdn.com/thumbor/zAtOYRtDGrSfDrlfk1gh2VHHAjQ=/0x167:1883x1153/fit-in/1200x630/cdn.vox-cdn.com/uploads/chorus_asset/file/20098871/usa_today_13755700.jpg',
-  'url': 'https://www.bleedinggreennation.com/2020/10/4/21501492/jalen-mills-eagles-vs-49ers-cornerback-safety-marcus-epps-kvon-wallace-philadelphia-nfl-news-game',
-  'title': 'Eagles to start Jalen Mills at cornerback, Marcus Epps at safety against 49ers | Report - Bleeding Green Nation',
-  'snippet': 'Secondary change up. The Philadelphia Eagles will be starting Jalen Mills at cornerback and Marcus Epps at safety in their Week 4 game against the San Francisco 49ers, according to one report:#Eagles lineup changes, pe',
-  'timestamp': '04-10-2020 21:52:27'
-}
+Example corpus json file:
+``` 
+[
+  {
+    'text': 'Eagles to start Jalen Mills at cornerback, Marcus Epps at safety against 49ers | Report - Bleeding Green Nation Secondary change up. The Philadelphia Eagles will be starting Jalen Mills at cornerback and Marcus Epps at safety in their Week 4 game against the San Francisco 49ers, according to one report:#Eagles lineup changes, pe',
+    'image_url': 'https://cdn.vox-cdn.com/thumbor/zAtOYRtDGrSfDrlfk1gh2VHHAjQ=/0x167:1883x1153/fit-in/1200x630/cdn.vox-cdn.com/uploads/chorus_asset/file/20098871/usa_today_13755700.jpg',
+    'url': 'https://www.bleedinggreennation.com/2020/10/4/21501492/jalen-mills-eagles-vs-49ers-cornerback-safety-marcus-epps-kvon-wallace-philadelphia-nfl-news-game',
+    'title': 'Eagles to start Jalen Mills at cornerback, Marcus Epps at safety against 49ers | Report - Bleeding Green Nation',
+    'snippet': 'Secondary change up. The Philadelphia Eagles will be starting Jalen Mills at cornerback and Marcus Epps at safety in their Week 4 game against the San Francisco 49ers, according to one report:#Eagles lineup changes, pe',
+    'timestamp': '04-10-2020 21:52:27'
+  },
+  {
+      ...
+  },
+]
 ```
 
 ### Add new corpora
-**TODO: A new API for this purpose needs to be defined.**
-As of the moment, the `get_dump_data` function in api/load_backups.py defines how each dataset is obtained to be loaded in the system. To add a new dataset, this function needs to be changed. In the future an API should be defined to easily add new corpora (e.g. a yml file with a fixed structure that defines every dataset attribute and that can be easily adapted to any data. This can be further enhanced by merging the api/pipeline.yml and the new data yml file into a single configuration file for the system).
-To launch the system with a specific dataset, edit the docker-compose.yml file by changing the line starting with `command:` and put the name of the dataset like so: `command: ["arquivo"]`. At the moment you can either launch MapIntel with the "arquivo" or "newsapi" datasets.
+To add a new corpus to the system, first you need to format it as explained above. Then put the json file inside the artifacts folder and edit the docker-compose.yml file by changing the line starting with `command:` and put the name of the dataset, like so: `command: ["<dataset name>"]`.
+
+**TODO:** In the future an API should be defined to easily add new corpora, even from remote locations (e.g. a yml file with a fixed structure that defines every dataset attribute and that can be easily adapted to any data. This can be further enhanced by merging the api/pipeline.yml and the new data yml file into a single configuration file for the system).
 
 ## Docker images
 

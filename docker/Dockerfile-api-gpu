@@ -2,6 +2,9 @@ FROM nvidia/cuda:11.0-runtime-ubuntu20.04
 
 WORKDIR /home/user
 
+# Solve public key not available error. See https://github.com/NVIDIA/nvidia-docker/issues/1632#issuecomment-1112667716
+RUN rm /etc/apt/sources.list.d/cuda.list
+
 RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update && apt-get install -y python3.7 python3.7-dev python3.7-distutils python3-pip curl git pkg-config cmake
  

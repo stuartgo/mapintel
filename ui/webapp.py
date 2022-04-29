@@ -30,7 +30,11 @@ from ui.utils import (
 # Init variables
 default_question = "Stock Market News"
 topic_labels = get_topic_names()
-outlier_topic_label = [i for i in topic_labels if i.split("_")[0] == "-1"][0]
+outlier_topic_label = [i for i in topic_labels if i.split("_")[0] == "-1"]
+if len(outlier_topic_label) > 0:
+    outlier_topic_label = outlier_topic_label[0]
+else:
+    outlier_topic_label = None
 
 debug = False
 batch_size = 10000

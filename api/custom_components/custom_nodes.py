@@ -223,7 +223,9 @@ class _BERTopicEncoder:
         embeddings, umap_embeddings, topic_numbers, _ = self.model.transform(
             passages, embeddings
         )
-        topic_labels = [self.model.topic_names[i] for i in topic_numbers]
+        topic_labels = [
+            self.model.topic_names[i] if i != -1 else "outliers" for i in topic_numbers
+        ]
         return [embeddings, umap_embeddings, topic_numbers, topic_labels]
 
     def train(self, docs: List[Document], embeddings: Optional[np.ndarray] = None):

@@ -15,7 +15,7 @@ from api.utils import load_pipeline_from_yaml
 
 logger = logging.getLogger(__file__)
 indexing_pipeline = load_pipeline_from_yaml("indexing")
-DEBUG = os.getenv("DEBUG", 0)
+DEBUG = int(os.getenv("DEBUG", 0))
 
 
 def download_dump_data(dump):

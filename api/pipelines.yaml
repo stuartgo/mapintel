@@ -10,7 +10,7 @@ components:    # define all the building-blocks for Pipeline
       username: admin    # TODO: the access needs to be more secure before deployment
       password: admin
       scheme: https
-      embedding_dim: 512  # Change to 768 when using the sentence-transformers/msmarco-distilbert-base-v4 embedding_model below
+      embedding_dim: 768 # Change to 512 when using the sentence-transformers/distiluse-base-multilingual-cased-v1 embedding_model below
       verify_certs: False
       similarity: cosine
       return_embedding: True
@@ -18,7 +18,7 @@ components:    # define all the building-blocks for Pipeline
     type: TopicRetriever
     params:
       document_store: DocumentStore    # params can reference other components defined in the YAML
-      embedding_model: sentence-transformers/distiluse-base-multilingual-cased-v1   # Use sentence-transformers/msmarco-distilbert-base-v4 for English corpora
+      embedding_model: sentence-transformers/msmarco-distilbert-base-v4   # Use sentence-transformers/distiluse-base-multilingual-cased-v1 for Multilingual corpora
       model_format: bertopic
       top_k: 100
   - name: Reader    # custom-name for the component; helpful for visualization & debugging

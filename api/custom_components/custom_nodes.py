@@ -173,9 +173,7 @@ class TopicRetriever(BaseRetriever):
 
 class _BERTopicEncoder:
     def __init__(self, retriever: TopicRetriever):
-        self.saved_model_path = os.path.join(
-            dirname, "../../artifacts/saved_models/bertopic.pkl"
-        )
+        self.saved_model_path = os.path.join(dirname, "../../artifacts/bertopic.pkl")
         self.embedding_model = retriever.embedding_model
         self.umap_args = retriever.umap_args
         self.hdbscan_args = retriever.hdbscan_args

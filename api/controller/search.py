@@ -62,7 +62,7 @@ def query(request: Request):
         return result
 
 
-@router.get("/all-docs-generator")
+@router.post("/all-docs-generator")
 def all_docs_generator(request: Request_generator):
     """All Docs Generator endpoint.
 
@@ -80,7 +80,7 @@ def all_docs_generator(request: Request_generator):
     return StreamingResponse(answers)
 
 
-@router.get("/doc-count", response_model=Response_count)
+@router.post("/doc-count", response_model=Response_count)
 def doc_count(request: Request_count):
     """Doc Count endpoint.
 

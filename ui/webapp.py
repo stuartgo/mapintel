@@ -110,8 +110,8 @@ filters.append(
     {
         "range": {
             "timestamp": {
-                "gte": filter_date[0].strftime("%d-%m-%Y"),
-                "lte": filter_date[1].strftime("%d-%m-%Y"),
+                "gte": filter_date[0].strftime("%Y-%m-%d"),
+                "lte": filter_date[1].strftime("%Y-%m-%d"),
             }
         }
     }
@@ -195,7 +195,7 @@ for result in results:
 
     "**Relevance:** ", result["relevance"], "**Topic:** ", result[
         "topic_label"
-    ], "**Published At:** ", result["timestamp"]
+    ], "**Published At:** ", result["timestamp"][:-4].replace("T", ", ")
 
     # Define columns for feedback buttons
     button_col1, button_col2, _ = st.beta_columns([1, 1, 8])

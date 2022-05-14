@@ -20,7 +20,7 @@ New corpora can be easily added to the system by following the instructions belo
 - *text*: text that the model will use to represent the document;
 - *title*: title used by the user interface to represent the document;
 - *url*: url used to access the full original document from its source;
-- *timestamp*: datetime string that marks the release of the original document. Formatted as "%d-%m-%Y %H:%M:%S";
+- *timestamp*: datetime string that marks the release of the original document. Formatted as "%Y-%m-%dT%H:%M:%SZ";
 - *snippet*: **optional** excerpt of the document displayed in the user interface. If not given, text will be used for this function;
 - *image_url*: **optional** headline image url of the document used in the user interface. If not given, a placeholder image is used instead;
 
@@ -33,7 +33,7 @@ Example corpus json file:
     'url': 'https://www.bleedinggreennation.com/2020/10/4/21501492/jalen-mills-eagles-vs-49ers-cornerback-safety-marcus-epps-kvon-wallace-philadelphia-nfl-news-game',
     'title': 'Eagles to start Jalen Mills at cornerback, Marcus Epps at safety against 49ers | Report - Bleeding Green Nation',
     'snippet': 'Secondary change up. The Philadelphia Eagles will be starting Jalen Mills at cornerback and Marcus Epps at safety in their Week 4 game against the San Francisco 49ers, according to one report:#Eagles lineup changes, pe',
-    'timestamp': '04-10-2020 21:52:27'
+    'timestamp': '2020-10-04T21:52:27Z'
   },
   {
       ...

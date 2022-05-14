@@ -69,9 +69,9 @@ def get_all_docs(batch_size, filters=None, sample_size=None):
     # Query Haystack API
     url = f"{API_ENDPOINT}/{DOC_REQUEST_GENERATOR}"
     request_params = {"filters": filters, "batch_size": batch_size}
-    response_generator = requests.get(url, json=request_params, stream=True).iter_lines(
-        delimiter=b"#SEP#"
-    )
+    response_generator = requests.post(
+        url, json=request_params, stream=True
+    ).iter_lines(delimiter=b"#SEP#")
 
     if sample_size is None:
         sample_size = float("inf")
@@ -146,7 +146,7 @@ def get_topic_names():
 def count_docs(filters=None):
     url = f"{API_ENDPOINT}/{NUM_DOCS}"
     request_params = {"filters": filters}
-    response_raw = requests.get(url, json=request_params).json()
+    response_raw = requests.post(url, json=request_params).json()
     return response_raw["num_documents"]
 
 

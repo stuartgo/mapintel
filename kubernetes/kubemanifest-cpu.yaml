@@ -89,13 +89,12 @@ items:
               ports:
                 - containerPort: 8000
               resources:
-                # TODO: Decrease the resources used here
                 requests:
-                  memory: "5000Mi"
-                  cpu: "250m"
+                  memory: "3000Mi"
+                  cpu: "1000m"
                 limits:
                   memory: "10000Mi"
-                  cpu: "750m"
+                  cpu: "2000m"
               volumeMounts:
                 - mountPath: /home/user/artifacts
                   name: api-cpu-claim0
@@ -108,7 +107,7 @@ items:
     status: {}
   - apiVersion: v1
     data:
-      DEBUG: "1"
+      DEBUG: "0"
       NEWSAPIKEY: 982796d7dec8411d9ec9d8f09d20666c
     kind: ConfigMap
     metadata:
@@ -116,20 +115,6 @@ items:
       labels:
         io.kompose.service: api-cpu-env
       name: env
-  - apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      creationTimestamp: null
-      labels:
-        io.kompose.service: api-cpu-claim0
-      name: api-cpu-claim0
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1000Mi
-    status: {}
   - apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -192,11 +177,11 @@ items:
                 - containerPort: 9200
               resources:
                 requests:
-                  memory: "2500Mi"
+                  memory: "2000Mi"
                   cpu: "1000m"
                 limits:
                   memory: "6000Mi"
-                  cpu: "1750m"
+                  cpu: "2000m"
               volumeMounts:
                 - mountPath: /usr/share/elasticsearch/data
                   name: odfe-data1
@@ -205,20 +190,6 @@ items:
             - name: odfe-data1
               persistentVolumeClaim:
                 claimName: odfe-data1
-    status: {}
-  - apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      creationTimestamp: null
-      labels:
-        io.kompose.service: odfe-data1
-      name: odfe-data1
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 2000Mi
     status: {}
   - apiVersion: apps/v1
     kind: Deployment
@@ -248,7 +219,13 @@ items:
               name: ui
               ports:
                 - containerPort: 8501
-              resources: {}
+              resources:
+                requests:
+                  memory: "500Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1000Mi"
+                  cpu: "750m"
           restartPolicy: Always
     status: {}
 kind: List

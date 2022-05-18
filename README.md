@@ -78,6 +78,14 @@ mapintel-project-api-gpu-1   | #################################################
 
 the application will be available at localhost:8501, while the REST API will be available at localhost:8000/docs#.
 
+## Deploy MapIntel on Kubernetes
+
+You can deploy MapIntel on Kubernetes easily. First make sure you have a Kubernetes cluster already created. You can take a look at this [tutorial](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html) on how to create a Kubernetes cluster in AWS.
+
+Once the cluster is created, do `kubectl apply -f kubernetes/kubemanifest-pv-cpu.yaml -f kubernetes/kubemanifest-cpu.yaml`. This process can take some time especially if this is the first time deploying because the database needs to be populated.
+
+After you should be able to access the external IP of the cluster by doing `kubectl get services` and looking for the line with type "LoadBalancer". The Streamlit user interface will be accessible on port 8501.
+
 ## Important settings :warning:
 
 Before running MapIntel using the docker images, make sure that the **.env file** exists. This file contains Environmental Variables. As an example, we provide the .env.example file that contains all the key-value pairs that should exists in the .env file. Below, we give a description of these variables:

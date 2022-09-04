@@ -80,11 +80,15 @@ the application will be available at localhost:8501, while the REST API will be 
 
 ## Deploy MapIntel on Kubernetes
 
-You can deploy MapIntel on Kubernetes easily. First make sure you have a Kubernetes cluster already created. You can take a look at this [tutorial](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html) on how to create a Kubernetes cluster in AWS.
+You can deploy MapIntel on Kubernetes easily. First make sure you have a Kubernetes cluster already created. You can take a look at this [tutorial](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html) on how to create a Kubernetes cluster in AWS or just follow the commands below.
 
-Once the cluster is created, do `kubectl apply -f kubernetes/kubemanifest-pv-cpu.yaml -f kubernetes/kubemanifest-cpu.yaml`. This process can take some time especially if this is the first time deploying because the database needs to be populated.
+To create your Amazon EKS cluster, run the following command `eksctl create cluster --name mapintel --region eu-west-2`.
 
-After you should be able to access the external IP of the cluster by doing `kubectl get services` and looking for the line with type "LoadBalancer". The Streamlit user interface will be accessible on port 8501.
+Once the cluster is created, run `kubectl apply -f kubernetes/kubemanifest-pv-cpu.yaml -f kubernetes/kubemanifest-cpu.yaml`. This process can take some time especially if this is the first time deploying because the database needs to be populated.
+
+After you should be able to access the external IP of the cluster by doing `kubectl get services` and looking for the line with type "LoadBalancer". The Streamlit user interface will be accessible on **port 8501**.
+
+To delete your cluster and nodes, run the following command `eksctl delete cluster --name mapintel --region eu-west-2`. **This is important to avoid extra costs when the application is not needed**.
 
 ## Important settings :warning:
 

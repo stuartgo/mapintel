@@ -1,0 +1,13 @@
+numpy
+pandas
+scikit-learn
+gensim
+matplotlib
+
+# The provisional SOM package currently in use is a modded SOMPY
+# som-learn
+git+https://github.com/DavidSilva98/SOMPY.git
+
+streamlit==0.63
+bokeh==2.0.0
+streamlit-bokeh-events

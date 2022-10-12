@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: Serverless application to retrieve data from NewsAPI and upload it to a bucket
+
+Parameters: 
+  NewsApiKey:
+    Type: String
+    Description: Enter the NewsAPI key
+  NotificationEmail:
+    Type: String
+    Description: Enter a valid email address to be notified in case of failure
+
+Resources:
+  MapintelFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: mapintel-news-function
+      Description: Executes python code to collect updated news articles and send them to a bucket
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 60
+      PackageType: Zip
+      CodeUri: newsapi/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          BUCKET: mapintel-news-bucket
+          NEWSAPIKEY: !Ref NewsApiKey
+      # TODO: For extra secutity implement Kms Key encryption of environment variables
+      # KmsKeyArn: !Ref MapintelKMSKey
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn: !Ref MapintelSNSTopic
+      Policies:
+        - AWSLambdaExecute
+        - Version: 2012-10-17 
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref MapintelBucket
+                - /*
+        - Version: 2012-10-17 
+          Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref MapintelSNSTopic
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Name: mapintel-news-schedule
+            Description: Triggers a lambda function every 8 hours
+            Schedule: 'rate(8 hours)'
+            Enabled: true
+  MapintelBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: mapintel-news-bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+  # MapintelKMSKey:
+  #   Type: AWS::KMS::Key
+  #   Properties: 
+  #     Description: Key to encrypt mapintel-news-function environment variables
+  #     Enabled: true
+  #     KeyPolicy:
+  #       Version: 2012-10-17,
+  #       Id: mapintel-news-key-default
+  #       Statement:
+  #         - Sid: Enable IAM policies
+  #           Effect: Allow
+  #           Principal:
+  #             AWS: arn:aws:iam::${AWS::AccountId}:root
+  #           Action: kms:*
+  #           Resource: "*"
+  MapintelSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: mapintel-news-topic
+      TopicName: mapintel-news-topic
+      FifoTopic: false
+      Subscription:
+        - Endpoint: !Ref NotificationEmail
+          Protocol: email

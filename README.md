@@ -25,12 +25,14 @@ MapIntel can be used to explore many different types of corpora.
 ## Installation
 
 With `pip`:
+
 ```bash
 pip install mapintel
 ```
 
 With [`pipx`](https://github.com/pipxproject/pipx):
+
 ```bash
-python3.7 -m pip install --user pipx
+python -m pip install --user pipx
 pipx install mapintel
 ```

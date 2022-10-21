@@ -13,4 +13,4 @@ site/
 pdm.lock
 .pdm.toml
 __pypackages__/
-.venv/
+.venv*

@@ -12,7 +12,7 @@ project_description: MapIntel is a system for acquiring intelligence from vast c
     of text data by representing each document as a multidimensional vector that captures
     its own semantics. The system is designed to handle complex Natural Language queries
     and visual exploration of the corpus.
-project_name: mapintel
+project_name: MapIntel
 python_package_command_line_name: mapintel
 python_package_distribution_name: mapintel
 python_package_import_name: mapintel

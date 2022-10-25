@@ -37,12 +37,12 @@ $(BASIC_DUTIES):
 check-quality:
 	@nox --sessions check_quality
 
-.PHONY: check-types
+.PHONY: check-docs
 check-docs:
 	@nox --sessions check_docs
 
 .PHONY: check-types
-check-quality:
+check-types:
 	@nox --sessions check_types
 
 .PHONY: check

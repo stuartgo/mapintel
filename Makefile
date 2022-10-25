@@ -21,12 +21,6 @@ BASIC_DUTIES = \
 	format \
 	release
 
-QUALITY_DUTIES = \
-	check-quality \
-	check-docs \
-	check-types \
-	test
-
 .PHONY: help
 help:
 	@$(DUTY) --list
@@ -35,19 +29,27 @@ help:
 lock:
 	@pdm lock
 
-.PHONY: setup
-setup:
-	@bash scripts/setup.sh
-
-.PHONY: check
-check:
-	@bash scripts/multirun.sh duty check-quality check-types check-docs
-	@$(DUTY) check-dependencies
-
 .PHONY: $(BASIC_DUTIES)
 $(BASIC_DUTIES):
 	@$(DUTY) $@ $(call args,$@)
 
-.PHONY: $(QUALITY_DUTIES)
-$(QUALITY_DUTIES):
-	@bash scripts/multirun.sh duty $@ $(call args,$@)
+.PHONY: check-quality
+check-quality:
+	@nox --sessions check_quality
+
+.PHONY: check-types
+check-docs:
+	@nox --sessions check_docs
+
+.PHONY: check-types
+check-quality:
+	@nox --sessions check_types
+
+.PHONY: check
+check:
+	@nox --sessions check
+	@$(DUTY) check-dependencies
+
+.PHONY: test
+test:
+	@nox --sessions test

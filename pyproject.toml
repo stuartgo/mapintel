@@ -6,9 +6,9 @@ build-backend = "pdm.pep517.api"
 name = "mapintel"
 description = "MapIntel is a system for acquiring intelligence from vast collections of text data by representing each document as a multidimensional vector that captures its own semantics. The system is designed to handle complex Natural Language queries and visual exploration of the corpus."
 authors = [{name = "Georgios Douzas", email = "gdouzas@icloud.com"}]
-license-expression = "MIT"
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.11"
 keywords = []
 dynamic = ["version"]
 classifiers = [
@@ -19,14 +19,18 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Topic :: Documentation",
     "Topic :: Software Development",
     "Topic :: Software Development :: Documentation",
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.85.1",
+    "uvicorn>=0.19.0",
+    "cloudpickle>=2.2.0",
+    "mlflow>=1.30.0",
+]
 
 [project.urls]
 Homepage = "https://NOVA-IMS-Innovation-and-Analytics-Lab.github.io/mapintel"
@@ -41,6 +45,7 @@ Funding = "https://github.com/sponsors/NOVA-IMS-Innovation-and-Analytics-Lab"
 [project.scripts]
 mapintel = "mapintel.cli:main"
 
+[project.optional-dependencies]
 [tool.pdm]
 version = {source = "scm"}
 
@@ -91,6 +96,7 @@ tests = [
     "pytest-cov>=3.0",
     "pytest-randomly>=3.10",
     "pytest-xdist>=2.4",
+    "nox>=2022.8.7",
 ]
 typing = [
     "mypy>=0.910",

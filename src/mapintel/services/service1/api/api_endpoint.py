@@ -2,7 +2,9 @@ import logging
 
 import uvicorn
 from fastapi import FastAPI
-from router import router as api_router
+
+from .router import router as api_router
+
 from starlette.middleware.cors import CORSMiddleware
 
 logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")

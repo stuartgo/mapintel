@@ -1,6 +1,7 @@
-import model
+
+from .model import router as model_router
 from fastapi import APIRouter
 
 router = APIRouter()
 
-router.include_router(model.router, tags=["model"])
+router.include_router(model_router, tags=["model"])

@@ -26,7 +26,7 @@ class Response_aval_models(BaseModel):
 
 @router.post("/get_model", response_model=Response)
 def model(request: Request):
-    model = mlflow.pyfunc.load_model(model_uri="./models/" + request.model_name)
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service5/models/" + request.model_name)
     return {"status": "Success", "model": base64.b64encode(cloudpickle.dumps(model)).decode()}
 
 
@@ -34,5 +34,6 @@ def model(request: Request):
 def model(request: BaseModel):
     return {
         "status": "Success",
-        "models": [name for name in os.listdir("./models") if os.path.isdir(os.path.join("./models", name))],
+        "models": [name for name in os.listdir("./src/mapintel/services/service5/models/") if os.path.isdir(os.path.join("./src/mapintel/services/service5/models/", name))],
+
     }

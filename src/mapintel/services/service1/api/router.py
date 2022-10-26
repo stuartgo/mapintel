@@ -1,8 +1,10 @@
-import model
-import vectorisation
+from .model import router as model_router
+from . vectorisation import router as vectorisation_router
 from fastapi import APIRouter
 
 router = APIRouter()
 
-router.include_router(model.router, tags=["model"])
-router.include_router(vectorisation.router, tags=["vectorisation"])
+
+router.include_router(model_router, tags=["model"])
+router.include_router(vectorisation_router, tags=["vectorisation"])
+

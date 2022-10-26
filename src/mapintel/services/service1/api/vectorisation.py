@@ -8,7 +8,8 @@ router = APIRouter()
 
 
 class Request(BaseModel):
-    docs: Union[List[str], str]
+    docs: List[str]
+
 
 
 class Response(BaseModel):
@@ -21,7 +22,8 @@ class Response(BaseModel):
 
 @router.post("/vectorisation", response_model=Response)
 def vectorisation(request: Request):
-    with open("model.pickle", "rb") as f:
+    with open("./src/mapintel/services/service1/model.pickle", "rb") as f:
+
         model = pickle.load(f)
     return {
         "status": "Success",

@@ -19,6 +19,6 @@ class Response(BaseModel):
 def model(request: Request):
 
     model = cloudpickle.loads(base64.b64decode(request.model))
-    with open("model.pickle", "wb") as f:
+    with open("./src/mapintel/services/service1/model.pickle", "wb") as f:
         cloudpickle.dump(model, f)
     return {"status": "Success"}

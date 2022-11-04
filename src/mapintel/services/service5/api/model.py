@@ -26,6 +26,7 @@ def model(request: Request):
     shutil.make_archive("./src/mapintel/services/service5/model", 'zip', "./src/mapintel/services/service5/models/" + request.model_name)
     return FileResponse("./src/mapintel/services/service5/model.zip")
 
+
 @router.post("/available_models", response_model=Response_aval_models)
 def model(request: BaseModel):
     return {

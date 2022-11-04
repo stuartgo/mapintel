@@ -17,6 +17,7 @@ class Response(BaseModel):
 def model(file: bytes = File()):
     with open("./src/mapintel/services/service1/model.zip", "wb") as f:
         f.write(file)
+
     return {"status": "Success"}
 
 

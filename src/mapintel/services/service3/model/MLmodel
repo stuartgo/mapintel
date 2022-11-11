@@ -1,0 +1,14 @@
+flavors:
+  python_function:
+    artifacts:
+      lda_model:
+        path: artifacts/model.pkl
+        uri: ./tests/services/service3/model.pkl
+    cloudpickle_version: 2.2.0
+    env: conda.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.9.9
+mlflow_version: 1.30.0
+model_uuid: 160f59f48b674277af6cabd3e59e01a2
+utc_time_created: '2022-11-11 13:03:55.560704'

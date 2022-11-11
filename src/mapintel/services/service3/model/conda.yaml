@@ -1,0 +1,10 @@
+channels:
+- defaults
+dependencies:
+- python=3.9.9
+- pip
+- pip:
+  - mlflow
+  - cloudpickle==2.2.0
+  - scikit-learn==1.1.2
+name: lda_env

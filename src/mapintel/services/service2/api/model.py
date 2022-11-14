@@ -15,7 +15,7 @@ class Response(BaseModel):
 
 @router.post("/model", response_model=Response)
 def model(file: bytes = File()):
-    with open("./src/mapintel/services/service1/model.zip", "wb") as f:
+    with open("./src/mapintel/services/service2/model.zip", "wb") as f:
         f.write(file)
 
     return {"status": "Success"}
@@ -23,11 +23,11 @@ def model(file: bytes = File()):
 
 @router.get("/model")
 def model(request: BaseModel):
-    return FileResponse("./src/mapintel/services/service1/model.zip")
+    return FileResponse("./src/mapintel/services/service2/model.zip")
 
 
 class Request_vectors(BaseModel):
-    docs: List[str]
+    docs: List[List[float]]
 
 
 
@@ -41,8 +41,8 @@ class Response_vectors(BaseModel):
 
 @router.post("/model/vectors", response_model=Response_vectors)
 def vectorisation(request: Request_vectors):
-    shutil.unpack_archive("./src/mapintel/services/service1/model.zip", "./src/mapintel/services/service1/model/", "zip")
-    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
+    shutil.unpack_archive("./src/mapintel/services/service2/model.zip", "./src/mapintel/services/service2/model/", "zip")
+    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service2/model/")
     return {
         "status": "Success",
         "embeddings": model.predict(request.docs).tolist(),

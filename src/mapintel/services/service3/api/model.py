@@ -15,7 +15,7 @@ class Response(BaseModel):
 
 @router.post("/model", response_model=Response)
 def model(file: bytes = File()):
-    with open("./src/mapintel/services/service1/model.zip", "wb") as f:
+    with open("./src/mapintel/services/service3/model.zip", "wb") as f:
         f.write(file)
 
     return {"status": "Success"}
@@ -23,30 +23,30 @@ def model(file: bytes = File()):
 
 @router.get("/model")
 def model(request: BaseModel):
-    return FileResponse("./src/mapintel/services/service1/model.zip")
+    return FileResponse("./src/mapintel/services/service3/model.zip")
 
 
-class Request_vectors(BaseModel):
+class Request_topic(BaseModel):
     docs: List[str]
 
 
 
-class Response_vectors(BaseModel):
+class Response_topic(BaseModel):
     status: str
-    embeddings: Any
-
-    class Config:
-        arbitrary_types_allowed = True
+    topics: List[int]
 
 
-@router.post("/model/vectors", response_model=Response_vectors)
-def vectorisation(request: Request_vectors):
-    shutil.unpack_archive("./src/mapintel/services/service1/model.zip", "./src/mapintel/services/service1/model/", "zip")
-    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
+
+@router.post("/model/topic", response_model=Response_topic)
+def topic(request: Request_topic):
+    shutil.unpack_archive("./src/mapintel/services/service3/model.zip", "./src/mapintel/services/service3/model/", "zip")
+    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service3/model/")
+    # print(model.predict(request.docs).tolist(),"shee")
+    # print(type(model.predict(request.docs).tolist()[0]))
     return {
         "status": "Success",
-        "embeddings": model.predict(request.docs).tolist(),
-    }  # np array not serialisable so must be turned to list
+        "topics": model.predict(request.docs),
+    } 
 
 
 
@@ -62,7 +62,7 @@ class Response_info(BaseModel):
 
 @router.get("/model/info", response_model=Response_info)
 def vectorisation(request: BaseModel):
-    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
+    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service3/model/")
     metadata=model.metadata.to_dict()
     return {
         "status": "Success",

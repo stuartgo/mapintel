@@ -57,4 +57,3 @@ def test_info():
     metadata=response.json()["metadata"]
     assert metadata["flavors"]["python_function"]["loader_module"]=="mlflow.sklearn"
 
-

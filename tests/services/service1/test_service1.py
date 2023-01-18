@@ -26,15 +26,15 @@ def test_model():
     if os.path.exists("./tests/services/service1/model_get.zip"):
         os.remove("./tests/services/service1/model_get.zip")
     #creates and saves mlflow model
-    model_info = mlflow.sklearn.save_model(sk_model=vectorizer, path="./tests/services/service1/model/")
+    model_info = mlflow.sklearn.save_model(sk_model=vectorizer, path="./tests/services/service1/model/",serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
     #loads model from saved files
     sklearn_pyfunc = mlflow.pyfunc.load_model(model_uri="./tests/services/service1/model/")
     #zips file
     shutil.make_archive("./tests/services/service1/model", 'zip', "./tests/services/service1/model/")
     with open("./tests/services/service1/model.zip", "rb") as f:
-        response_post = client.post("http://localhost:8000/model",files={"file": ("filename", f, "application/zip")})
+        response_post = client.post("http://localhost:8000/vectorisation/model",files={"file": ("filename", f, "application/zip")})
     #calls get request to fetch model that was just posted and stored
-    response_get=client.get("http://localhost:8000/model",json={})
+    response_get=client.get("http://localhost:8000/vectorisation/model",json={})
     with open("./tests/services/service1/model_get.zip", "wb") as f:
         f.write(response_get.content)
     shutil.unpack_archive("./tests/services/service1/model_get.zip", "./tests/services/service1/model_get/", "zip")
@@ -56,4 +56,3 @@ def test_info():
     response=client.get("http://localhost:8000/model/info",json={})
     metadata=response.json()["metadata"]
     assert metadata["flavors"]["python_function"]["loader_module"]=="mlflow.sklearn"
-

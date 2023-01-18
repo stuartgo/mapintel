@@ -17,6 +17,7 @@ class Response(BaseModel):
 def model(file: bytes = File()):
     with open("./src/mapintel/services/service1/model.zip", "wb") as f:
         f.write(file)
+    shutil.unpack_archive("./src/mapintel/services/service1/model.zip", "./src/mapintel/services/service1/model/", "zip")
     return {"status": "Success"}
 
 
@@ -38,9 +39,8 @@ class Response_vectors(BaseModel):
         arbitrary_types_allowed = True
 
 
-@router.post("/model/vectors", response_model=Response_vectors)
+@router.post("/vectors", response_model=Response_vectors)
 def vectorisation(request: Request_vectors):
-    shutil.unpack_archive("./src/mapintel/services/service1/model.zip", "./src/mapintel/services/service1/model/", "zip")
     model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
     return {
         "status": "Success",

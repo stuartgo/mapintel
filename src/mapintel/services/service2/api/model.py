@@ -39,7 +39,7 @@ class Response_vectors(BaseModel):
         arbitrary_types_allowed = True
 
 
-@router.post("/model/vectors", response_model=Response_vectors)
+@router.post("/vectors", response_model=Response_vectors)
 def vectorisation(request: Request_vectors):
     shutil.unpack_archive("./src/mapintel/services/service2/model.zip", "./src/mapintel/services/service2/model/", "zip")
     model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service2/model/")

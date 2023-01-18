@@ -2,7 +2,6 @@ import logging
 
 import uvicorn
 from fastapi import FastAPI
-
 from .router import router as api_router
 
 from starlette.middleware.cors import CORSMiddleware
@@ -31,8 +30,8 @@ def get_application() -> FastAPI:
 
 app = get_application()
 
-logger.info("Open http://127.0.0.1:8000/docs to see Swagger API Documentation.")
+logger.info("Open http://127.0.0.1:8001/docs to see Swagger API Documentation.")
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=9002)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

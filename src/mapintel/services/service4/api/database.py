@@ -10,8 +10,8 @@ from elasticsearch.helpers import scan,bulk
 from typing import List,Any
 import os
 import requests
-es = Elasticsearch(cloud_id="Mapintel:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvOjQ0MyQ4OTc0MzIzNDBjMmQ0OTYzOTRmYmEzZjFhNTA3ZjI2MCRjYTZkNGRlMmI0YzQ0Mzk0YmYyNmVhOTlkYjRiMDEzZg==",
-basic_auth=('elastic', 'YPkglaZqDQhyBmHdCCh8nIbm'),)
+es = Elasticsearch(cloud_id="Mapintel_testing:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvOjQ0MyQ5ZjBiYjM5NzllMmQ0YTQ4YjQ4MGFmMjVlMDIyMjU5NSQxMDU1ODAyZTZkNzU0ZjRhOTlhODA4OTAzZmQ1ZTMwZg==",
+basic_auth=('elastic', 'ojap2aCpyk3FiO7pRZfxUtIt'),)
 router = APIRouter()
 
 
@@ -44,12 +44,13 @@ class Request_query(BaseModel):
 
 @router.post("/query")
 def query(request: Request_query):
+    print(request)
     es.indices.refresh(index="topics")
     topics=es.search(index="topics",  query={"match_all": {}})
     topics=list(map(lambda x: x["_source"]["topic"],topics["hits"]["hits"]))
     docs=es.search(index="docs",
-        query={"query": {"bool":{"filter": request.filters}}},
-        knn={"field":"umap_embeddings","query_vector":[0,0],"k":15,"num_candidates":request.top_k_retriever})
+        query={"bool":{"filter": request.filters}},
+        knn={"field":"meta.umap_embeddings","query_vector":[0,0],"k":15,"num_candidates":request.top_k_retriever},)
     return {"topic_names":topics,"answers":docs["hits"]["hits"]}
 
 

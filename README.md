@@ -36,3 +36,18 @@ With [`pipx`](https://github.com/pipxproject/pipx):
 python -m pip install --user pipx
 pipx install mapintel
 ```
+
+## Running MapIntel
+
+Run API:
+```bash
+python -m mapintel.services.api_endpoint
+```
+API is avaliable at: localhost:30000/docs
+
+Run UI
+```bash
+streamlit run ./src/mapintel/ui/webapp.py
+```
+UI is avaliable at: localhost:8501
+

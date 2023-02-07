@@ -5,7 +5,7 @@ build-backend = "pdm.pep517.api"
 [project]
 name = "mapintel"
 description = "MapIntel is a system for acquiring intelligence from vast collections of text data by representing each document as a multidimensional vector that captures its own semantics. The system is designed to handle complex Natural Language queries and visual exploration of the corpus."
-authors = [{name = "Georgios Douzas", email = "gdouzas@icloud.com"}]
+authors = [{name = "Georgios Douzas", email = "gdouzas@icloud.com"}, {name = "Stuart Gallina Ottersen", email = "ottersenstuart@gmail.com"}]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9,<3.11"

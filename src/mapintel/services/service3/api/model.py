@@ -37,7 +37,7 @@ class Response_topic(BaseModel):
 
 
 
-@router.post("/model/topic", response_model=Response_topic)
+@router.post("/", response_model=Response_topic)
 def topic(request: Request_topic):
     shutil.unpack_archive("./src/mapintel/services/service3/model.zip", "./src/mapintel/services/service3/model/", "zip")
     model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service3/model/")

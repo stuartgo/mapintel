@@ -1,0 +1,10 @@
+channels:
+- defaults
+dependencies:
+- python=3.9.12
+- pip
+- pip:
+  - mlflow
+  - cloudpickle==2.0.0
+  - umap-learn==0.5.3
+name: umap_env

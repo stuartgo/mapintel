@@ -1,10 +1,29 @@
+[black badge]: <https://img.shields.io/badge/%20style-black-000000.svg>
+[black]: <https://github.com/psf/black>
+[ruff badge]: <https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json>
+[ruff]: <https://github.com/charliermarsh/ruff>
+[mkdocs badge]: <https://img.shields.io/badge/docs-mkdocs%20material-blue.svg?style=flat>
+[mkdocs]: <https://squidfunk.github.io/mkdocs-material>
+[version badge]: <https://img.shields.io/pypi/v/MapIntel.svg>
+[pythonversion badge]: <https://img.shields.io/pypi/pyversions/MapIntel.svg>
+[downloads badge]: <https://img.shields.io/pypi/dd/MapIntel>
+[gitter]: <https://gitter.im/MapIntel/community>
+[gitter badge]: <https://badges.gitter.im/join%20chat.svg>
+[ci]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions?query=workflow>
+[ci badge]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions/workflows/ci.yml/badge.svg>
+[doc]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions?query=workflow>
+[doc badge]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions/workflows/doc.yml/badge.svg?branch=master>
+
 # MapIntel
 
-[![ci](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel/workflows/ci/badge.svg)](https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel/actions?query=workflow%3Aci)
-[![documentation](https://img.shields.io/badge/docs-mkdocs%20material-blue.svg?style=flat)](https://NOVA-IMS-Innovation-and-Analytics-Lab.github.io/mapintel/)
-[![pypi version](https://img.shields.io/pypi/v/mapintel.svg)](https://pypi.org/project/mapintel/)
-[![gitpod](https://img.shields.io/badge/gitpod-workspace-blue.svg?style=flat)](https://gitpod.io/#https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/mapintel)
-[![gitter](https://badges.gitter.im/join%20chat.svg)](https://gitter.im/mapintel/community)
+[![ci][ci badge]][ci] [![doc][doc badge]][doc]
+
+|          | Tools |
+| -------- | -------- |
+| **Development** | [![black][black badge]][black] [![ruff][ruff badge]][ruff] |
+| **Package** | ![version][version badge] ![pythonversion][pythonversion badge] ![downloads][downloads badge] |
+| **Documentation** | [![mkdocs][mkdocs badge]][mkdocs]|
+| **Community** | [![gitter][gitter badge]][gitter] |
 
 MapIntel is a system for acquiring intelligence from vast collections of text data by representing
 each document as a multidimensional vector that captures its own semantics. The system is designed
@@ -30,24 +49,21 @@ With `pip`:
 pip install mapintel
 ```
 
-With [`pipx`](https://github.com/pipxproject/pipx):
-
-```bash
-python -m pip install --user pipx
-pipx install mapintel
-```
-
-## Running MapIntel
+## Usage
 
 Run API:
+
 ```bash
 python -m mapintel.services.api_endpoint
 ```
-API is avaliable at: localhost:30000/docs
 
-Run UI
+API is available at localhost:30000/docs
+
+Run UI:
+
 ```bash
 streamlit run ./src/mapintel/ui/webapp.py
 ```
-UI is avaliable at: localhost:8501
+
+UI is available at localhost:8501
 

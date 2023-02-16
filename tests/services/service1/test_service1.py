@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from mapintel.services.service1.api.api_endpoint import app
+from mapintel.services.vectorisation.api.api_endpoint import app
 import mlflow
 from sklearn.feature_extraction.text import CountVectorizer
 import shutil,os

@@ -13,4 +13,9 @@ site/
 pdm.lock
 .pdm.toml
 __pypackages__/
-.venv*
+.venv/
+.nox
+.ruff_cache
+.vscode
+.DS_Store
+.vercel

@@ -9,6 +9,8 @@
 [downloads badge]: <https://img.shields.io/pypi/dd/MapIntel>
 [gitter]: <https://gitter.im/MapIntel/community>
 [gitter badge]: <https://badges.gitter.im/join%20chat.svg>
+[discussions]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/discussions>
+[discussions badge]: <https://img.shields.io/github/discussions/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel>
 [ci]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions?query=workflow>
 [ci badge]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions/workflows/ci.yml/badge.svg>
 [doc]: <https://github.com/NOVA-IMS-Innovation-and-Analytics-Lab/MapIntel/actions?query=workflow>
@@ -18,12 +20,12 @@
 
 [![ci][ci badge]][ci] [![doc][doc badge]][doc]
 
-|          | Tools |
-| -------- | -------- |
-| **Development** | [![black][black badge]][black] [![ruff][ruff badge]][ruff] |
-| **Package** | ![version][version badge] ![pythonversion][pythonversion badge] ![downloads][downloads badge] |
+| Category          | Tools    |
+| ------------------| -------- |
+| **Development**   | [![black][black badge]][black] [![ruff][ruff badge]][ruff] |
+| **Package**       | ![version][version badge] ![pythonversion][pythonversion badge] ![downloads][downloads badge] |
 | **Documentation** | [![mkdocs][mkdocs badge]][mkdocs]|
-| **Community** | [![gitter][gitter badge]][gitter] |
+| **Communication** | [![gitter][gitter badge]][gitter] [![discussions][discussions badge]][discussions] |
 
 MapIntel is a system for acquiring intelligence from vast collections of text data by representing
 each document as a multidimensional vector that captures its own semantics. The system is designed
@@ -39,7 +41,7 @@ exploration and interactive information encountering process.
 
 MapIntel can be used to explore many different types of corpora.
 
-![MapIntel UI screenshot](./artifacts/ui.png)
+![MapIntel UI screenshot](./docs/artifacts/ui.png)
 
 ## Installation
 

@@ -1,11 +1,11 @@
 from fastapi import Depends, FastAPI
 import uvicorn
 
-from .service1.api.router import router  as s1_router
-from .service2.api.router import router  as s2_router
-from .service3.api.router import router  as s3_router
-from .service4.api.router import router  as s4_router
-from .service5.api.router import router  as s5_router
+from .vectorization.api.router import router  as s1_router
+from .dim_reduc.api.router import router  as s2_router
+from .topic_modelling.api.router import router  as s3_router
+from .database.api.router import router  as s4_router
+from .model_database.api.router import router  as s5_router
 app = FastAPI()
 
 

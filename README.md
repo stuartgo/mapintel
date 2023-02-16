@@ -68,4 +68,3 @@ streamlit run ./src/mapintel/ui/webapp.py
 ```
 
 UI is available at localhost:8501
-

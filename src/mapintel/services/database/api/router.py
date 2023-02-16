@@ -1,6 +1,6 @@
+from fastapi import APIRouter
 
 from .database import router as database_router
-from fastapi import APIRouter
 
 router = APIRouter()
 

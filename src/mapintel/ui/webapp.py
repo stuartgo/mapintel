@@ -31,10 +31,7 @@ from ui.utils import (
 default_question = "Stock Market News"
 topic_labels = get_topic_names()
 outlier_topic_label = [i for i in topic_labels if i.split("_")[0] == "-1"]
-if len(outlier_topic_label) > 0:
-    outlier_topic_label = outlier_topic_label[0]
-else:
-    outlier_topic_label = None
+outlier_topic_label = outlier_topic_label[0] if len(outlier_topic_label) > 0 else None
 
 debug = False
 batch_size = 10000
@@ -61,9 +58,7 @@ with st.sidebar:
                 format="DD-MM-YY",
             )
         with st.beta_expander("Query Options"):
-            filter_category = st.multiselect(
-                "Category", options=topic_labels, default=outlier_topic_label
-            )
+            filter_category = st.multiselect("Category", options=topic_labels, default=outlier_topic_label)
             filter_category_exclude = st.checkbox("Exclude", value=True)
         with st.beta_expander("Results Options"):
             top_k_reader = st.slider(
@@ -93,7 +88,7 @@ with st.sidebar:
 
 # Prepare filters
 if filter_category:
-    filter_topics = list(map(lambda x: x.lower(), filter_category))
+    filter_topics = [x.lower() for x in filter_category]
 
     # If filters should be excluded
     if filter_category_exclude:
@@ -112,9 +107,9 @@ filters.append(
             "timestamp": {
                 "gte": filter_date[0].strftime("%Y-%m-%d"),
                 "lte": filter_date[1].strftime("%Y-%m-%d"),
-            }
-        }
-    }
+            },
+        },
+    },
 )
 
 # Search bar
@@ -124,13 +119,9 @@ question = st.text_input(label="Please provide your query:", value=default_quest
 doc_num = count_docs(filters)
 sample_size = int(umap_perc / 100 * doc_num)
 st.subheader("UMAP")
-with st.spinner(
-    "Getting documents from database... \n " "Documents will be plotted when ready."
-):
+with st.spinner("Getting documents from database... \n " "Documents will be plotted when ready."):
     # Read data for umap plot (create generator)
-    umap_docs = get_all_docs(
-        filters=filters, batch_size=batch_size, sample_size=sample_size
-    )
+    umap_docs = get_all_docs(filters=filters, batch_size=batch_size, sample_size=sample_size)
 if len(umap_docs) > 0:
     # Plot the completed UMAP plot
     fig, config = umap_page(
@@ -141,7 +132,7 @@ if len(umap_docs) > 0:
     st.plotly_chart(fig, use_container_width=True, config=config)
 else:
     st.write(
-        """No documents extracted with the applied filters and sample size. Try to increase the sample size or change the filters to be more inclusive."""
+        """No documents extracted with the applied filters and sample size. Try to increase the sample size or change the filters to be more inclusive.""",
     )
 st.write("___")
 
@@ -149,7 +140,7 @@ st.write("___")
 with st.spinner(
     "Performing neural search on documents... 🧠 \n "
     "Do you want to optimize speed or accuracy? \n"
-    "Check out the docs: https://haystack.deepset.ai/docs/latest/optimizationmd "
+    "Check out the docs: https://haystack.deepset.ai/docs/latest/optimizationmd ",
 ):
     results, raw_json = retrieve_doc(
         query=question,
@@ -192,25 +183,17 @@ for result in results:
                 unsafe_allow_html=True,
             )
 
-    "**Relevance:** ", result["relevance"], "**Topic:** ", result[
-        "topic_label"
-    ], "**Published At:** ", result["timestamp"][:-4].replace("T", ", ")
+    "**Relevance:** ", result["relevance"], "**Topic:** ", result["topic_label"], "**Published At:** ", result[
+        "timestamp"
+    ][:-4].replace("T", ", ")
 
     # Define columns for feedback buttons
     button_col1, button_col2, _ = st.beta_columns([1, 1, 8])
-    if button_col1.button(
-        "👍", key=(str(result["answer"]) + str(count)), help="Relevant document"
-    ):
-        raw_json_feedback = feedback_answer(
-            question, result["answer"], result["document_id"], 1, "true", "true"
-        )
+    if button_col1.button("👍", key=(str(result["answer"]) + str(count)), help="Relevant document"):
+        raw_json_feedback = feedback_answer(question, result["answer"], result["document_id"], 1, "true", "true")
         st.success("Thanks for your feedback")
-    if button_col2.button(
-        "👎", key=(str(result["answer"]) + str(count)), help="Irrelevant document"
-    ):
-        raw_json_feedback = feedback_answer(
-            question, result["answer"], result["document_id"], 1, "false", "false"
-        )
+    if button_col2.button("👎", key=(str(result["answer"]) + str(count)), help="Irrelevant document"):
+        raw_json_feedback = feedback_answer(question, result["answer"], result["document_id"], 1, "false", "false")
         st.success("Thanks for your feedback!")
     count += 1
     st.write("___")

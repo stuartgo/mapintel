@@ -1,11 +1,11 @@
-import base64
-
-from typing import List,Any
-from fastapi import APIRouter,File
-from pydantic import BaseModel
-from fastapi.responses import FileResponse
 import shutil
+from typing import Any
+
 import mlflow
+from fastapi import APIRouter, File
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
 router = APIRouter()
 
 
@@ -15,7 +15,7 @@ class Response(BaseModel):
 
 @router.post("/model", response_model=Response)
 def model(file: bytes = File()):
-    """Used to set model to be used for dimensionality reduction
+    """Used to set model to be used for dimensionality reduction.
 
     Args:
         file: mlflow zipped model
@@ -31,7 +31,7 @@ def model(file: bytes = File()):
 
 @router.get("/model")
 def model(request: BaseModel):
-    """Used to fetch model currently set for dimentionality reduction
+    """Used to fetch model currently set for dimentionality reduction.
 
     Returns:
         bytes: zipped model
@@ -40,8 +40,7 @@ def model(request: BaseModel):
 
 
 class Request_vectors(BaseModel):
-    docs: List[List[float]]
-
+    docs: list[list[float]]
 
 
 class Response_vectors(BaseModel):
@@ -54,7 +53,7 @@ class Response_vectors(BaseModel):
 
 @router.post("/vectors", response_model=Response_vectors)
 def vectorisation(request: Request_vectors):
-    """Transforms n dimensional vectors to two dimensions
+    """Transforms n dimensional vectors to two dimensions.
 
     Args:
         list: List of embeddings
@@ -62,34 +61,29 @@ def vectorisation(request: Request_vectors):
     Returns:
         dict: returns 2d vectors
     """
-    shutil.unpack_archive("./src/mapintel/services/service2/model.zip", "./src/mapintel/services/service2/model/", "zip")
-    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service2/model/")
+    shutil.unpack_archive(
+        "./src/mapintel/services/service2/model.zip",
+        "./src/mapintel/services/service2/model/",
+        "zip",
+    )
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service2/model/")
     return {
         "status": "Success",
         "embeddings": model.predict(request.docs).tolist(),
     }  # np array not serialisable so must be turned to list
 
 
-
-
-
-
 class Response_info(BaseModel):
     status: str
-    metadata:dict
-
-
+    metadata: dict
 
 
 @router.get("/model/info", response_model=Response_info)
 def model_info(request: BaseModel):
     """Returns info about model currently in use
     Returns:
-        dict: Metadata with info about model
+        dict: Metadata with info about model.
     """
-    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
-    metadata=model.metadata.to_dict()
-    return {
-        "status": "Success",
-        "metadata":metadata
-            }  # np array not serialisable so must be turned to list
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
+    metadata = model.metadata.to_dict()
+    return {"status": "Success", "metadata": metadata}  # np array not serialisable so must be turned to list

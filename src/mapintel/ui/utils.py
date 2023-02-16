@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -16,9 +15,7 @@ NUM_DOCS = "doc_count"
 logger = logging.getLogger(__name__)
 
 
-@st.cache(
-    show_spinner=False
-)  # If the input parameters didn't change then streamlit doesn't execute the function again
+@st.cache(show_spinner=False)  # If the input parameters didn't change then streamlit doesn't execute the function again
 def retrieve_doc(query, filters=None, top_k_reader=10, top_k_retriever=100):
     # Query Haystack API
     url = f"{API_ENDPOINT}/{DOC_REQUEST}"
@@ -31,11 +28,11 @@ def retrieve_doc(query, filters=None, top_k_reader=10, top_k_retriever=100):
     response_raw = requests.post(url, json=request_params).json()
 
     # Format response
-    
+
     result = []
     answers = response_raw["answers"]
     for i in range(len(answers)):
-        score=answers[i]["_score"]
+        score = answers[i]["_score"]
         answer = answers[i]["_source"]
         if answer:
             document_id = answer["document_id"]
@@ -61,7 +58,7 @@ def retrieve_doc(query, filters=None, top_k_reader=10, top_k_retriever=100):
                     "image_url": image_url,
                     "umap_embeddings": umap_embeddings,
                     "document_id": document_id,
-                }
+                },
             )
     return result, response_raw
 
@@ -72,8 +69,9 @@ def get_all_docs(batch_size, filters=None, sample_size=None):
     url = f"{API_ENDPOINT}/{DOC_REQUEST_GENERATOR}"
     request_params = {"filters": filters, "batch_size": batch_size}
     response_generator = requests.post(
-        url, json=request_params#, stream=True
-    ).json()#.iter_lines(delimiter=b"#SEP#")
+        url,
+        json=request_params,  # , stream=True
+    ).json()  # .iter_lines(delimiter=b"#SEP#")
     if sample_size is None:
         sample_size = float("inf")
     final_docs = []
@@ -81,14 +79,14 @@ def get_all_docs(batch_size, filters=None, sample_size=None):
     for line in response_generator["generator"]:
         if i % batch_size == 0:
             if i == 0:
-                logger.info(f"Begin generator.")
+                logger.info("Begin generator.")
             else:
                 logger.info(f"Iteration done: {i}.")
         # Filter out keep-alive new lines
         if line:
             # doc = json.loads(line.decode("utf-8"))["hits"]["hits"][0]["_source"]
-            doc=line["_source"]
-            document_id=doc["document_id"]
+            doc = line["_source"]
+            document_id = doc["document_id"]
             url = doc["url"]
             title = doc["title"]
             timestamp = doc["timestamp"]
@@ -97,12 +95,8 @@ def get_all_docs(batch_size, filters=None, sample_size=None):
             umap_embeddings = doc["umap_embeddings"]
             image_url = doc["image_url"]
             snippet = doc["snippet"]
-            umap_embeddings_x = (
-                None if umap_embeddings is None else umap_embeddings[0]
-            )
-            umap_embeddings_y = (
-                None if umap_embeddings is None else umap_embeddings[1]
-            )
+            umap_embeddings_x = None if umap_embeddings is None else umap_embeddings[0]
+            umap_embeddings_y = None if umap_embeddings is None else umap_embeddings[1]
             final_docs.append(
                 {
                     # "answer": answer,
@@ -117,7 +111,7 @@ def get_all_docs(batch_size, filters=None, sample_size=None):
                     "umap_embeddings_x": umap_embeddings_x,
                     "umap_embeddings_y": umap_embeddings_y,
                     "document_id": document_id,
-                }
+                },
             )
             i += 1
         # Exit the loop when we reach sample_size
@@ -149,9 +143,7 @@ def count_docs(filters=None):
     return response_raw["num_documents"]
 
 
-def feedback_answer(
-    question, answer, document_id, model_id, is_correct_answer, is_correct_document
-):
+def feedback_answer(question, answer, document_id, model_id, is_correct_answer, is_correct_document):
     # Feedback Haystack API
     url = f"{API_ENDPOINT}/{DOC_FEEDBACK}"
     request_params = {

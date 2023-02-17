@@ -16,27 +16,41 @@ environment you can follow the next steps:
 ## Tasks
 
 This project uses [nox](https://nox.thea.codes/en/stable/) to run tasks. Please check the `noxfile.py` at the root of the
-project for more details. You can run any of the following commands that corresponds to a particular task:
+project for more details. You can run any of the following commands and subcommands that corresponds to a particular task:
 
-- `pdm build-docs` to build the documentation.
+- Documentation:
 
-- `pdm serve-docs` to serve the documentation.
+  - `pdm docs serve` (or just `pdm docs`) to serve the documentation.
 
-- `pdm serve-docs` to deploy the documentation.
+  - `pdm docs build` to build locally the documentation.
 
-- `pdm format-code` to format the code.
+  - `pdm docs deploy` to build serve the documentation.
 
-- `pdm check-quality` to check the code quality.
+- Formatting:
 
-- `pdm check-dependencies` to check for vulnerabilities in dependencies.
+  - `pdm formatting all` (or just `pdm formatting`) to format both the code and docstrings.
 
-- `pdm check-types` to check type annotations.
+  - `pdm formatting code` to format only the code.
 
-- `pdm test` to run the tests.
+  - `pdm formatting docstrings` to format only the docstrings.
 
-- `pdm coverage` to run the tests coverage.
+- Checks:
 
-- `pdm release` to release a new Python package with an upadted version.
+  - `pdm checks quality` to check code quality.
+
+  - `pdm checks types` to check type annotations.
+
+  - `pdm checks dependencies` to check for vulnerabilities in dependencies.
+
+- Changelog:
+
+  - `pdm changelog add` to add a news fragment to the changelog.
+
+  - `pdm changelog build` to build the changelog.
+
+- Release:
+
+  - `pdm release` to release a new Python package with an updated version.
 
 ## Development
 

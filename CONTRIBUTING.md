@@ -42,6 +42,10 @@ project for more details. You can run any of the following commands and subcomma
 
   - `pdm checks dependencies` to check for vulnerabilities in dependencies.
 
+- Tests:
+
+  - `pdm tests` to run the tests and their coverage.
+
 - Changelog:
 
   - `pdm changelog add` to add a news fragment to the changelog.
@@ -57,11 +61,12 @@ project for more details. You can run any of the following commands and subcomma
 The next steps should be followed during development:
 
 - `git checkout -b new-branch-name` to create a new branch and then modify the code.
-- `pdm format-code` to auto-format the code.
-- `pdm check-quality` to check code quality and fix any warnings.
-- `pdm check-types` to check type annotations and fix any warnings.
-- `pdm test` to run the tests.
-- `pdm serve-docs` if you updated the documentation or the project dependencies to check that everything looks good.
+- `pdm formatting` to auto-format the code.
+- `pdm checks quality` to check code quality and fix any warnings.
+- `pdm checks types` to check type annotations and fix any warnings.
+- `pdm tests` to run the tests.
+- `pdm docs serve` if you updated the documentation or the project dependencies to check that everything looks good.
+- Create a Pull Request to master branch.
 
 ## Pull Request guidelines
 

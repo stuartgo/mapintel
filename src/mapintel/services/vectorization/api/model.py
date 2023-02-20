@@ -1,11 +1,11 @@
-import shutil
-from typing import Any
+import base64
 
-import mlflow
-from fastapi import APIRouter, File
-from fastapi.responses import FileResponse
+from typing import List,Any
+from fastapi import APIRouter,File
 from pydantic import BaseModel
-
+from fastapi.responses import FileResponse
+import shutil
+import mlflow
 router = APIRouter()
 
 
@@ -15,7 +15,7 @@ class Response(BaseModel):
 
 @router.post("/model", response_model=Response)
 def model(file: bytes = File()):
-    """Used to set model for vectorization.
+    """Used to set model for vectorization
 
     Args:
         File: Zipped file of model
@@ -23,28 +23,25 @@ def model(file: bytes = File()):
     Returns:
         dict: status
     """
-    with open("./src/mapintel/services/service1/model.zip", "wb") as f:
+    with open("./src/mapintel/services/vectorization/model.zip", "wb") as f:
         f.write(file)
-    shutil.unpack_archive(
-        "./src/mapintel/services/service1/model.zip",
-        "./src/mapintel/services/service1/model/",
-        "zip",
-    )
+    shutil.unpack_archive("./src/mapintel/services/vectorization/model.zip", "./src/mapintel/services/vectorization/model/", "zip")
     return {"status": "Success"}
 
 
 @router.get("/model")
 def model(request: BaseModel):
-    """Fetches model set for vectorization.
+    """Fetches model set for vectorization
 
     Returns:
         File: Zipped file of model
     """
-    return FileResponse("./src/mapintel/services/service1/model.zip")
+    return FileResponse("./src/mapintel/services/vectorization/model.zip")
 
 
 class Request_vectors(BaseModel):
-    docs: list[str]
+    docs: List[str]
+
 
 
 class Response_vectors(BaseModel):
@@ -57,7 +54,7 @@ class Response_vectors(BaseModel):
 
 @router.post("/vectors", response_model=Response_vectors)
 def vectorisation(request: Request_vectors):
-    """Vectorized docs.
+    """Vectorized docs
 
     Args:
         List: List of strings/docs
@@ -65,21 +62,27 @@ def vectorisation(request: Request_vectors):
     Returns:
         dict: Embeddings of docs
     """
-    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
+    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/vectorization/model/")
     return {
         "status": "Success",
         "embeddings": model.predict(request.docs).tolist(),
     }  # np array not serialisable so must be turned to list
 
 
+
+
+
+
 class Response_info(BaseModel):
     status: str
-    metadata: dict
+    metadata:dict
+
+
 
 
 @router.get("/model/info", response_model=Response_info)
 def vectorisation(request: BaseModel):
-    """Info about model used for vectorization.
+    """Info about model used for vectorization
 
     Args:
         File: Zipped file of model
@@ -87,6 +90,9 @@ def vectorisation(request: BaseModel):
     Returns:
         dict: status
     """
-    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service1/model/")
-    metadata = model.metadata.to_dict()
-    return {"status": "Success", "metadata": metadata}  # np array not serialisable so must be turned to list
+    model=mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/vectorization/model/")
+    metadata=model.metadata.to_dict()
+    return {
+        "status": "Success",
+        "metadata":metadata
+            }  # np array not serialisable so must be turned to list

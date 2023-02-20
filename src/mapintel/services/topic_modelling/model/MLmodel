@@ -10,5 +10,5 @@ flavors:
     python_model: python_model.pkl
     python_version: 3.9.12
 mlflow_version: 1.29.0
-model_uuid: 58672616f58d4609aff6a7fe75ffcd38
-utc_time_created: '2023-02-09 15:20:42.868881'
+model_uuid: 47220b449a564be28acf130d56d8f5e7
+utc_time_created: '2023-02-20 09:59:40.340272'

@@ -28,11 +28,11 @@ def model(request: Request):
         file: Zipped model
     """
     shutil.make_archive(
-        "./src/mapintel/services/service5/model",
+        "./src/mapintel/services/model_database/model",
         'zip',
-        "./src/mapintel/services/service5/models/" + request.model_name,
+        "./src/mapintel/services/model_database/models/" + request.model_name,
     )
-    return FileResponse("./src/mapintel/services/service5/model.zip")
+    return FileResponse("./src/mapintel/services/model_database/model.zip")
 
 
 @router.post("/available_models", response_model=Response_aval_models)
@@ -46,7 +46,7 @@ def model(request: BaseModel):
         "status": "Success",
         "models": [
             name
-            for name in os.listdir("./src/mapintel/services/service5/models/")
-            if os.path.isdir(os.path.join("./src/mapintel/services/service5/models/", name))
+            for name in os.listdir("./src/mapintel/services/model_database/models/")
+            if os.path.isdir(os.path.join("./src/mapintel/services/model_database/models/", name))
         ],
     }

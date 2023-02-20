@@ -8,7 +8,7 @@ import mlflow
 import mlflow.pyfunc
 import numpy as np
 from fastapi.testclient import TestClient
-from mapintel.services.service3.api.api_endpoint import app
+from mapintel.services.topic_modelling.api.api_endpoint import app
 from sklearn.decomposition import LatentDirichletAllocation as LDA
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import Pipeline

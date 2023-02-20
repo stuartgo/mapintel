@@ -3,7 +3,7 @@ import shutil
 
 import mlflow
 from fastapi.testclient import TestClient
-from mapintel.services.service2.api.api_endpoint import app
+from mapintel.services.dim_reduc.api.api_endpoint import app
 from sklearn.decomposition import PCA
 
 

@@ -3,7 +3,7 @@ import shutil
 
 import mlflow
 from fastapi.testclient import TestClient
-from mapintel.services.vectorisation.api.api_endpoint import app
+from mapintel.services.vectorization.api.api_endpoint import app
 from sklearn.feature_extraction.text import CountVectorizer
 
 

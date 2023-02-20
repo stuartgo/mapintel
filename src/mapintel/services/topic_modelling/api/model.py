@@ -22,7 +22,7 @@ def model(file: bytes = File()):
     Returns:
         dict: Status
     """
-    with open("./src/mapintel/services/service3/model.zip", "wb") as f:
+    with open("./src/mapintel/services/topic_modelling/model.zip", "wb") as f:
         f.write(file)
 
     return {"status": "Success"}
@@ -35,7 +35,7 @@ def model(request: BaseModel):
     Returns:
         File: Zipped file of model
     """
-    return FileResponse("./src/mapintel/services/service3/model.zip")
+    return FileResponse("./src/mapintel/services/topic_modelling/model.zip")
 
 
 class Request_topic(BaseModel):
@@ -58,11 +58,11 @@ def topic(request: Request_topic):
         dict: Topics
     """
     shutil.unpack_archive(
-        "./src/mapintel/services/service3/model.zip",
-        "./src/mapintel/services/service3/model/",
+        "./src/mapintel/services/topic_modelling/model.zip",
+        "./src/mapintel/services/topic_modelling/model/",
         "zip",
     )
-    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service3/model/")
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/topic_modelling/model/")
     # print(model.predict(request.docs).tolist(),"shee")
     # print(type(model.predict(request.docs).tolist()[0]))
     return {
@@ -83,6 +83,6 @@ def vectorisation(request: BaseModel):
     Returns:
         dict: Metadata about model
     """
-    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/service3/model/")
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/topic_modelling/model/")
     metadata = model.metadata.to_dict()
     return {"status": "Success", "metadata": metadata}  # np array not serialisable so must be turned to list

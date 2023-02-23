@@ -70,6 +70,29 @@ def topic(request: Request_topic):
         "topics": model.predict(request.docs),
     }
 
+class Response_topic_names(BaseModel):
+    status: str
+    topic_names: list[str]
+
+@router.get("/topic_names", response_model=Response_topic_names)
+def topic_names(request: BaseModel):
+    """Returns names of topics
+
+
+    Returns:
+        dict: Topics
+    """
+    shutil.unpack_archive(
+        "./src/mapintel/services/topic_modelling/model.zip",
+        "./src/mapintel/services/topic_modelling/model/",
+        "zip",
+    )
+    model = mlflow.pyfunc.load_model(model_uri="./src/mapintel/services/topic_modelling/model/")
+    return {
+        "status": "Success",
+        "topic_names": model._model_impl.python_model.topics(),
+    }
+
 
 class Response_info(BaseModel):
     status: str
